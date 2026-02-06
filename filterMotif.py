@@ -11,20 +11,20 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'ELN'
+inEnzymeName = 'Mpro2'
 inPathFolder = f'Enzymes/{inEnzymeName}'
-inSaveData = True
-inSaveFigures = True
+inSaveData = False
+inSaveFigures = False
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 0.44
+inMinDeltaS = 0.6
 inRefixMotif = True
-inFixedResidue = [['C', 'I', 'V']]
-inFixedPosition = [6]
+inFixedResidue = ['Q']
+inFixedPosition = [4]
 inExcludeResidues = False
-inExcludedResidue = ['A','A']
-inExcludedPosition = [9,10]
+inExcludedResidue = ['Q']
+inExcludedPosition = [8]
 inManualEntropy = False
 inManualFrame = ['R6','R8','R5','R7']
 inFixFullMotifSeq = False
@@ -412,8 +412,6 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
             print(f'     {pink}{AA}{resetColor}@{pink}R{preferredPositions[index]}'
                   f'{resetColor}')
         print()
-        if tag is not None:
-            print()
 
 
     if inCombineFixedMotifs:
@@ -500,7 +498,6 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
         preferredResidues.append(preferredAA)
 
 
-
         # Sort preferredPositions and keep preferredResidues in sync
         sortedLists = sorted(zip(preferredPositions, preferredResidues))
         preferredPositions, preferredResidues = zip(*sortedLists)
@@ -509,6 +506,7 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
         preferredResidues = list(preferredResidues)
         preferredPositions = list(preferredPositions)
         dispPreferredAA()
+        print()
 
         # Update NGS attributes
         ngs.fixedAA = preferredResidues
@@ -553,6 +551,7 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
                     if AA in preferredResidues[index]:
                         preferredResidues[index].remove(AA)
         dispPreferredAA(tag=f'{greenLight}Filtered{resetColor}')
+        print()
 
 
     print(f'Finish Fixing Iter: {ngs.saveFigureIteration}\n\n')
@@ -686,6 +685,7 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
                                                keepPositions=keepPositions,
                                                sortType=sortType)
 
+
     # Save the data
     if inSaveData:
         ngs.saveData(substrates=substratesFinalFixed, counts=countsFinalFixed,
@@ -741,7 +741,8 @@ def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortT
                     countsTotal.loc[popPosition, 'Total Counts']
             )
 
-        print(f'Released Counts: {purple}Released counts{resetColor}\n'
+        print(f'Count Matrix:\n{counts}\n\n'
+              f'Released Counts: {purple}Released counts{resetColor}\n'
               f'{countsReleased}\n\n'
               f'Total Counts: {purple}Released counts{resetColor}'
               f'\n{countsTotal}\n\n'
@@ -751,6 +752,7 @@ def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortT
         # Calculate enrichment scores
         ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=releasedRF,
                                 releasedCounts=True, relIteration=idxRel)
+
 
 
     # Determine which residues will be released
@@ -805,6 +807,7 @@ def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortT
         populateMatrix(counts=countsFinalFixed, popPosition=position, idxRel=indexRel)
 
     # Populate remaining columns
+    ngs.setFigureTimer = False ##
     fillPos = []
     for position in countsReleased.columns:
         if position not in populatedPositions:

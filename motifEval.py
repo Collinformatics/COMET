@@ -18,7 +18,7 @@ inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] #
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\''] #
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 inIndexNTerminus = 0 # Define the index if the first AA in the binned substrate
@@ -26,7 +26,7 @@ inIndexNTerminus = 0 # Define the index if the first AA in the binned substrate
 # Input 3: Computational Parameters
 inPlotOnlyWords = True
 inFixedResidue = ['Q']
-inFixedPosition = [4,5,6]
+inFixedPosition = [4]
 inExcludeResidues = False
 inExcludedResidue = ['A','A']
 inExcludedPosition = [9,10]
@@ -65,77 +65,7 @@ inPlotBinnedSubstratePrediction = False
 inPlotCounts = False
 inShowSampleSize = True # Include the sample size in your figures
 
-# Input 5: Processing The Data
-inPrintNumber = 10
-inFindSequences = False
-inFindSeq = 'LVLQA'
-
-# Input 6: Plot Heatmap
-inShowEnrichmentScores = True
-inShowEnrichmentAsSquares = False
-
-# Input 7: Plot Sequence Motif
-inNormLetters = False  # Normalize fixed letter heights
-inPlotWeblogoMotif = False
-inShowWeblogoYTicks = True
-inAddHorizontalLines = False
-inPlotNegativeWeblogoMotif = False
-inBigLettersOnTop = False
-
-# Input 8: Motif Enrichment
-inPlotNBars = 50
-
-# Input 9: Word Cloud
-inLimitWords = True
-inTotalWords = inPlotNBars
-
-# Input 10: PCA
-inNumberOfPCs = 2
-inTotalSubsPCA = int(5*10**4)
-inIncludeSubCountsESM = True
-inPlotEntropyPCAPopulations = False
-
-# Input 11: Predict Activity
-inPredictActivity = True
-inUseNaturalSubs = False
-if inUseNaturalSubs:
-    inPredictionTag = 'pp1a/b Substrates'
-    inPredictSubstrates = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
-                           'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
-                           'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
-    inSubstrateActivity = {
-        'AVLQSGFR': 0.0,
-        'VTFQSAVK': 0.0,
-        'ATVQSKMS': 0.0,
-        'ATLQAIAS': 0.0,
-        'VKLQNNEL': 0.0,
-        'VRLQAGNA': 0.0,
-        'PMLQSADA': 0.0,
-        'TVLQAVGA': 0.0,
-        'ATLQAENV': 0.0,
-        'TRLQSLEN': 0.0,
-        'PKLQSSQA': 0.0
-    }
-else:
-    inPredictionTag = 'EM Substrates'
-    inSubstrateActivity = {
-        'AVLQSG': 67.1,# 60,
-        'VILQSG': 79.9,# 70,
-        'VILQTG': 20.2,# 6,
-        'VILQSP': 0,# 0,
-        'VILHSG': 20.9,# 15,
-        'VIMQSG': 63.6,# 50,
-        'VPLQSG': 0,# 0,
-        'NILQSG': 15.4,# 6,
-    }
-inEMapStartIndex = 0 # Sub: ACDEFGHI, if idx = 0 start at A
-inRankScores = False
-inScalePredMatrix = False # Scale EM by ΔS
-
-# Input 12: Codon Enrichment
-inPredictCodonsEnrichment = False
-
-# Input 13: Printing The Data
+# Input 5: Printing The Data
 inPrintLoadedSubs = True
 inPrintSampleSize = True
 inPrintCounts = True
@@ -145,7 +75,79 @@ inPrintEntropy = True
 inPrintMotifData = True
 inPrintNumber = 10
 
-# Input 14: Evaluate Known Substrates
+# Input 6: Find Protein Sequences
+inFindSequences = False
+inFindSeq = ['LA', 'LF', 'LW']
+inFindAAInSequence = True
+inFindAA = ['A', 'F', 'W']
+inAAPos = 4
+
+# Input 7: Plot Heatmap
+inShowEnrichmentScores = True
+inShowEnrichmentAsSquares = False
+
+# Input 8: Plot Sequence Motif
+inNormLetters = False  # Normalize fixed letter heights
+inPlotWeblogoMotif = False
+inShowWeblogoYTicks = True
+inAddHorizontalLines = False
+inPlotNegativeWeblogoMotif = False
+inBigLettersOnTop = False
+
+# Input 9: Motif Enrichment
+inPlotNBars = 50
+
+# Input 10: Word Cloud
+inLimitWords = True
+inTotalWords = inPlotNBars
+
+# Input 11: PCA
+inNumberOfPCs = 2
+inTotalSubsPCA = int(5*10**4)
+inIncludeSubCountsESM = True
+inPlotEntropyPCAPopulations = False
+
+# Input 12: Predict Activity
+inPredictActivity = False
+inUseNaturalSubs = False
+if inUseNaturalSubs:
+    inPredictionTag = 'pp1a/b Substrates - SqRt'
+    inPredictSubstrates = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
+                           'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
+                           'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
+    inSubstrateActivity = {
+        'AVLQSGFR': 50.0,
+        'VTFQSAVK': 50.0,
+        'ATVQSKMS': 50.0,
+        'ATLQAIAS': 50.0,
+        'VKLQNNEL': 50.0,
+        'VRLQAGNA': 50.0,
+        'PMLQSADA': 50.0,
+        'TVLQAVGA': 50.0,
+        'ATLQAENV': 50.0,
+        'TRLQSLEN': 50.0,
+        'PKLQSSQA': 50.0
+    }
+elif inUseNaturalSubs is None:
+    inPredictionTag = '30 Min - Uncleaved Sub'
+    inSubstrateActivity = {
+        'AVLQSG': 54.9, # 60,
+        'VILQSG': 72.1, # 70,
+        'VILQTG': 7.9, # 6,
+        'VILQSP': 0, # 0,
+        'VILHSG': 16.0, # 15,
+        'VIMQSG': 58.2, # 50,
+        'VPLQSG': 0, # 0,
+        'NILQSG': 12.6, # 6,
+    }
+inEMapStartIndex = 0  # Sub: ACDEFGHI, if idx = 0 start at A
+inRankScores = False
+inScalePredMatrix = False  # Scale EM by ΔS
+
+# Input 14: Codon Enrichment
+inPredictCodonsEnrichment = False
+
+# Input 15: Evaluate Known Substrates
 inNormalizePredictions = True
 inYMaxPred = 1.05
 inYMinPred, inYMinPredScaled, inYMinPredAI = 0, 0, -0.25
@@ -164,14 +166,14 @@ inDatapointColor = []
 for _ in inSubsPredict:
     inDatapointColor.append(inBarColor)
 
-# Input 15: Evaluate Binned Substrates
+# Input 16: Evaluate Binned Substrates
 inPlotEnrichedSubstrateFrame = False
 inPrintLoadedFrames = True
 inPlotBinnedSubNumber = 30
 inPlotBinnedSubProb = True
 inPlotBinnedSubYMax = 0.07
 
-# Input 16: Predict Binned Substrate Enrichment
+# Input 17: Predict Binned Substrate Enrichment
 inEvaluatePredictions = False
 inPrintPredictions = False
 inBottomParam = 0.16
@@ -909,6 +911,17 @@ if inFindSequences:
                      sortType='Initial Sort')
     ngs.findSequence(substrates=substratesFiltered, sequence=inFindSeq,
                      sortType='Final Sort')
+    if combinedMotifs:
+        ngs.findSequence(substrates=motifs, sequence=inFindSeq,
+                         sortType='Motifs', combinedMotifs=combinedMotifs)
+if inFindAAInSequence:
+    # ngs.findAAInSequence(substrates=substratesInitial, AA=inFindAA, idxPos=inAAPos,
+    #                  sortType='Initial Sort')
+    # ngs.findAAInSequence(substrates=substratesFiltered, AA=inFindAA, idxPos=inAAPos,
+    #                  sortType='Final Sort')
+    if combinedMotifs:
+        ngs.findAAInSequence(substrates=motifs, AA=inFindAA, idxPos=inAAPos,
+                         sortType='Motifs', combinedMotifs=combinedMotifs)
 
 
 

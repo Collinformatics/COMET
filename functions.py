@@ -2389,7 +2389,7 @@ class NGS:
             ln = False
             if ln:
                 print(f'Using {purple}Natural Logarithmic{resetColor} Matrix')
-                for position in rfFinal.columns: ##
+                for position in rfFinal.columns:
                     # for AA in rfFinal.index:
                     matrix.loc[:, position] = np.log(
                         rfFinal.loc[:, position] / rfInitial.iloc[:, 0]
@@ -2811,7 +2811,7 @@ class NGS:
                     yMin = self.heights.loc[row, col]
         print(f'Adjusting Y Min:\n'
               f'y Max: {red}{np.round(yMax, 4)}{resetColor}\n'
-              f'y Min: {red}{np.round(yMin, 4)}{resetColor}\n')
+              f'y Min: {red}{np.round(yMin, 4)}{resetColor}\n\n')
         plotLogo(limitYAxis=True) # Limited y-axis
 
 
@@ -5529,8 +5529,12 @@ class NGS:
                     if seq in substrate:
                         totalHits += count
                         hits[substrate] = count
-        print(f'Unique Sequences: {red}{len(substrates.keys()):,}{resetColor}\n'
-              f' Total Sequences: {red}{totalSubstrates:,}{resetColor}\n')
+        if combinedMotifs:
+            print(f'Unique Motifs: {red}{len(substrates.keys()):,}{resetColor}\n'
+                  f' Total Motifs: {red}{totalSubstrates:,}{resetColor}\n')
+        else:
+            print(f'Unique Sequences: {red}{len(substrates.keys()):,}{resetColor}\n'
+                  f' Total Sequences: {red}{totalSubstrates:,}{resetColor}\n')
 
         # Find matches
         if useStr:
@@ -5550,6 +5554,71 @@ class NGS:
                 for index, (substrate, count) in enumerate(hits.items()):
                     for seq in sequence:
                         substrate = substrate.replace(seq, f'{blue}{seq}{color}')
+                    print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
+                    if index >= self.printNumber:
+                        break
+        else:
+            print(f'Hits: {red}{totalHits}{resetColor}')
+        print(f'Unique Sequences: {red}{len(hits.keys()):,}{resetColor}\n'
+              f'   Total Matches: {red}{totalHits:,}{resetColor}\n')
+        hitsPercent = (totalHits / totalSubstrates) * 100
+        print(f'Hit Population: {red}{totalHits:,}{resetColor} / {red}{totalSubstrates:,}'
+              f'{resetColor} = {red}{round(hitsPercent,self.roundVal)} %'
+              f'{resetColor}\n\n')
+
+
+    def findAAInSequence(self, substrates, AA, idxPos, sortType, combinedMotifs=False):
+        print('================================= Find Sequence '
+              '=================================')
+        idxPos -= 1 # Adjust index
+        if 'initial' in sortType.lower():
+            print(f'Dataset: {purple}Unfiltered{resetColor}\n'
+                  f' Enzyme: {purple}{self.enzymeName}{resetColor}\n'
+                  f'   Sort: {purple}{sortType}{resetColor}')
+        else:
+            print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
+                  f' Enzyme: {purple}{self.enzymeName}{resetColor}\n'
+                  f'   Sort: {purple}{sortType}{resetColor}')
+        totalSubstrates = 0
+        totalHits = 0
+        hits = {}
+        useStr = True
+        if isinstance(AA, str):
+            for substrate, count in substrates.items():
+                totalSubstrates += count
+                if substrate[idxPos] == AA:
+                    totalHits += count
+                    hits[substrate] = count
+        else:
+            useStr = False
+            for substrate, count in substrates.items():
+                totalSubstrates += count
+                #print(f'Sub: {substrate}\n  I: {idxPos}, AA: {substrate[idxPos]}')
+                if substrate[idxPos] in AA:
+                    totalHits += count
+                    hits[substrate] = count
+        if combinedMotifs:
+            print(f'Unique Motifs: {red}{len(substrates.keys()):,}{resetColor}\n'
+                  f' Total Motifs: {red}{totalSubstrates:,}{resetColor}\n')
+        else:
+            print(f'Unique Sequences: {red}{len(substrates.keys()):,}{resetColor}\n'
+                  f' Total Sequences: {red}{totalSubstrates:,}{resetColor}\n')
+
+        # Find matches
+        print(f'Finding: {purple}{AA}@R{idxPos + 1}{resetColor}')
+        if len(hits.keys()) > 0:
+            color = pink
+            print(f'Hits:')
+            if useStr:
+                for index, (substrate, count) in enumerate(hits.items()):
+                    substrate = substrate.replace(AA, f'{blue}{AA}{color}')
+                    print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
+                    if index >= self.printNumber:
+                        break
+            else:
+                for index, (substrate, count) in enumerate(hits.items()):
+                    substrate = substrate.replace(
+                        substrate[idxPos], f'{blue}{substrate[idxPos]}{color}')
                     print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
                     if index >= self.printNumber:
                         break
@@ -6116,7 +6185,13 @@ class NGS:
                         score = value
                     else:
                         score *= value
-                activityPred[substrate] = score
+
+                x = np.sqrt(score)
+                print(f'Sub: {purple}{substrate}{resetColor}\n'
+                      f'Score: {score:.3e}\n'
+                      f'    X: {x:.3e}\n')
+
+                activityPred[substrate] = x
             maxActivity = max(activityPred.values())
             dec = self.roundVal - 1
             print(f'Matrix Type: {purple}{tag}{resetColor}\n'
@@ -6165,7 +6240,7 @@ class NGS:
             print('')
 
             # Set title
-            title = f'{self.enzymeName}\n{self.datasetTag}\n{tag}'
+            title = f'{self.enzymeName}\n{self.datasetTag}\n{predLabel} - {tag}'
             if combinedMotifs and len(self.motifIndexExtracted) > 1:
                 title = title.replace(self.datasetTag,
                                       f'Combined {self.datasetTag}')
@@ -6176,7 +6251,6 @@ class NGS:
                 predVals = [activityPred[k] for k in labels]
                 expVals = [activityExp[k] for k in labels]
                 xTicks = np.arange(len(labels))
-
 
 
                 fig, ax = plt.subplots(figsize=self.figSize)
@@ -6190,7 +6264,7 @@ class NGS:
 
                 # Set xticks
                 ax.set_xticks(xTicks)
-                ax.set_xticklabels(labels, rotation=0)
+                ax.set_xticklabels(labels, rotation=45)
 
                 #Set tick parameters
                 ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -6224,6 +6298,7 @@ class NGS:
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
             plt.grid(True, linestyle='-', color='black')
             plt.xlim(-0.03, 1.03)
+            plt.xticks(ticks)
             plt.xticks(ticks)
             plt.ylim(-0.03, 1.03)
             plt.yticks(ticks)
