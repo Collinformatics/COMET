@@ -950,9 +950,14 @@ class NGS:
             tags = [[] for _ in range(len(self.fixedAA))]
             for index, AA in enumerate(self.fixedAA):
                 if isinstance(AA, list):
-                    AA = f'[{','.join(AA)}]'
+                    if len(AA) == 1:
+                        AA = AA[0]
+                        print(1)
+                    else:
+                        AA = f'[{','.join(AA)}]'
                 position = self.fixedPos[index]
                 if isinstance(position, int):
+                    print(2)
                     tag = f'{AA}@R{position}'
                     tags[index].append(tag)
                 else:
@@ -961,7 +966,6 @@ class NGS:
                             tag = f'{AA}@R{pos}'
                             tags[index].append(tag)
                     else:
-                        print(4)
                         tag = f'{AA}@R{position[0]}'
                         tags[index].append(tag)
 
@@ -1973,7 +1977,16 @@ class NGS:
 
     def getDatasetTag(self, useCodonProb=False, codon=None, combinedMotifs=False):
         if combinedMotifs:
+            continuous = True
             if len(self.fixedPos) == 1:
+                tags = []
+                for idxList in range(len(self.fixedAA)):
+                    tag = ''
+                    for idx, AA in enumerate(self.fixedAA[idxList]):
+                        tag += f'{AA}@R{self.fixedPos[idxList][idx]}_'
+                    tag = tag[:-1] # Remove the last char: "_"
+                    tags.append(tag)
+                # print('tags', ','.join(tags))
                 if isinstance(self.fixedAA[0], list):
                     self.datasetTag = \
                         f'Reading Frame [{",".join(self.fixedAA[0])}]@R{self.fixedPos[0]}'
@@ -1983,7 +1996,6 @@ class NGS:
             else:
                 fixedPos = sorted(self.fixedPos)
                 # print(f'Fixed Pos: {fixedPos}')
-                continuous = True
                 multiCombinedFrames = False
                 for index in range(len(fixedPos) - 1):
                     # print(f'Idx: {index}')
@@ -2000,6 +2012,10 @@ class NGS:
                                     if (pos1[indexPos] == pos1[indexPos + 1] - 1 or
                                             pos1[indexPos] == pos1[indexPos + 1] + 1):
                                         continue
+                                    else:
+                                        continuous = False
+                            else:
+                                continuous = False
                     elif isinstance(pos1, list) or isinstance(pos2, list):
                         multiCombinedFrames = True
                         continue
@@ -2010,7 +2026,6 @@ class NGS:
                                 posB = pos1[indexPos + 1]
                                 if posB - posA != 1:
                                     continuous = False
-                                    print(1)
                                     break
                         else:
                             for indexPos, posA in enumerate(pos2[:-1]):
@@ -2049,9 +2064,11 @@ class NGS:
                                            f'{fixedPos1}-R{fixedPos2}')
                 else:
                     # print(3)
-                    self.datasetTag = (f'Reading Frames {fixedAA1}'
-                                       f'@R{fixedPos[0]}-R{fixedPos[1]}, '
-                                       f'R{fixedPos[-1]}')
+                    self.datasetTag = f'Reading Frames {fixedAA1}@'
+                    tags = []
+                    for idx, pos in enumerate(fixedPos):
+                        tags.append(f'R{pos}')
+                    self.datasetTag += ','.join(tags)
 
             # Exclude residues
             if self.excludeAAs:
@@ -2096,7 +2113,6 @@ class NGS:
                     self.datasetTag = '_'.join(fixResidueList)
                 else:
                     # Fix residues
-
                     try:
                         for index in range(len(self.fixedAA)):
                             fixResidueList.append(
@@ -2136,7 +2152,9 @@ class NGS:
         if self.initialize:
             self.datasetTagMotif = self.datasetTag
             self.initialize = False
-        #print(f'Dataset Tag: {purple}{self.datasetTag}{resetColor}\n\n')
+        print(f'Dataset Tag: {purple}{self.datasetTag}{resetColor}\n\n')
+
+        # sys.exit()
 
         return self.datasetTag
 
@@ -2816,7 +2834,8 @@ class NGS:
 
 
 
-    def calculateWeblogo(self, probability, combinedMotifs=False, releasedCounts=False):
+    def calculateWeblogo(self, probability, combinedMotifs=False, releasedCounts=False,
+                         relIteration=False):
         print('============================= Calculate: Weblogo '
               '================================')
         print(f'Probability: {self.datasetTag}\n{probability}\n\n'
@@ -2830,7 +2849,8 @@ class NGS:
                                                 self.entropy.loc[indexColumn, 'ΔS'])
 
         if self.plotFigWebLogo:
-            self.plotWeblogo(combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
+            self.plotWeblogo(combinedMotifs=combinedMotifs, releasedCounts=releasedCounts,
+                             relIteration=False)
 
         return self.weblogo
 

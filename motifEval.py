@@ -12,21 +12,20 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Mpro2'
+inEnzymeName = 'MMP7'
 inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\''] #
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] #
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 inIndexNTerminus = 0 # Define the index if the first AA in the binned substrate
 
 # Input 3: Computational Parameters
-inPlotOnlyWords = True
-inFixedResidue = ['Q']
-inFixedPosition = [4]
+inFixedResidue = ['L', 'L']
+inFixedPosition = [[3,4], [5,6]]
 inExcludeResidues = False
 inExcludedResidue = ['A','A']
 inExcludedPosition = [9,10]
@@ -38,6 +37,7 @@ inAvgInitialProb = True
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
 # inPlotPCACombined = True
+inPlotOnlyWords = False
 inPlotEntropy = True
 inPlotEnrichmentMap = True
 inPlotEnrichmentMapScaled = False
