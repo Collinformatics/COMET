@@ -12,18 +12,18 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Mpro2-LQ'
+inEnzymeName = 'Src'
 inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = False
-inFixedResidue = ['L','Q'] # ['C', 'I', 'V'] ['R',['G','S']] # [['A','G','S']]
-inFixedPosition = [6,7]
-inExcludeResidues = False
-inExcludedResidue = ['']
-inExcludedPosition = []
+inFixedResidue = ['Q'] # ['C', 'I', 'V'] ['R',['G','S']] # [['A','G','S']]
+inFixedPosition = [4]
+inExcludeResidues = True
+inExcludedResidue = ['Y','Y','Y','Y','Y','Y','Y']
+inExcludedPosition = [1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
 inMinDeltaS = 0.6
 inPrintFixedSubs = True
@@ -51,9 +51,9 @@ if inPlotOnlyWords:
     inPlotWeblogo = False
     inPlotMotifEnrichment = False
     inPlotWordCloud = True
-# inPlotWordCloud = False # <--------------------
+inPlotWordCloud = False # <--------------------
 inPlotAADistribution = False
-inPlotBarGraphs = True
+inPlotBarGraphs = False
 inPlotPCA = False
 inPredictActivity = False
 inPlotCounts = False
@@ -62,7 +62,7 @@ inPlotPositionalProbDist = False # For understanding shannon entropy
 # Input 4: Inspecting The data
 inPrintNumber = 10
 inFindSequences = True
-inFindSeq = ['LQS','LQA']
+inFindSeq = 'ILQA'
 
 # Input 5: Plot Heatmap
 inShowEnrichmentScores = True
@@ -149,7 +149,7 @@ inPlotMotifEnrichmentNBars = True
 
 
 # =================================== Initialize Class ===================================
-ngs = NGS(enzymeName=enzymeName, substrateLength=len(labelAAPos),
+ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelAAPos),
           filterSubs=inFixResidues, fixedAA=inFixedResidue, fixedPosition=inFixedPosition,
           excludeAAs=inExcludeResidues, excludeAA=inExcludedResidue,
           excludePosition=inExcludedPosition, minCounts=inMinimumSubstrateCount,

@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import RectangleSelector
-from setuptools.command.rotate import rotate
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
@@ -211,16 +210,17 @@ def includeCommas(x):
 
 
 class NGS:
-    def __init__(self, enzymeName, substrateLength, filterSubs, fixedAA, fixedPosition,
+    def __init__(self, enzyme, enzymeName, substrateLength, filterSubs, fixedAA, fixedPosition,
                  excludeAAs, excludeAA, excludePosition, minCounts, minEntropy,
                  figEMSquares, xAxisLabels, printNumber, showNValues, bigAAonTop,
                  findMotif, folderPath, filesInit, filesFinal, plotPosS, plotFigEM,
                  plotFigEMScaled, plotFigLogo, plotFigWebLogo, plotFigWords, wordLimit,
                  wordsTotal, plotFigBars, NSubBars, plotFigPCA, numPCs, NSubsPCA,
-                 plotSuffixTree, saveFigures, setFigureTimer, expressDNA=False,
+                 plotSuffixTree, saveFigures, saveCSV, setFigureTimer, expressDNA=False,
                  useEF=False, xAxisLabelsMotif=None, motifFilter=False,
                  plotFigMotifEnrich=False):
         # Parameters: Dataset
+        self.enzyme = enzyme
         self.enzymeName = enzymeName
         self.filterSubs = filterSubs
         self.fixedAA = fixedAA
@@ -308,6 +308,7 @@ class NGS:
         self.motifIndex = None
         self.motifIndexExtracted = []
         self.saveFigures = saveFigures
+        self.saveCSV = saveCSV
         self.setFigureTimer = setFigureTimer
         self.figureTimerDuration = 0.5
         self.saveFigureIteration = 0
@@ -1166,6 +1167,9 @@ class NGS:
         print(f'\nTotal substrates: {purple}{fileType}\n'
               f'     {red} {substrateTotal:,}{resetColor}\n\n')
 
+        if self.saveCSV:
+            self.saveSubstrateCSV(seqs=substrates)
+
         return substrates, substrateTotal
 
 
@@ -1183,12 +1187,8 @@ class NGS:
             threadInitial = threading.Thread(target=loadSubsThread,
                                              args=(self.filesInit, 'Initial Sort',
                                                    loadedResults))
-
-            # Start the threads
-            threadInitial.start()
-
-            # Wait for the threads to complete
-            threadInitial.join()
+            threadInitial.start() # Start the threads
+            threadInitial.join() # Wait for the threads to complete
 
             # Retrieve the loaded substrates
             substratesInitial, totalSubsInitial = loadedResults['Initial Sort']
@@ -1199,12 +1199,8 @@ class NGS:
             threadFinal = threading.Thread(target=loadSubsThread,
                                            args=(self.filesFinal, 'Final Sort',
                                                  loadedResults))
-
-            # Start the thread
-            threadFinal.start()
-
-            # Wait for the thread to complete
-            threadFinal.join()
+            threadFinal.start() # Start the thread
+            threadFinal.join() # Wait for the thread to complete
 
             # Retrieve the loaded substrates
             substrates, totalSubs = loadedResults['Final Sort']
@@ -1219,13 +1215,9 @@ class NGS:
             threadFinal = threading.Thread(target=loadSubsThread,
                                            args=(self.filesFinal, 'Final Sort',
                                                  loadedResults))
-
-            # Start the threads
-            threadInitial.start()
+            threadInitial.start()  # Start the threads
             threadFinal.start()
-
-            # Wait for the threads to complete
-            threadInitial.join()
+            threadInitial.join() # Wait for the threads to complete
             threadFinal.join()
 
             # Retrieve the loaded substrates
@@ -1256,6 +1248,9 @@ class NGS:
 
         totalSubsFinal = sum(substrates.values())
         print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n\n')
+
+        if self.saveCSV:
+            self.saveSubstrateCSV(seqs=substrates)
 
         return substrates, totalSubsFinal
 
@@ -1376,6 +1371,7 @@ class NGS:
         motifs = {}
         substrates = {}
         motifTag = None
+        foundMotifs = {}
 
         # Assign: Motif parameters
         self.motifIndex = motifIndex
@@ -1448,6 +1444,10 @@ class NGS:
                 # Record motifs
                 totalCounts = 0
                 for substrate, count in loadedSubs.items():
+                    if substrate in foundMotifs.keys():
+                        continue
+                    else:
+                        foundMotifs[substrate] = True
                     totalMotifs += count
                     totalCounts += count
                     motif = substrate[startSub:endSub]
@@ -1490,7 +1490,23 @@ class NGS:
                       f'{resetColor}\n\n')
                 break
 
+        if self.saveCSV:
+            self.saveSubstrateCSV(seqs=motifs)
+
         return motifs, totalMotifs, substrates
+
+
+
+    def saveSubstrateCSV(self, seqs):
+        print(f'Saving substrates in a CSV file\n'
+              f'Dataset: {purple}{self.datasetTag}{resetColor}')
+
+        tag = f'{self.enzyme} - {self.datasetTag}.csv'
+
+        savePath = os.path.join(self.pathData, tag)
+        print(f'Save path: {savePath}\n\n')
+
+        sys.exit()
 
 
 

@@ -136,7 +136,7 @@ enzymeName, filesInitial, filesFinal, labelAAPos = getFileNames(enzyme=inEnzymeN
 
 
 # =================================== Initialize Class ===================================
-ngs = NGS(enzymeName=enzymeName, substrateLength=len(labelAAPos),
+ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelAAPos),
           filterSubs=True, fixedAA=inFixedResidue, fixedPosition=inFixedPosition,
           excludeAAs=inExcludeResidues, excludeAA=inExcludedResidue,
           excludePosition=inExcludedPosition, minCounts=inMinimumSubstrateCount,

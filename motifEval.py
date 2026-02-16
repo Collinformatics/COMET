@@ -12,20 +12,21 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'MMP7'
+inEnzymeName = 'Mpro2'
 inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
+inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] #
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] #¡¡¡¡
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-inIndexNTerminus = 0 # Define the index if the first AA in the binned substrate
+inIndexNTerminus = 0 # Define the index if the first AA in the motif
 
 # Input 3: Computational Parameters
-inFixedResidue = ['L', 'L']
-inFixedPosition = [[3,4], [5,6]]
+inFixedResidue = 'Q' # ['L', 'L']
+inFixedPosition = [4,5,6] # [[4,5], [6,7]]
 inExcludeResidues = False
 inExcludedResidue = ['A','A']
 inExcludedPosition = [9,10]
@@ -33,6 +34,7 @@ inMinimumSubstrateCount = 1
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
+
 
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
@@ -227,7 +229,7 @@ motifFramePos = [inIndexNTerminus, inIndexNTerminus + motifLen]
 
 
 # =================================== Initialize Class ===================================
-ngs = NGS(enzymeName=enzymeName, substrateLength=len(labelAAPos),
+ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelAAPos),
           filterSubs=True, fixedAA=inFixedResidue, fixedPosition=inFixedPosition,
           excludeAAs=inExcludeResidues, excludeAA=inExcludedResidue,
           excludePosition=inExcludedPosition, minCounts=inMinimumSubstrateCount,
@@ -241,7 +243,7 @@ ngs = NGS(enzymeName=enzymeName, substrateLength=len(labelAAPos),
           plotFigWords=inPlotWordCloud, wordLimit=inLimitWords, wordsTotal=inTotalWords,
           plotFigBars=inPlotBarGraphs, NSubBars=inPlotNBars, plotFigPCA=inPlotPCA,
           numPCs=inNumberOfPCs, NSubsPCA=inTotalSubsPCA, plotSuffixTree=inPlotSuffixTree,
-          saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer)
+          saveFigures=inSaveFigures, saveCSV=inSaveCSV, setFigureTimer=inSetFigureTimer)
 
 
 
@@ -872,6 +874,8 @@ motifs, motifsCountsTotal, substratesFiltered = ngs.loadMotifSeqs(
 ngs.recordSampleSize(NInitial=countsInitialTotal, NFinal=motifsCountsTotal,
                      NFinalUnique=len(motifs.keys()))
 
+
+
 # Evaluate dataset
 combinedMotifs = False
 if len(ngs.motifIndexExtracted) > 1:
@@ -939,20 +943,13 @@ if inPredictActivity:
                                    releasedCounts=True, rankScores=inRankScores,
                                    scaleEMap=inScalePredMatrix)
 
-sys.exit()
+# sys.exit()
 
-if inPredictCodonsEnrichment:
-# Evaluate codon
-    rfInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
-                                     fileType='Initial Sort', calcAvg=True)
-    probCodon = ngs.calculateProbCodon(codonSeq=inCodonSequence)
-    ngs.codonPredictions(codon=inCodonSequence, codonProb=probCodon, substrates=motifs)
-
-
+# Plot count related figures
 ngs.processSubstrates(subsInit=substratesInitial, subsFinal=substratesFiltered,
                       motifs=motifs, subLabel=inMotifPositions,
                       combinedMotifs=combinedMotifs)
-sys.exit()
+
 
 # # Evaluate: Motif Sequences
 # Count fixed substrates
@@ -969,6 +966,21 @@ ngs.calculateEntropy(rf=rfMotif, combinedMotifs=combinedMotifs)
 # Calculate: AA Enrichment
 ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfMotif,
                         combinedMotifs=combinedMotifs)
+
+
+
+
+if inPredictCodonsEnrichment:
+# Evaluate codon
+    rfInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
+                                     fileType='Initial Sort', calcAvg=True)
+    probCodon = ngs.calculateProbCodon(codonSeq=inCodonSequence)
+    ngs.codonPredictions(codon=inCodonSequence, codonProb=probCodon, substrates=motifs)
+
+
+sys.exit()
+
+
 
 sys.exit()
 
