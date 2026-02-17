@@ -1167,9 +1167,6 @@ class NGS:
         print(f'\nTotal substrates: {purple}{fileType}\n'
               f'     {red} {substrateTotal:,}{resetColor}\n\n')
 
-        if self.saveCSV:
-            self.saveSubstrateCSV(seqs=substrates)
-
         return substrates, substrateTotal
 
 
@@ -1485,10 +1482,10 @@ class NGS:
             print(f'     {blue}{motif}{resetColor}, Counts: {red}{count:,}{resetColor}')
             iteration += 1
             if iteration >= self.printNumber:
-                print(f'\nTotal Motifs: {red}{totalMotifs:,}{resetColor}\n'
-                      f'Unique Motifs: {red}{len(motifs.keys()):,}'
-                      f'{resetColor}\n\n')
                 break
+        print(f'\nTotal Motifs: {red}{totalMotifs:,}{resetColor}\n'
+              f'Unique Motifs: {red}{len(motifs.keys()):,}'
+              f'{resetColor}\n\n')
 
         if self.saveCSV:
             self.saveSubstrateCSV(seqs=motifs)
@@ -1498,15 +1495,20 @@ class NGS:
 
 
     def saveSubstrateCSV(self, seqs):
-        print(f'Saving substrates in a CSV file\n'
-              f'Dataset: {purple}{self.datasetTag}{resetColor}')
-
-        tag = f'{self.enzyme} - {self.datasetTag}.csv'
-
+        subLen = len(next(iter(seqs)))
+        tag = f'{self.enzyme} - {subLen} AA - {self.datasetTag}.csv'
         savePath = os.path.join(self.pathData, tag)
-        print(f'Save path: {savePath}\n\n')
+        if not os.path.exists(savePath):
+            import csv
 
-        sys.exit()
+            print(f'Saving substrates in a CSV file')
+            print(f'Save path:\n'
+                  f'    {greenDark}{savePath}{resetColor}\n\n')
+            with open(savePath, 'w', newline='') as c:
+                writer = csv.writer(c)
+                writer.writerow(['sequence', 'count'])
+                for seq, count in seqs.items():
+                    writer.writerow([seq, count])
 
 
 
@@ -2358,7 +2360,7 @@ class NGS:
         print('================================= Extract Motif '
               '=================================')
         if self.motifIndex is None:
-            print(f'The mofit index is {cyan}{self.motifIndex}{resetColor}\n'
+            print(f'The motif index is {cyan}{self.motifIndex}{resetColor}\n'
                   f'NGS.getMotif(substrates) will return the full length substrate '
                   f'sequences\n\n')
             return substrates

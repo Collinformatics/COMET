@@ -39,15 +39,15 @@ inAvgInitialProb = True
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
 # inPlotPCACombined = True
-inPlotOnlyWords = False
+inBlockFigures = True
 inPlotEntropy = True
 inPlotEnrichmentMap = True
 inPlotEnrichmentMapScaled = False
 inPlotLogo = True
 inPlotWeblogo = True
 inPlotMotifEnrichment = True
-inPlotWordCloud = True
-if inPlotOnlyWords:
+inPlotWordCloud = False
+if inBlockFigures:
     inPlotEntropy = False
     inPlotEnrichmentMap = False
     inPlotEnrichmentMapScaled = False
@@ -56,7 +56,7 @@ if inPlotOnlyWords:
     inPlotMotifEnrichment = False
     inPlotWordCloud = True
 inPlotStats = False
-inPlotBarGraphs = True
+inPlotBarGraphs = False
 inPlotPCA = False # PCA plot of the combined set of motifs
 inPlotSuffixTree = True
 inPlotActivityFACS = False

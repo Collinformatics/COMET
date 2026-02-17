@@ -15,6 +15,7 @@ import sys
 inEnzymeName = 'Src'
 inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
+inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters

@@ -15,6 +15,7 @@ inEnzymeName = 'Mpro2'
 inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveData = False
 inSaveFigures = False
+inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
@@ -692,10 +693,10 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
                      countsReleased=countsReleased)
 
     # Extract motif (reprint)
-    ngs.getMotif(substrates=substratesFinalFixed)
+    motifs = ngs.getMotif(substrates=substratesFinalFixed)
 
-    return (substratesFinalFixed, countsFinalFixed, countsFinalFixedTotal,
-            countsReleased, releasedRF)
+    if inSaveCSV:
+        ngs.saveSubstrateCSV(seqs=motifs)
 
 
 
@@ -895,6 +896,9 @@ if (os.path.exists(filePathFixedMotifSubs) and
 
     # Extract motif
     finalSubsMotif = ngs.getMotif(substrates=substratesFinalFixed)
+
+    if inSaveCSV:
+        ngs.saveSubstrateCSV(seqs=finalSubsMotif)
 else:
     # Load: Unfiltered substates
     substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
