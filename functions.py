@@ -953,12 +953,10 @@ class NGS:
                 if isinstance(AA, list):
                     if len(AA) == 1:
                         AA = AA[0]
-                        print(1)
                     else:
                         AA = f'[{','.join(AA)}]'
                 position = self.fixedPos[index]
                 if isinstance(position, int):
-                    print(2)
                     tag = f'{AA}@R{position}'
                     tags[index].append(tag)
                 else:
@@ -1494,21 +1492,49 @@ class NGS:
 
 
 
-    def saveSubstrateCSV(self, seqs):
+    def saveSubstrateCSV(self, seqs, minCounts=100):
+        import csv
+
         subLen = len(next(iter(seqs)))
-        tag = f'{self.enzyme} - {subLen} AA - {self.datasetTag}.csv'
+
+        # Limit substrates by counts
+        subs = {}
+        for seq, count in seqs.items():
+            if count >= minCounts:
+                subs[seq] = count
+            else:
+                break
+        seqs = subs
+        N = len(seqs)
+
+        # CSV: Counts
+        tag = f'{self.enzyme} - Counts - {subLen} AA - {self.datasetTag}.csv'
         savePath = os.path.join(self.pathData, tag)
         if not os.path.exists(savePath):
-            import csv
-
-            print(f'Saving substrates in a CSV file')
+            print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file') ##
             print(f'Save path:\n'
                   f'    {greenDark}{savePath}{resetColor}\n\n')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
-                writer.writerow(['sequence', 'count'])
+                writer.writerow(['sequence', self.enzyme])
                 for seq, count in seqs.items():
                     writer.writerow([seq, count])
+
+            # CSV: Z-Scores
+            tag = f'{self.enzyme} - Z Scores - {subLen} AA - {self.datasetTag}.csv'
+            savePath = os.path.join(self.pathData, tag)
+            if not os.path.exists(savePath):
+                print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file')  ##
+                print(f'Save path:\n'
+                      f'    {greenDark}{savePath}{resetColor}\n\n')
+                mu = np.average(list(seqs.values()))
+                sigma = np.std(list(seqs.values()))
+                with open(savePath, 'w', newline='') as c:
+                    writer = csv.writer(c)
+                    writer.writerow(['sequence', self.enzyme])
+                    for seq, count in seqs.items():
+                        z = (count - mu) / sigma
+                        writer.writerow([seq, f'{z:.2f}'])
 
 
 
@@ -1997,13 +2023,14 @@ class NGS:
         if combinedMotifs:
             continuous = True
             if len(self.fixedPos) == 1:
-                tags = []
-                for idxList in range(len(self.fixedAA)):
-                    tag = ''
-                    for idx, AA in enumerate(self.fixedAA[idxList]):
-                        tag += f'{AA}@R{self.fixedPos[idxList][idx]}_'
-                    tag = tag[:-1] # Remove the last char: "_"
-                    tags.append(tag)
+                # tags = []
+                # for idxList in range(len(self.fixedAA)):
+                #     tag = ''
+                #     # print(self.fixedPos, idxList)
+                #     for idx, AA in enumerate(self.fixedAA[idxList]):
+                #         tag += f'{AA}@R{self.fixedPos[idxList][idx]}_'
+                #     tag = tag[:-1] # Remove the last char: "_"
+                #     tags.append(tag)
                 # print('tags', ','.join(tags))
                 if isinstance(self.fixedAA[0], list):
                     self.datasetTag = \
@@ -3137,7 +3164,7 @@ class NGS:
 
         # Suffix tree
         if self.plotSuffixTree:
-            print(f'ADD: Suffix tree\n\n')
+            tree = None
 
         return motifES
 
