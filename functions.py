@@ -4750,8 +4750,9 @@ class NGS:
         #                showYTicks=False, addHorizontalLines=inAddHorizontalLines,
         #                motifFilter=False, duplicateFigure=False, saveTag=datasetTag)
 
-        # Plot: Word cloud
-        self.plotWordCloud(substrates=substrates)
+        if self.plotFigWords:
+            # Plot: Word cloud
+            self.plotWordCloud(substrates=substrates)
 
 
     # ====================================================================================
