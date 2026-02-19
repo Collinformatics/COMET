@@ -13,7 +13,7 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Src'
-inPathFolder = f'Enzymes/{inEnzymeName}'
+inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
@@ -457,3 +457,4 @@ if inPlotPositionalProbDist:
 if inPlotPosProb:
     ngs.compairRF(probInitial=probInitial, probFinal=probFinal, selectAA=inCompairAA)
     ngs.boxPlotRF(probInitial=probInitial, probFinal=probFinal, selectAA=inCompairAA)
+
