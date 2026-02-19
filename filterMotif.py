@@ -211,7 +211,7 @@ def fixSubstrate(subs, fixedAA, fixedPosition, exclude, excludeAA, excludePositi
         fixedCountsTotal = sum(fixedCounts.iloc[:, 0])
     else:
         # Fix the substrates if the files were not found
-        print(f'Fixing substrates at {magenta}{posFilter}{resetColor}\n\n')
+        print(f'Fixing substrates at {magenta}{posFilter}{resetColor}\n')
         if exclude:
             # Fix AA
             if len(fixedAA) == 1:
