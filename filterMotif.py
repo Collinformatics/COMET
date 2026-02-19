@@ -581,7 +581,7 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
                     print(f'     {magenta}{AA}{resetColor}@'
                           f'{magenta}R{keepPositions[index]}'
                           f'{resetColor}')
-                print('\n')
+                print()
                 break
 
         # Update NGS attributes
