@@ -164,7 +164,7 @@ ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelA
           plotFigWords=inPlotWordCloud, wordLimit=inLimitWords, wordsTotal=inTotalWords,
           plotFigBars=inPlotBarGraphs, NSubBars=inNSequences, plotFigPCA=inPlotPCA,
           numPCs=inNumberOfPCs, NSubsPCA=inTotalSubsPCA, plotSuffixTree=False,
-          saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer)
+          saveFigures=inSaveFigures, saveCSV=inSaveCSV, setFigureTimer=inSetFigureTimer)
 
 
 
@@ -457,4 +457,3 @@ if inPlotPositionalProbDist:
 if inPlotPosProb:
     ngs.compairRF(probInitial=probInitial, probFinal=probFinal, selectAA=inCompairAA)
     ngs.boxPlotRF(probInitial=probInitial, probFinal=probFinal, selectAA=inCompairAA)
-

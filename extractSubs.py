@@ -58,7 +58,7 @@ ngs = NGS(enzyme=None, enzymeName=inEnzymeName, substrateLength=len(inAAPosition
           plotFigLogo=False, plotFigWebLogo=False, plotFigWords=False, wordLimit=False,
           wordsTotal=False, plotFigBars=False, NSubBars=False, plotFigPCA=False,
           numPCs=False, NSubsPCA=False, plotSuffixTree=False, saveFigures=False,
-          setFigureTimer=None, expressDNA=True)
+          setFigureTimer=None, saveCSV=False, expressDNA=True)
 
 
 

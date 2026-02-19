@@ -12,10 +12,10 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Mpro2'
-inPathFolder = f'Enzymes/{inEnzymeName}'
+inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveData = False
 inSaveFigures = False
-inSaveCSV = True # Save substrates in a csv file
+inSaveCSV = False # Save substrates in a csv file
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
@@ -149,7 +149,8 @@ ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelA
           plotFigLogo=inPlotLogo, plotFigWebLogo=inPlotWeblogo, plotFigWords=False,
           wordLimit=None, wordsTotal=None, plotFigBars=False, NSubBars=None,
           plotFigPCA=False, numPCs=None, NSubsPCA=None, plotSuffixTree=False,
-          motifFilter=True, saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer)
+          motifFilter=True, saveFigures=inSaveFigures, saveCSV=inSaveCSV,
+          setFigureTimer=inSetFigureTimer)
 
 
 
