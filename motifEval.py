@@ -13,13 +13,13 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Mpro2'
-inPathFolder = f'Enzymes/{inEnzymeName}'
+inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] #¡¡¡¡
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] # ,'P3\'','P4\''
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 inIndexNTerminus = 0 # Define the index if the first AA in the motif
@@ -30,7 +30,7 @@ inFixedPosition = [4,5,6] # [[4,5], [6,7]]
 inExcludeResidues = False
 inExcludedResidue = ['A','A']
 inExcludedPosition = [9,10]
-inMinimumSubstrateCount = 1
+inMinimumSubstrateCount = 100
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
@@ -80,7 +80,7 @@ inPrintNumber = 10
 # Input 6: Find Protein Sequences
 inFindSequences = False
 inFindSeq = ['LA', 'LF', 'LW']
-inFindAAInSequence = True
+inFindAAInSequence = False
 inFindAA = ['A', 'F', 'W']
 inAAPos = 4
 
@@ -130,8 +130,8 @@ if inUseNaturalSubs:
         'TRLQSLEN': 50.0,
         'PKLQSSQA': 50.0
     }
-elif inUseNaturalSubs is None:
-    inPredictionTag = '30 Min - Uncleaved Sub'
+else:
+    inPredictionTag = '30 Min'
     inSubstrateActivity = {
         'AVLQSG': 54.9, # 60,
         'VILQSG': 72.1, # 70,
