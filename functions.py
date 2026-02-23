@@ -1519,10 +1519,10 @@ class NGS:
             os.path.join(self.pathData, tag),
             os.path.join(self.pathData, tag.replace(t,'Z Scores'))
         ]
-        evalData = True
+        evalData = False
         for savePath in paths:
-            if os.path.exists(savePath):
-                evalData = False
+            if not os.path.exists(savePath):
+                evalData = True
                 break
         if not evalData:
             return
@@ -1559,17 +1559,27 @@ class NGS:
             seqZScores[seq] = (score - mu) / sigma
 
 
+        # Pre-format values
+        pSeqs = list(subs)[:self.printNumber]
+        formattedCounts = [f'{seqs[seq]:,}' for seq in pSeqs]
+        formattedProducts = [f'{subs[seq]:.3f}' for seq in pSeqs]
+        formattedZ = [f'{seqZScores[seq]:,.3f}' for seq in pSeqs]
+
+        # Compute column widths
+        countWidth = max(len(val) for val in formattedCounts)
+        productWidth = max(len(val) for val in formattedProducts)
+        zWidth = max(len(val) for val in formattedZ)
+
         # Print data
-        i = 0
         print('Substrate Scores:')
-        for i, (seq, score) in enumerate(subs.items()):
-            print(f'    {pink}{seq}{resetColor}, '
-                  f'Count: {red}{seqs[seq]:,}{resetColor}, '
-                  f'Product: {red}{score:.3f}{resetColor}, '
-                  f'Z Score: {red}{seqZScores[seq]:,.3f}{resetColor}')
-            i += 1
-            if i >= self.printNumber:
-                break
+        for seq, countStr, prodStr, zStr in zip(subs, formattedCounts, formattedProducts,
+                                                formattedZ):
+            print(
+                f"    {pink}{seq}{resetColor}, "
+                f"Count: {red}{countStr:>{countWidth}}{resetColor}, "
+                f"Product: {red}{prodStr:>{productWidth}}{resetColor}, "
+                f"Z Score: {red}{zStr:>{zWidth}}{resetColor}"
+            )
         print()
 
         # CSV: Scores
