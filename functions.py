@@ -1534,7 +1534,7 @@ class NGS:
         matrix = self.normalizeProbRatios(
             finalRF=finalRF, initialRF=initialRF, pData=False
         )
-        print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n\n')
+        print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n')
 
         # Limit substrates by counts
         subs = {}
@@ -1544,23 +1544,32 @@ class NGS:
                 subs[seq] = self.scoreSubstrate(seq, matrix)
             else:
                 break
-        seqs = subs
-        N = len(seqs)
+        N = len(subs)
 
         # Normalize scores
-        print('Substrate Scores:')
-        maxVal = max(seqs.values())
-        for seq, score in seqs.items(): ##
-            seqs[seq] = score / maxVal
+        maxVal = max(subs.values())
+        for seq, score in subs.items(): ##
+            subs[seq] = score / maxVal
+
+        # Calculate: Z-scores
+        seqZScores = {}
+        mu = np.average(list(subs.values()))
+        sigma = np.std(list(subs.values()))
+        for seq, score in subs.items():
+            seqZScores[seq] = (score - mu) / sigma
+
 
         # Print data
         i = 0
-        for seq, score in seqs.items():
-            print(f'    {pink}{seq}{resetColor}, {score:.3f}')
+        print('Substrate Scores:')
+        for i, (seq, score) in enumerate(subs.items()):
+            print(f'    {pink}{seq}{resetColor}, '
+                  f'Count: {red}{seqs[seq]:,}{resetColor}, '
+                  f'Product: {red}{score:.3f}{resetColor}, '
+                  f'Z Score: {red}{seqZScores[seq]:,.3f}{resetColor}')
             i += 1
             if i >= self.printNumber:
                 break
-                sys.exit()
         print()
 
         # CSV: Scores
@@ -1571,7 +1580,7 @@ class NGS:
                   f'    {greenDark}{savePath}{resetColor}\n\n')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
-                writer.writerow(['sequence', self.enzyme])
+                writer.writerow(['Sequence', self.enzyme])
                 for seq, score in seqs.items():
                     writer.writerow([seq, score])
 
@@ -1581,14 +1590,11 @@ class NGS:
             print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file')
             print(f'Save path:\n'
                   f'    {greenDark}{savePath}{resetColor}\n\n')
-            mu = np.average(list(seqs.values()))
-            sigma = np.std(list(seqs.values()))
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
-                writer.writerow(['sequence', self.enzyme])
-                for seq, score in seqs.items():
-                    z = (score - mu) / sigma
-                    writer.writerow([seq, f'{z:.2f}'])
+                writer.writerow(['Sequence', self.enzyme])
+                for seq, score in seqZScores.items():
+                    writer.writerow([seq, f'{score:.2f}'])
 
 
 
