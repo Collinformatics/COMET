@@ -1514,7 +1514,7 @@ class NGS:
         # Get data paths
         t = 'Ratio Products'
         subLen = len(next(iter(seqs)))
-        tag = f'{self.enzyme} - Pred Score {t} - {subLen} AA - {self.datasetTag}.csv'
+        tag = f'{self.enzyme} - Pred {t} - {subLen} AA - {self.datasetTag}.csv'
         paths = [
             os.path.join(self.pathData, tag),
             os.path.join(self.pathData, tag.replace(t,'Z Scores'))
