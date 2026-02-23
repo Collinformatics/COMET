@@ -13,24 +13,24 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Mpro2'
-inPathFolder = os.path.join('Enzymes', inEnzymeName)
+inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
 inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] # ,'P3\'','P4\''
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\''] #¡¡¡¡
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 inIndexNTerminus = 0 # Define the index if the first AA in the motif
 
 # Input 3: Computational Parameters
 inFixedResidue = 'Q' # ['L', 'L']
-inFixedPosition = [4,5,6] # [[4,5], [6,7]]
+inFixedPosition = [4] # [[4,5], [6,7]]
 inExcludeResidues = False
 inExcludedResidue = ['A','A']
 inExcludedPosition = [9,10]
-inMinimumSubstrateCount = 100
+inMinimumSubstrateCount = 1
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
@@ -54,7 +54,7 @@ if inBlockFigures:
     inPlotLogo = False
     inPlotWeblogo = False
     inPlotMotifEnrichment = False
-    inPlotWordCloud = True
+    inPlotWordCloud = False
 inPlotStats = False
 inPlotBarGraphs = False
 inPlotPCA = False # PCA plot of the combined set of motifs
@@ -80,7 +80,7 @@ inPrintNumber = 10
 # Input 6: Find Protein Sequences
 inFindSequences = False
 inFindSeq = ['LA', 'LF', 'LW']
-inFindAAInSequence = False
+inFindAAInSequence = True
 inFindAA = ['A', 'F', 'W']
 inAAPos = 4
 
@@ -130,8 +130,8 @@ if inUseNaturalSubs:
         'TRLQSLEN': 50.0,
         'PKLQSSQA': 50.0
     }
-else:
-    inPredictionTag = '30 Min'
+elif inUseNaturalSubs is None:
+    inPredictionTag = '30 Min - Uncleaved Sub'
     inSubstrateActivity = {
         'AVLQSG': 54.9, # 60,
         'VILQSG': 72.1, # 70,
@@ -868,13 +868,14 @@ substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
 
 # Load: Substrate motifs
 motifs, motifsCountsTotal, substratesFiltered = ngs.loadMotifSeqs(
-    motifLabel=inMotifPositions, motifIndex=motifFramePos)
+    motifLabel=inMotifPositions, motifIndex=motifFramePos
+)
+
 
 # Display current sample size
-ngs.recordSampleSize(NInitial=countsInitialTotal, NFinal=motifsCountsTotal,
-                     NFinalUnique=len(motifs.keys()))
-
-
+ngs.recordSampleSize(
+    NInitial=countsInitialTotal, NFinal=motifsCountsTotal, NFinalUnique=len(motifs.keys())
+)
 
 # Evaluate dataset
 combinedMotifs = False
@@ -886,28 +887,40 @@ if len(ngs.motifIndexExtracted) > 1:
 # Load: Motif counts
 if inPlotStats:
     countsMotifs, countsRelCombined, countsRelCombinedTotal = ngs.loadMotifCounts(
-        motifLabel=inMotifPositions, motifIndex=motifFramePos, returnList=True)
+        motifLabel=inMotifPositions, motifIndex=motifFramePos, returnList=True
+    )
 
     # Evaluate statistics
     if len(countsMotifs) > 1:
         ngs.fixedMotifStats(countsList=countsMotifs, initialRF=rfInitial,
-                            motifFrame=inMotifPositions, datasetTag=ngs.datasetTag)
+                            motifFrame=inMotifPositions, datasetTag=ngs.datasetTag
+                            )
 else:
     countsRelCombined, countsRelCombinedTotal = ngs.loadMotifCounts(
-        motifLabel=inMotifPositions, motifIndex=motifFramePos)
+        motifLabel=inMotifPositions, motifIndex=motifFramePos
+    )
 
 # Calculate: RF
 rfCombinedReleasedMotif = ngs.calculateRFCombinedMotif(
-    countsCombinedMotifs=countsRelCombined)
+    countsCombinedMotifs=countsRelCombined
+)
 
 # Calculate: Positional entropy
-ngs.calculateEntropy(rf=rfCombinedReleasedMotif,
-                     combinedMotifs=combinedMotifs,
-                     releasedCounts=True)
+ngs.calculateEntropy(
+    rf=rfCombinedReleasedMotif, combinedMotifs=combinedMotifs, releasedCounts=True
+)
 
 # Calculate enrichment scores
-ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfCombinedReleasedMotif,
-                        combinedMotifs=combinedMotifs, releasedCounts=True)
+ngs.calculateEnrichment(
+    rfInitial=rfInitial, rfFinal=rfCombinedReleasedMotif,
+    combinedMotifs=combinedMotifs, releasedCounts=True
+)
+
+# Create csv
+if ngs.saveCSV:
+    ngs.saveSubstrateCSV(
+        seqs=motifs, initialRF=rfInitial, finalRF=rfCombinedReleasedMotif
+    )
 
 # Find sequences
 if inFindSequences:

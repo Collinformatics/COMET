@@ -13,7 +13,7 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Src'
-inPathFolder = os.path.join('Enzymes', inEnzymeName)
+inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
 inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
@@ -164,7 +164,7 @@ ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelA
           plotFigWords=inPlotWordCloud, wordLimit=inLimitWords, wordsTotal=inTotalWords,
           plotFigBars=inPlotBarGraphs, NSubBars=inNSequences, plotFigPCA=inPlotPCA,
           numPCs=inNumberOfPCs, NSubsPCA=inTotalSubsPCA, plotSuffixTree=False,
-          saveFigures=inSaveFigures, saveCSV=inSaveCSV, setFigureTimer=inSetFigureTimer)
+          saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer)
 
 
 
@@ -291,6 +291,12 @@ if inUseCodonProb:
 else:
     enrichmentScores = ngs.calculateEnrichment(rfInitial=probInitial,
                                                rfFinal=probFinal)
+
+# Create csv
+if ngs.saveCSV:
+    ngs.saveSubstrateCSV(
+        seqs=substratesFinal, initialRF=probInitial, finalRF=probFinal
+    )
 
 # Evaluate: Sequences
 if inUseEnrichmentFactor:

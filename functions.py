@@ -1244,8 +1244,8 @@ class NGS:
         totalSubsFinal = sum(substrates.values())
         print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n\n')
 
-        if self.saveCSV:
-            self.saveSubstrateCSV(seqs=substrates)
+        # if self.saveCSV:
+        #     self.saveSubstrateCSV(seqs=substrates)
 
         return substrates, totalSubsFinal
 
@@ -1485,31 +1485,86 @@ class NGS:
               f'Unique Motifs: {red}{len(motifs.keys()):,}'
               f'{resetColor}\n\n')
 
-        if self.saveCSV:
-            self.saveSubstrateCSV(seqs=motifs)
+        # if self.saveCSV:
+        #     self.saveSubstrateCSV(seqs=motifs)
 
         return motifs, totalMotifs, substrates
 
 
 
-    def saveSubstrateCSV(self, seqs, minCounts=100):
+    def scoreSubstrate(self, seq, matrix, sqroot=False):
+        score = 0
+        for index in range(len(seq)):
+            # Evaluate substrate
+            AA = seq[index]
+            pos = matrix.columns[index]
+            value = matrix.loc[AA, pos]
+            if score == 0:
+                score = value
+            else:
+                score *= value
+        if sqroot:
+            score = np.sqrt(score) ##
+        return score
+
+
+    def saveSubstrateCSV(self, seqs, initialRF, finalRF, minCounts=100):
         import csv
 
+        # Get data paths
+        t = 'Ratio Products'
         subLen = len(next(iter(seqs)))
+        tag = f'{self.enzyme} - Pred Score {t} - {subLen} AA - {self.datasetTag}.csv'
+        paths = [
+            os.path.join(self.pathData, tag),
+            os.path.join(self.pathData, tag.replace(t,'Z Scores'))
+        ]
+        evalData = True
+        for savePath in paths:
+            if os.path.exists(savePath):
+                evalData = False
+                break
+        if not evalData:
+            return
+
+        print('==============================  Save Substrate CSV '
+              '==============================')
+
+        # Get prediction matrix
+        matrix = self.normalizeProbRatios(
+            finalRF=finalRF, initialRF=initialRF, pData=False
+        )
+        print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n\n')
 
         # Limit substrates by counts
         subs = {}
         for seq, count in seqs.items():
             if count >= minCounts:
-                subs[seq] = count
+                #subs[seq] = count/maxVal
+                subs[seq] = self.scoreSubstrate(seq, matrix)
             else:
                 break
         seqs = subs
         N = len(seqs)
 
-        # CSV: Counts
-        tag = f'{self.enzyme} - Counts - {subLen} AA - {self.datasetTag}.csv'
-        savePath = os.path.join(self.pathData, tag)
+        # Normalize scores
+        print('Substrate Scores:')
+        maxVal = max(seqs.values())
+        for seq, score in seqs.items(): ##
+            seqs[seq] = score / maxVal
+
+        # Print data
+        i = 0
+        for seq, score in seqs.items():
+            print(f'    {pink}{seq}{resetColor}, {score:.3f}')
+            i += 1
+            if i >= self.printNumber:
+                break
+                sys.exit()
+        print()
+
+        # CSV: Scores
+        savePath = paths[0]
         if not os.path.exists(savePath):
             print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file') ##
             print(f'Save path:\n'
@@ -1517,24 +1572,23 @@ class NGS:
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
                 writer.writerow(['sequence', self.enzyme])
-                for seq, count in seqs.items():
-                    writer.writerow([seq, count])
+                for seq, score in seqs.items():
+                    writer.writerow([seq, score])
 
-            # CSV: Z-Scores
-            tag = f'{self.enzyme} - Z Scores - {subLen} AA - {self.datasetTag}.csv'
-            savePath = os.path.join(self.pathData, tag)
-            if not os.path.exists(savePath):
-                print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file')  ##
-                print(f'Save path:\n'
-                      f'    {greenDark}{savePath}{resetColor}\n\n')
-                mu = np.average(list(seqs.values()))
-                sigma = np.std(list(seqs.values()))
-                with open(savePath, 'w', newline='') as c:
-                    writer = csv.writer(c)
-                    writer.writerow(['sequence', self.enzyme])
-                    for seq, count in seqs.items():
-                        z = (count - mu) / sigma
-                        writer.writerow([seq, f'{z:.2f}'])
+        # CSV: Z-Scores
+        savePath = paths[1]
+        if not os.path.exists(savePath):
+            print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file')
+            print(f'Save path:\n'
+                  f'    {greenDark}{savePath}{resetColor}\n\n')
+            mu = np.average(list(seqs.values()))
+            sigma = np.std(list(seqs.values()))
+            with open(savePath, 'w', newline='') as c:
+                writer = csv.writer(c)
+                writer.writerow(['sequence', self.enzyme])
+                for seq, score in seqs.items():
+                    z = (score - mu) / sigma
+                    writer.writerow([seq, f'{z:.2f}'])
 
 
 
@@ -4750,9 +4804,8 @@ class NGS:
         #                showYTicks=False, addHorizontalLines=inAddHorizontalLines,
         #                motifFilter=False, duplicateFigure=False, saveTag=datasetTag)
 
-        if self.plotFigWords:
-            # Plot: Word cloud
-            self.plotWordCloud(substrates=substrates)
+        # Plot: Word cloud
+        self.plotWordCloud(substrates=substrates)
 
 
     # ====================================================================================
@@ -6190,14 +6243,15 @@ class NGS:
 
 
 
-    def normalizeProbRatios(self, finalRF, initialRF, pHeader=True):
-        if pHeader:
-            print('========================= Normalize Probability Ratios '
-                  '==========================')
-        else:
-            print(f'Normalize Probability Ratios: {purple}{self.datasetTag}{resetColor}')
-        print(f'Relative Frequency: {purple}Final{resetColor}\n{finalRF}\n')
-        print(f'Relative Frequency: {purple}Initial{resetColor}\n{initialRF}\n\n')
+    def normalizeProbRatios(self, finalRF, initialRF, pData=True, pHeader=True):
+        if pData:
+            if pHeader:
+                print('========================= Normalize Probability Ratios '
+                      '==========================')
+            else:
+                print(f'Normalize Probability Ratios: {purple}{self.datasetTag}{resetColor}')
+            print(f'Relative Frequency: {purple}Final{resetColor}\n{finalRF}\n')
+            print(f'Relative Frequency: {purple}Initial{resetColor}\n{initialRF}\n\n')
 
         # Calculate: RF ratios
         ratio = pd.DataFrame(0.0, index=finalRF.index, columns=finalRF.columns)
@@ -6207,7 +6261,8 @@ class NGS:
             else:
                 ratio.loc[:, col] = finalRF.loc[:, col] / initialRF.loc[:, col]
         ratio = ratio.replace([-np.inf, np.inf], 0.0) # Remove inf values
-        print(f'RF Ratios:\n{ratio}\n\n')
+        if pData:
+            print(f'RF Ratios:\n{ratio}\n\n')
 
 
         # Calculate: Ratio probability
@@ -6215,7 +6270,8 @@ class NGS:
         for col in prob.columns:
             for AA in prob.index:
                 prob.loc[AA, col] = ratio.loc[AA, col] / sum(ratio.loc[:, col])
-        print(f'Probability:\n{prob}\n\n')
+        if pData:
+            print(f'Probability:\n{prob}\n\n')
 
         return prob
 
@@ -6252,7 +6308,7 @@ class NGS:
                     else:
                         score *= value
 
-                x = np.sqrt(score)
+                x = np.sqrt(score) ##
                 print(f'Sub: {purple}{substrate}{resetColor}\n'
                       f'Score: {score:.3e}\n'
                       f'    X: {x:.3e}\n')

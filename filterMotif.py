@@ -12,10 +12,10 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Mpro2'
-inPathFolder = os.path.join('Enzymes', inEnzymeName)
+inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveData = False
 inSaveFigures = False
-inSaveCSV = False # Save substrates in a csv file
+inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
@@ -149,8 +149,7 @@ ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelA
           plotFigLogo=inPlotLogo, plotFigWebLogo=inPlotWeblogo, plotFigWords=False,
           wordLimit=None, wordsTotal=None, plotFigBars=False, NSubBars=None,
           plotFigPCA=False, numPCs=None, NSubsPCA=None, plotSuffixTree=False,
-          motifFilter=True, saveFigures=inSaveFigures, saveCSV=inSaveCSV,
-          setFigureTimer=inSetFigureTimer)
+          motifFilter=True, saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer)
 
 
 
@@ -211,7 +210,7 @@ def fixSubstrate(subs, fixedAA, fixedPosition, exclude, excludeAA, excludePositi
         fixedCountsTotal = sum(fixedCounts.iloc[:, 0])
     else:
         # Fix the substrates if the files were not found
-        print(f'Fixing substrates at {magenta}{posFilter}{resetColor}\n')
+        print(f'Fixing substrates at {magenta}{posFilter}{resetColor}\n\n')
         if exclude:
             # Fix AA
             if len(fixedAA) == 1:
@@ -581,7 +580,7 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
                     print(f'     {magenta}{AA}{resetColor}@'
                           f'{magenta}R{keepPositions[index]}'
                           f'{resetColor}')
-                print()
+                print('\n')
                 break
 
         # Update NGS attributes
@@ -897,9 +896,6 @@ if (os.path.exists(filePathFixedMotifSubs) and
 
     # Extract motif
     finalSubsMotif = ngs.getMotif(substrates=substratesFinalFixed)
-
-    if inSaveCSV:
-        ngs.saveSubstrateCSV(seqs=finalSubsMotif)
 else:
     # Load: Unfiltered substates
     substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
