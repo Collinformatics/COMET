@@ -1590,7 +1590,7 @@ class NGS:
                   f'    {greenDark}{savePath}{resetColor}\n\n')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
-                writer.writerow(['Sequence', self.enzyme])
+                writer.writerow(['sequence', self.enzyme])
                 for seq, score in seqs.items():
                     writer.writerow([seq, score])
 
@@ -1602,7 +1602,7 @@ class NGS:
                   f'    {greenDark}{savePath}{resetColor}\n\n')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
-                writer.writerow(['Sequence', self.enzyme])
+                writer.writerow(['sequence', self.enzyme])
                 for seq, score in seqZScores.items():
                     writer.writerow([seq, f'{score:.2f}'])
 
