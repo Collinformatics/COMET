@@ -1509,9 +1509,12 @@ class NGS:
         subLen = len(next(iter(seqs)))
         tag = (f'{self.enzyme} - Pred {t} - {subLen} AA - '
                f'{self.datasetTag} - MinCounts {minCounts}.csv')
+        pathCSV = os.path.join(self.pathFolder, 'CSV')
+        if not os.path.exists(pathCSV):
+            os.makedirs(pathCSV, exist_ok=True)
         paths = [
-            os.path.join(self.pathData, tag),
-            os.path.join(self.pathData, tag.replace(t,'Z Scores'))
+            os.path.join(pathCSV, tag),
+            os.path.join(pathCSV, tag.replace(t,'Z Scores'))
         ]
         evalData = False
         for savePath in paths:

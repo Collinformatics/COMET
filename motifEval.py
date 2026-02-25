@@ -919,7 +919,7 @@ ngs.calculateEnrichment(
 )
 
 # Create csv
-if ngs.saveCSV:
+if inSaveCSV:
     ngs.saveSubstrateCSV(
         seqs=motifs, initialRF=rfInitial,
         finalRF=rfCombinedReleasedMotif, minCounts=inMinSubsCSV
