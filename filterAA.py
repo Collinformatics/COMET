@@ -15,7 +15,6 @@ import sys
 inEnzymeName = 'Src'
 inPathFolder = f'Enzymes/{inEnzymeName}'
 inSaveFigures = True
-inSaveCSV = True # Save substrates in a csv file
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
@@ -34,6 +33,8 @@ inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = False
 inDropResidue = ['R9'] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
+inSaveCSV = True # Save substrates in a csv file
+inMinSubsCSV = 100 # Minimum counts for saved substrates
 
 # Input 3: Making Figures
 inPlotOnlyWords = True
@@ -150,21 +151,23 @@ inPlotMotifEnrichmentNBars = True
 
 
 # =================================== Initialize Class ===================================
-ngs = NGS(enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelAAPos),
-          filterSubs=inFixResidues, fixedAA=inFixedResidue, fixedPosition=inFixedPosition,
-          excludeAAs=inExcludeResidues, excludeAA=inExcludedResidue,
-          excludePosition=inExcludedPosition, minCounts=inMinimumSubstrateCount,
-          minEntropy=inMinDeltaS, figEMSquares=inShowEnrichmentAsSquares,
-          xAxisLabels=labelAAPos, printNumber=inPrintNumber, showNValues=inShowSampleSize,
-          bigAAonTop=inBigLettersOnTop, findMotif=False, folderPath=inPathFolder,
-          filesInit=filesInitial, filesFinal=filesFinal, useEF=inUseEnrichmentFactor,
-          plotPosS=inPlotEntropy, plotFigEM=inPlotEnrichmentMap,
-          plotFigEMScaled=inPlotEnrichmentMapScaled, plotFigLogo=inPlotLogo,
-          plotFigWebLogo=inPlotWeblogo, plotFigMotifEnrich=inPlotMotifEnrichment,
-          plotFigWords=inPlotWordCloud, wordLimit=inLimitWords, wordsTotal=inTotalWords,
-          plotFigBars=inPlotBarGraphs, NSubBars=inNSequences, plotFigPCA=inPlotPCA,
-          numPCs=inNumberOfPCs, NSubsPCA=inTotalSubsPCA, plotSuffixTree=False,
-          saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer)
+ngs = NGS(
+    enzyme=inEnzymeName, enzymeName=enzymeName, substrateLength=len(labelAAPos),
+    filterSubs=inFixResidues, fixedAA=inFixedResidue, fixedPosition=inFixedPosition,
+    excludeAAs=inExcludeResidues, excludeAA=inExcludedResidue,
+    excludePosition=inExcludedPosition, minCounts=inMinimumSubstrateCount,
+    minEntropy=inMinDeltaS, figEMSquares=inShowEnrichmentAsSquares,
+    xAxisLabels=labelAAPos, printNumber=inPrintNumber, showNValues=inShowSampleSize,
+    bigAAonTop=inBigLettersOnTop, findMotif=False, folderPath=inPathFolder,
+    filesInit=filesInitial, filesFinal=filesFinal, useEF=inUseEnrichmentFactor,
+    plotPosS=inPlotEntropy, plotFigEM=inPlotEnrichmentMap,
+    plotFigEMScaled=inPlotEnrichmentMapScaled, plotFigLogo=inPlotLogo,
+    plotFigWebLogo=inPlotWeblogo, plotFigMotifEnrich=inPlotMotifEnrichment,
+    plotFigWords=inPlotWordCloud, wordLimit=inLimitWords, wordsTotal=inTotalWords,
+    plotFigBars=inPlotBarGraphs, NSubBars=inNSequences, plotFigPCA=inPlotPCA,
+    numPCs=inNumberOfPCs, NSubsPCA=inTotalSubsPCA, plotSuffixTree=False,
+    saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer
+)
 
 
 
@@ -293,7 +296,7 @@ else:
                                                rfFinal=probFinal)
 
 # Create csv
-if ngs.saveCSV:
+if inSaveCSV:
     ngs.saveSubstrateCSV(
         seqs=substratesFinal, initialRF=probInitial, finalRF=probFinal
     )

@@ -48,17 +48,18 @@ inPrintQualityScores = True # Phred quality scores
 
 
 # =================================== Initialize Class ===================================
-ngs = NGS(enzyme=None, enzymeName=inEnzymeName, substrateLength=len(inAAPositions),
-          filterSubs=inFixedLibrary, fixedAA=inFixedResidue,
-          fixedPosition=inFixedPosition, excludeAAs=None, excludeAA=None,
-          excludePosition=None, minCounts=0, minEntropy=None, figEMSquares=False,
-          xAxisLabels=inAAPositions, printNumber=inPrintNumber, showNValues=True,
-          bigAAonTop=False, findMotif=False, folderPath=inPathFolder, filesInit=None,
-          filesFinal=None, plotPosS=False, plotFigEM=False, plotFigEMScaled=False,
-          plotFigLogo=False, plotFigWebLogo=False, plotFigWords=False, wordLimit=False,
-          wordsTotal=False, plotFigBars=False, NSubBars=False, plotFigPCA=False,
-          numPCs=False, NSubsPCA=False, plotSuffixTree=False, saveFigures=False,
-          setFigureTimer=None, saveCSV=False, expressDNA=True)
+ngs = NGS(
+    enzyme=None, enzymeName=inEnzymeName, substrateLength=len(inAAPositions),
+    filterSubs=inFixedLibrary, fixedAA=inFixedResidue, fixedPosition=inFixedPosition,
+    excludeAAs=None, excludeAA=None, excludePosition=None, minCounts=0, minEntropy=None,
+    figEMSquares=False, xAxisLabels=inAAPositions, printNumber=inPrintNumber,
+    showNValues=True, bigAAonTop=False, findMotif=False, folderPath=inPathFolder,
+    filesInit=None, filesFinal=None, plotPosS=False, plotFigEM=False,
+    plotFigEMScaled=False, plotFigLogo=False, plotFigWebLogo=False, plotFigWords=False,
+    wordLimit=False, wordsTotal=False, plotFigBars=False, NSubBars=False,
+    plotFigPCA=False, numPCs=False, NSubsPCA=False, plotSuffixTree=False,
+    saveFigures=False, setFigureTimer=None, expressDNA=True
+)
 
 
 

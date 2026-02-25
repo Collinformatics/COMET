@@ -216,7 +216,7 @@ class NGS:
                  findMotif, folderPath, filesInit, filesFinal, plotPosS, plotFigEM,
                  plotFigEMScaled, plotFigLogo, plotFigWebLogo, plotFigWords, wordLimit,
                  wordsTotal, plotFigBars, NSubBars, plotFigPCA, numPCs, NSubsPCA,
-                 plotSuffixTree, saveFigures, saveCSV, setFigureTimer, expressDNA=False,
+                 plotSuffixTree, saveFigures, setFigureTimer, expressDNA=False,
                  useEF=False, xAxisLabelsMotif=None, motifFilter=False,
                  plotFigMotifEnrich=False):
         # Parameters: Dataset
@@ -308,7 +308,6 @@ class NGS:
         self.motifIndex = None
         self.motifIndexExtracted = []
         self.saveFigures = saveFigures
-        self.saveCSV = saveCSV
         self.setFigureTimer = setFigureTimer
         self.figureTimerDuration = 0.5
         self.saveFigureIteration = 0
@@ -1244,9 +1243,6 @@ class NGS:
         totalSubsFinal = sum(substrates.values())
         print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n\n')
 
-        # if self.saveCSV:
-        #     self.saveSubstrateCSV(seqs=substrates)
-
         return substrates, totalSubsFinal
 
 
@@ -1485,9 +1481,6 @@ class NGS:
               f'Unique Motifs: {red}{len(motifs.keys()):,}'
               f'{resetColor}\n\n')
 
-        # if self.saveCSV:
-        #     self.saveSubstrateCSV(seqs=motifs)
-
         return motifs, totalMotifs, substrates
 
 
@@ -1514,7 +1507,8 @@ class NGS:
         # Get data paths
         t = 'Ratio Products'
         subLen = len(next(iter(seqs)))
-        tag = f'{self.enzyme} - Pred {t} - {subLen} AA - {self.datasetTag}.csv'
+        tag = (f'{self.enzyme} - Pred {t} - {subLen} AA - '
+               f'{self.datasetTag} - MinCounts {minCounts}.csv')
         paths = [
             os.path.join(self.pathData, tag),
             os.path.join(self.pathData, tag.replace(t,'Z Scores'))
@@ -1529,6 +1523,7 @@ class NGS:
 
         print('==============================  Save Substrate CSV '
               '==============================')
+        print(f'Minimum substrate count: {red}{minCounts}{resetColor}')
 
         # Get prediction matrix
         matrix = self.normalizeProbRatios(
