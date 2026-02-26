@@ -1515,7 +1515,7 @@ class NGS:
         paths = [
             os.path.join(pathCSV, tag),
             os.path.join(pathCSV, tag.replace(f'- {t}', '- Z Counts')),
-            os.path.join(pathCSV, tag.replace(f'- {t}','- Z Scores Pred'))
+            os.path.join(pathCSV, tag.replace(f'- {t}','- Z Pred'))
         ]
         evalData = False
         for savePath in paths:
@@ -2125,10 +2125,10 @@ class NGS:
                 # print('tags', ','.join(tags))
                 if isinstance(self.fixedAA[0], list):
                     self.datasetTag = \
-                        f'Reading Frame [{",".join(self.fixedAA[0])}]@R{self.fixedPos[0]}'
+                        f'Frame [{",".join(self.fixedAA[0])}]@R{self.fixedPos[0]}'
                 else:
                     self.datasetTag = \
-                        f'Reading Frame {self.fixedAA[0]}@R{self.fixedPos[0]}'
+                        f'Frame {self.fixedAA[0]}@R{self.fixedPos[0]}'
             else:
                 fixedPos = sorted(self.fixedPos)
                 # print(f'Fixed Pos: {fixedPos}')
@@ -2191,16 +2191,16 @@ class NGS:
                 if continuous:
                     if multiCombinedFrames:
                         # print(1)
-                        self.datasetTag = (f'Reading Frames '
+                        self.datasetTag = (f'Frames '
                                            f'{fixedAA1}@R{fixedPos1}-'
                                            f'{fixedAA2}@R{fixedPos2}')
                     else:
                         # print(2)
-                        self.datasetTag = (f'Reading Frames {fixedAA1}@R'
+                        self.datasetTag = (f'Frames {fixedAA1}@R'
                                            f'{fixedPos1}-R{fixedPos2}')
                 else:
                     # print(3)
-                    self.datasetTag = f'Reading Frames {fixedAA1}@'
+                    self.datasetTag = f'Frames {fixedAA1}@'
                     tags = []
                     for idx, pos in enumerate(fixedPos):
                         tags.append(f'R{pos}')
@@ -2459,7 +2459,7 @@ class NGS:
 
         # Sort the frame
         self.subFrame = subFrame.sort_values(by='ΔS', ascending=False).copy()
-        print(f'Reading Frame:\n'
+        print(f'Frame:\n'
               f'{blue}{subFrame}{resetColor}\n\n'
               f'Ranked Motif Frame:\n'
               f'{blue}{self.subFrame}{resetColor}\n\n')
@@ -2485,7 +2485,7 @@ class NGS:
         motifs = {}
         indexStart = min(self.motifIndex)
         indexEnd = max(self.motifIndex) + 1
-        print(f'Reading Frame: {purple}{self.datasetTag}{resetColor}\n')
+        print(f'Frame: {purple}{self.datasetTag}{resetColor}\n')
 
         # Print: data
         iteration = 0
@@ -5629,8 +5629,8 @@ class NGS:
                     f'Plot {totalWords}',
                     f'Select {self.wordsTotal} Plot {totalWords}')
             if len(self.motifIndexExtracted) > 1:
-                figLabel = figLabel.replace('Reading Frame',
-                                            'Combined Reading Frame')
+                figLabel = figLabel.replace('Frame',
+                                            'Combined Frame')
             if clusterNumPCA is not None:
                 figLabel = figLabel.replace('Words',
                                             f'Words - PCA {clusterNumPCA}')
