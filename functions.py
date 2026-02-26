@@ -1505,16 +1505,17 @@ class NGS:
         import csv
 
         # Get data paths
-        t = 'Ratio Products'
+        t = 'Counts'
         subLen = len(next(iter(seqs)))
-        tag = (f'{self.enzyme} - Pred {t} - {subLen} AA - '
+        tag = (f'{self.enzyme} - {t} - {subLen} AA - '
                f'{self.datasetTag} - MinCounts {minCounts}.csv')
         pathCSV = os.path.join(self.pathFolder, 'CSV')
         if not os.path.exists(pathCSV):
             os.makedirs(pathCSV, exist_ok=True)
         paths = [
             os.path.join(pathCSV, tag),
-            os.path.join(pathCSV, tag.replace(t,'Z Scores'))
+            os.path.join(pathCSV, tag.replace(f'- {t}', '- Z Counts')),
+            os.path.join(pathCSV, tag.replace(f'- {t}','- Z Scores Pred'))
         ]
         evalData = False
         for savePath in paths:
@@ -1536,73 +1537,95 @@ class NGS:
 
         # Limit substrates by counts
         subs = {}
+        subsCounts = {}
         for seq, count in seqs.items():
             if count >= minCounts:
                 #subs[seq] = count/maxVal
+                subsCounts[seq] = count
                 subs[seq] = self.scoreSubstrate(seq, matrix)
             else:
                 break
         N = len(subs)
 
-        # Normalize scores
+        # Normalize pred scores
         maxVal = max(subs.values())
         for seq, score in subs.items(): ##
             subs[seq] = score / maxVal
 
-        # Calculate: Z-scores
-        seqZScores = {}
+        # Calculate: Z-scores Counts
+        subsZCounts = {}
+        mu = np.average(list(subsCounts.values()))
+        sigma = np.std(list(subsCounts.values()))
+        for seq, count in subsCounts.items():
+            subsZCounts[seq] = (count - mu) / sigma
+
+        # Calculate: Z-scores Predicted
+        seqZPred = {}
         mu = np.average(list(subs.values()))
         sigma = np.std(list(subs.values()))
         for seq, score in subs.items():
-            seqZScores[seq] = (score - mu) / sigma
+            seqZPred[seq] = (score - mu) / sigma
 
 
         # Pre-format values
         pSeqs = list(subs)[:self.printNumber]
         formattedCounts = [f'{seqs[seq]:,}' for seq in pSeqs]
+        formattedZCounts = [f'{subsZCounts[seq]:.3f}' for seq in pSeqs]
         formattedProducts = [f'{subs[seq]:.3f}' for seq in pSeqs]
-        formattedZ = [f'{seqZScores[seq]:,.3f}' for seq in pSeqs]
+        formattedZ = [f'{seqZPred[seq]:,.3f}' for seq in pSeqs]
 
         # Compute column widths
         countWidth = max(len(val) for val in formattedCounts)
+        zcountWidth = max(len(val) for val in formattedZCounts)
         productWidth = max(len(val) for val in formattedProducts)
         zWidth = max(len(val) for val in formattedZ)
 
         # Print data
         print('Substrate Scores:')
-        for seq, countStr, prodStr, zStr in zip(subs, formattedCounts, formattedProducts,
-                                                formattedZ):
+        for seq, countStr, zCountStr, prodStr, zStr in zip(
+                subs, formattedCounts, formattedZCounts, formattedProducts, formattedZ):
             print(
-                f"    {pink}{seq}{resetColor}, "
-                f"Count: {red}{countStr:>{countWidth}}{resetColor}, "
-                f"Product: {red}{prodStr:>{productWidth}}{resetColor}, "
-                f"Z Score: {red}{zStr:>{zWidth}}{resetColor}"
+                f'    {pink}{seq}{resetColor}, '
+                f'Count: {red}{countStr:>{countWidth}}{resetColor}, '
+                f'Z Score Counts: {red}{zCountStr:>{zcountWidth}}{resetColor}, '
+                f'Z Score Pred: {red}{zStr:>{zWidth}}{resetColor}, '
+                f'Pred: {red}{prodStr:>{productWidth}}{resetColor}'
             )
         print()
+
+        print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\nSave path:')
+
 
         # CSV: Scores
         savePath = paths[0]
         if not os.path.exists(savePath):
-            print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file') ##
-            print(f'Save path:\n'
-                  f'    {greenDark}{savePath}{resetColor}\n\n')
+            print( f'    {greenDark}{savePath}{resetColor}')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
                 writer.writerow(['sequence', self.enzyme])
-                for seq, score in seqs.items():
+                for seq, count in subsCounts.items():
+                    writer.writerow([seq, count])
+
+        # CSV: Z Scores
+        savePath = paths[1]
+        if not os.path.exists(savePath):
+            print(f'    {greenDark}{savePath}{resetColor}')
+            with open(savePath, 'w', newline='') as c:
+                writer = csv.writer(c)
+                writer.writerow(['sequence', self.enzyme])
+                for seq, score in subsZCounts.items():
                     writer.writerow([seq, score])
 
         # CSV: Z-Scores
-        savePath = paths[1]
+        savePath = paths[2]
         if not os.path.exists(savePath):
-            print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file')
-            print(f'Save path:\n'
-                  f'    {greenDark}{savePath}{resetColor}\n\n')
+            print(f'    {greenDark}{savePath}{resetColor}')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
                 writer.writerow(['sequence', self.enzyme])
-                for seq, score in seqZScores.items():
+                for seq, score in seqZPred.items():
                     writer.writerow([seq, f'{score:.2f}'])
+        print('\n')
 
 
 

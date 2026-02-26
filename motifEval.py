@@ -65,6 +65,7 @@ inPredictSubstrateActivityPCA = False
 inPlotBinnedSubstrateES = False
 inPlotBinnedSubstratePrediction = False
 inPlotCounts = False
+inPlotFilteredSubs = False
 inShowSampleSize = True # Include the sample size in your figures
 
 # Input 5: Printing The Data
@@ -961,27 +962,28 @@ if inPredictActivity:
 
 # sys.exit()
 
-# Plot count related figures
-ngs.processSubstrates(subsInit=substratesInitial, subsFinal=substratesFiltered,
-                      motifs=motifs, subLabel=inMotifPositions,
-                      combinedMotifs=combinedMotifs)
+if inPlotFilteredSubs:
+    # Plot count related figures
+    ngs.processSubstrates(subsInit=substratesInitial, subsFinal=substratesFiltered,
+                          motifs=motifs, subLabel=inMotifPositions,
+                          combinedMotifs=combinedMotifs)
 
 
-# # Evaluate: Motif Sequences
-# Count fixed substrates
-motifCountsFinal, motifsCountsTotal = ngs.countResidues(substrates=motifs,
-                                                        datasetType='Final Sort')
+    # # Evaluate: Motif Sequences
+    # Count fixed substrates
+    motifCountsFinal, motifsCountsTotal = ngs.countResidues(substrates=motifs,
+                                                            datasetType='Final Sort')
 
-# Calculate: RF
-rfMotif = ngs.calculateRF(counts=motifCountsFinal, N=motifsCountsTotal,
-                            fileType='Final Sort')
+    # Calculate: RF
+    rfMotif = ngs.calculateRF(counts=motifCountsFinal, N=motifsCountsTotal,
+                                fileType='Final Sort')
 
-# Calculate: Positional entropy
-ngs.calculateEntropy(rf=rfMotif, combinedMotifs=combinedMotifs)
+    # Calculate: Positional entropy
+    ngs.calculateEntropy(rf=rfMotif, combinedMotifs=combinedMotifs)
 
-# Calculate: AA Enrichment
-ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfMotif,
-                        combinedMotifs=combinedMotifs)
+    # Calculate: AA Enrichment
+    ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfMotif,
+                            combinedMotifs=combinedMotifs)
 
 
 
