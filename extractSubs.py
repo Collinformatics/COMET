@@ -19,7 +19,7 @@ from functions import NGS
 # Input 1: File Location
 inFileName = ['Fyn-F_S1_L002_R1_001', 'Fyn-F_S1_L002_R2_001'] # Define file name(s)
 inEnzymeName = inFileName[0].split('-')[0]
-inPathFolder = f'Enzymes/{inEnzymeName}'
+inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inPathDNASeqs = os.path.join(inPathFolder, 'Fastq') # Define the fastq folder name
 inFileType = 'fastq' # Define the file type
 

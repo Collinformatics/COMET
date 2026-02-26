@@ -12,7 +12,7 @@ import sys
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
 inEnzymeName = 'Mpro2'
-inPathFolder = f'Enzymes/{inEnzymeName}'
+inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveData = False
 inSaveFigures = False
 inSaveCSV = True # Save substrates in a csv file

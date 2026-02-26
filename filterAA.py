@@ -12,8 +12,8 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Src'
-inPathFolder = f'Enzymes/{inEnzymeName}'
+inEnzymeName = 'Mpro2'
+inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 

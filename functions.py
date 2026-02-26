@@ -1527,7 +1527,7 @@ class NGS:
 
         print('==============================  Save Substrate CSV '
               '==============================')
-        print(f'Minimum substrate count: {red}{minCounts}{resetColor}')
+        print(f'Minimum substrate count: {red}{minCounts}{resetColor}') ##
 
         # Get prediction matrix
         matrix = self.normalizeProbRatios(
@@ -1549,7 +1549,7 @@ class NGS:
 
         # Normalize pred scores
         maxVal = max(subs.values())
-        for seq, score in subs.items(): ##
+        for seq, score in subs.items():
             subs[seq] = score / maxVal
 
         # Calculate: Z-scores Counts
