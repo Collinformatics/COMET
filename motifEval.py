@@ -34,7 +34,7 @@ inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
 inSaveCSV = True # Save substrates in a csv file
-inMinSubsCSV = 300 # Minimum counts for saved substrates
+inMinSubsCSV = 100 # Minimum counts for saved substrates
 
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
