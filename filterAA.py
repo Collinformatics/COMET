@@ -22,8 +22,8 @@ inFixResidues = False
 inFixedResidue = ['Q'] # ['C', 'I', 'V'] ['R',['G','S']] # [['A','G','S']]
 inFixedPosition = [4]
 inExcludeResidues = True
-inExcludedResidue = ['Y','Y','Y','Y','Y','Y','Y']
-inExcludedPosition = [1,2,3,4,6,7,8,9]
+inExcludedResidue = ['Q'] # ['Y','Y','Y','Y','Y','Y','Y']
+inExcludedPosition = [8] # [1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
 inMinDeltaS = 0.6
 inPrintFixedSubs = True
@@ -37,7 +37,7 @@ inSaveCSV = True # Save substrates in a csv file
 inMinSubsCSV = 100 # Minimum counts for saved substrates
 
 # Input 3: Making Figures
-inPlotOnlyWords = True
+inBlockFigures = True
 inPlotEntropy = True
 inPlotEnrichmentMap = True
 inPlotEnrichmentMapScaled = False
@@ -45,11 +45,11 @@ inPlotLogo = True
 inPlotWeblogo = True
 inPlotMotifEnrichment = True
 inPlotWordCloud = True
-if inPlotOnlyWords:
-    #inPlotEntropy = False
-    #inPlotEnrichmentMap = False
+if inBlockFigures:
+    inPlotEntropy = False
+    inPlotEnrichmentMap = False
     inPlotEnrichmentMapScaled = False
-    #inPlotLogo = False
+    inPlotLogo = False
     inPlotWeblogo = False
     inPlotMotifEnrichment = False
     inPlotWordCloud = True
@@ -63,7 +63,7 @@ inPlotPositionalProbDist = False # For understanding shannon entropy
 
 # Input 4: Inspecting The data
 inPrintNumber = 10
-inFindSequences = True
+inFindSequences = False
 inFindSeq = 'ILQA'
 
 # Input 5: Plot Heatmap
@@ -298,7 +298,8 @@ else:
 # Create csv
 if inSaveCSV:
     ngs.saveSubstrateCSV(
-        seqs=substratesFinal, initialRF=probInitial, finalRF=probFinal
+        seqs=substratesFinal, initialRF=probInitial,
+        finalRF=probFinal, minCounts=inMinSubsCSV
     )
 
 # Evaluate: Sequences

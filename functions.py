@@ -2263,14 +2263,30 @@ class NGS:
                               f'Fixed AA: {cyan}{self.fixedAA}{orange}\n'
                               f'Fixed Pos : {cyan}{self.fixedPos}{orange}\n')
                         sys.exit()
-
                     self.datasetTag = ' '.join(fixResidueList)
-                    self.datasetTag = self.datasetTag.replace("_", ' ')
+            else:
+                if self.excludeAAs:
+                    # Exclude residues
+                    fixResidueList = []
+                    for index, removedAA in enumerate(self.excludeAA):
+                        if index == 0:
+                            fixResidueList.append(
+                                f'Exclude_{removedAA}@R'
+                                f'{self.excludePosition[index]}'.replace(
+                                    ' ', ''))
+                        else:
+                            fixResidueList.append(
+                                f'{removedAA}@R{self.excludePosition[index]}'.replace(
+                                    ' ', ''))
+                    self.datasetTag = ' '.join(fixResidueList)
+                else:
+                    self.datasetTag = 'Unfiltered'
+            # Condense the string
+            if "'" in self.datasetTag:
+                self.datasetTag = self.datasetTag.replace("'", '')
+            self.datasetTag = self.datasetTag.replace("_", ' ')
 
-                # Condense the string
-                if "'" in self.datasetTag:
-                    self.datasetTag = self.datasetTag.replace("'", '')
-    
+            if self.excludeAAs:
                 # Clean up fixed sequence tag
                 if self.substrateLength == 9:
                     removeTag = 'Excl-Y@R1_Y@R2_Y@R3_Y@R4_Y@R6_Y@R7_Y@R8_Y@R9'
@@ -2279,9 +2295,7 @@ class NGS:
                         self.datasetTag = self.datasetTag.replace(removeTag, '')
                         self.datasetTag = f'Exclude Y{self.datasetTag}'
                 self.datasetTag = self.datasetTag.replace('_', ' ')
-            else:
-                self.datasetTag = 'Unfiltered'
-    
+
         # Define: Dataset Label
         if useCodonProb:
             self.datasetTag = f'{codon} Enrichment - {self.datasetTag}'
@@ -2290,7 +2304,7 @@ class NGS:
             self.initialize = False
         print(f'Dataset Tag: {purple}{self.datasetTag}{resetColor}\n\n')
 
-        # sys.exit()
+        sys.exit()
 
         return self.datasetTag
 
