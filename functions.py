@@ -2304,8 +2304,6 @@ class NGS:
             self.initialize = False
         print(f'Dataset Tag: {purple}{self.datasetTag}{resetColor}\n\n')
 
-        sys.exit()
-
         return self.datasetTag
 
 
