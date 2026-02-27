@@ -2438,6 +2438,83 @@ class NGS:
 
 
 
+
+    def exclResidue(self, substrates, fixedString, printRankedSubs, sortType):
+        print('=============================== Filter Substrates '
+              '===============================')
+        fixedSubs = {}
+        fixedSubsTotal = 0
+        print(f'Selecting {purple}{sortType} {resetColor}substrates with: '
+              f'{purple}{fixedString}{resetColor}\n')
+
+        # Sort the substrate dictionary by counts
+        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
+
+
+        # Select substrates that contain selected AA at a specified position in the substrate
+        if self.excludeAAs:
+            # Verify if the substrates contain the residue(s) you wish to remove
+            for substrate, count in substrates.items():
+                # Inspect substrate count
+                if count < self.minSubCount:
+                    break
+
+                keepSub = True
+                for indexExclude, AAExclude in enumerate(self.excludeAA):
+                    if len(AAExclude) == 1:
+                        indexRemoveAA = self.excludePosition[indexExclude] - 1
+
+                        # Is the AA acceptable?
+                        if substrate[indexRemoveAA] == AAExclude:
+                            keepSub = False
+                            continue
+                    else:
+                        # Remove Multiple AA at a specific position
+                        for AAExcludeMulti in AAExclude:
+                            indexRemoveAA = self.excludePosition[indexExclude] - 1
+                            for AAExclude in AAExcludeMulti:
+
+                                # Is the AA acceptable?
+                                if substrate[indexRemoveAA] == AAExclude:
+                                    keepSub = False
+                                    continue
+
+                # Extract the substrate
+                if keepSub:
+                    fixedSubs[substrate] = count
+                    fixedSubsTotal += count
+
+        # Rank fixed substrates
+        rankedFixedSubstrates = dict(sorted(fixedSubs.items(),
+                                            key=lambda x: x[1], reverse=True))
+
+        # Print: Fixed substrates
+        if printRankedSubs:
+            iteration = 0
+            fixedUniqueSubsTotal = len(rankedFixedSubstrates)
+            print('Ranked Fixed Substrates:')
+            if fixedUniqueSubsTotal == 0:
+                print('')
+                print(f'{orange}ERROR:\n'
+                      f'     No substrates in {purple}{sortType}{orange} contained: '
+                      f'{red}{fixedString}{resetColor}\n')
+                sys.exit(1)
+            else:
+                for substrate, count in rankedFixedSubstrates.items():
+                    print(f'     {pink}{substrate}{resetColor}, Counts: {red}{count:,}'
+                          f'{resetColor}')
+                    iteration += 1
+                    if iteration >= self.printNumber:
+                        break
+
+
+        print(f'\nNumber of substrates with fixed {purple}{fixedString}{resetColor}: '
+              f'{red}{fixedSubsTotal:,}{resetColor}\n\n')
+
+        return rankedFixedSubstrates, fixedSubsTotal
+
+
+
     def identifyMotif(self, fixFullFrame):
         print('================================ Identify Motif '
               '=================================')

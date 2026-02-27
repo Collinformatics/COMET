@@ -188,7 +188,7 @@ probInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
 loadUnfilteredSubs = False
 filePathFixedCountsFinal, filePathFixedSubsFinal = None, None
 substratesFinal, countsFinal, countsFinalTotal = None, None, None
-if inFixResidues:
+if inFixResidues or inExcludeResidues:
     substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
 
     filePathFixedSubsFinal, filePathFixedCountsFinal = (
@@ -259,6 +259,21 @@ if inFixResidues:
         fixedSubsInitial, countsInitialFixedTotal = ngs.fixResidue(
             substrates=substratesInitial, fixedString=fixedSubSeq,
             printRankedSubs=inPrintFixedSubs, sortType='Initial Sort')
+
+if inExcludeResidues and not inFixResidues:
+    if loadUnfilteredSubs:
+        # Exclude AAs
+        # Fix AA
+        substratesFinal, countsFinalTotal = ngs.exclResidue(
+            substrates=substratesFinal, fixedString=fixedSubSeq,
+            printRankedSubs=inPrintFixedSubs, sortType='Final Sort')
+
+        # Count fixed substrates
+        countsFinal, countsFinalTotal = ngs.countResidues(substrates=substratesFinal,
+                                                          datasetType='Final Sort')
+
+        # Save the data
+        ngs.saveData(substrates=substratesFinal, counts=countsFinal)
 
 
 # Display current sample size
