@@ -1507,15 +1507,15 @@ class NGS:
         # Get data paths
         t = 'Counts'
         subLen = len(next(iter(seqs)))
-        tag = (f'{self.enzyme} - {t} - {subLen} AA - '
-               f'{self.datasetTag} - MinCounts {minCounts}.csv')
+        tag = (f'{self.enzyme}_{t}_{subLen}AA_{self.datasetTag}_'
+               f'MinCounts{minCounts}.csv').replace(' ', '-')
         pathCSV = os.path.join(self.pathFolder, 'CSV')
         if not os.path.exists(pathCSV):
             os.makedirs(pathCSV, exist_ok=True)
         paths = [
             os.path.join(pathCSV, tag),
-            os.path.join(pathCSV, tag.replace(f'- {t}', '- Z Counts')),
-            os.path.join(pathCSV, tag.replace(f'- {t}','- Z Pred'))
+            os.path.join(pathCSV, tag.replace(f'_{t}', '_ZCounts')),
+            os.path.join(pathCSV, tag.replace(f'_{t}','_ZPred'))
         ]
         evalData = False
         for savePath in paths:
