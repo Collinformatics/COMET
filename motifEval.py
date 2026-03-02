@@ -18,14 +18,14 @@ inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\''] #¡¡¡¡
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\''] # ,'P3\'','P4\''
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 inIndexNTerminus = 0 # Define the index if the first AA in the motif
 
 # Input 3: Computational Parameters
 inFixedResidue = 'Q' # ['L', 'L']
-inFixedPosition = [4] # [[4,5], [6,7]]
+inFixedPosition = [4,5,6] # [[4,5], [6,7]]
 inExcludeResidues = False
 inExcludedResidue = ['A','A']
 inExcludedPosition = [9,10]
@@ -34,7 +34,7 @@ inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
 inSaveCSV = True # Save substrates in a csv file
-inMinSubsCSV = 100 # Minimum counts for saved substrates
+inMinSubsCSV = 300 # Minimum counts for saved substrates
 
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
@@ -81,7 +81,7 @@ inPrintNumber = 10
 # Input 6: Find Protein Sequences
 inFindSequences = False
 inFindSeq = ['LA', 'LF', 'LW']
-inFindAAInSequence = True
+inFindAAInSequence = False
 inFindAA = ['A', 'F', 'W']
 inAAPos = 4
 
@@ -921,6 +921,13 @@ ngs.calculateEnrichment(
 
 # Create csv
 if inSaveCSV:
+    # Save full length substrates
+    ngs.saveSubstrateCSV(
+        seqs=substratesFiltered, initialRF=rfInitial,
+        finalRF=rfCombinedReleasedMotif, minCounts=inMinSubsCSV
+    )
+
+    # Save motif sequences
     ngs.saveSubstrateCSV(
         seqs=motifs, initialRF=rfInitial,
         finalRF=rfCombinedReleasedMotif, minCounts=inMinSubsCSV

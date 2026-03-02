@@ -1497,7 +1497,7 @@ class NGS:
             else:
                 score *= value
         if sqroot:
-            score = np.sqrt(score) ##
+            score = np.sqrt(score)
         return score
 
 
@@ -1507,8 +1507,8 @@ class NGS:
         # Get data paths
         t = 'Counts'
         subLen = len(next(iter(seqs)))
-        tag = (f'{self.enzyme}_{t}_{subLen}AA_{self.datasetTag}_'
-               f'MinCounts{minCounts}.csv').replace(' ', '-')
+        tag = (f'{self.enzyme}_{t}_{subLen}AA_'
+               f'{self.datasetTag}_MinCounts{minCounts}.csv').replace(' ', '-')
         pathCSV = os.path.join(self.pathFolder, 'CSV')
         if not os.path.exists(pathCSV):
             os.makedirs(pathCSV, exist_ok=True)
@@ -1527,30 +1527,26 @@ class NGS:
 
         print('==============================  Save Substrate CSV '
               '==============================')
-        print(f'Minimum substrate count: {red}{minCounts}{resetColor}') ##
+        print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}') ##
 
         # Get prediction matrix
         matrix = self.normalizeProbRatios(
             finalRF=finalRF, initialRF=initialRF, pData=False
         )
-        print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n')
+
+        # Seq len
+        subLen = len(next(iter(seqs)))
+
 
         # Limit substrates by counts
-        subs = {}
         subsCounts = {}
         for seq, count in seqs.items():
             if count >= minCounts:
                 #subs[seq] = count/maxVal
                 subsCounts[seq] = count
-                subs[seq] = self.scoreSubstrate(seq, matrix)
             else:
                 break
-        N = len(subs)
-
-        # Normalize pred scores
-        maxVal = max(subs.values())
-        for seq, score in subs.items():
-            subs[seq] = score / maxVal
+        N = len(subsCounts)
 
         # Calculate: Z-scores Counts
         subsZCounts = {}
@@ -1559,40 +1555,61 @@ class NGS:
         for seq, count in subsCounts.items():
             subsZCounts[seq] = (count - mu) / sigma
 
-        # Calculate: Z-scores Predicted
+
+        # Predict substrate activity
+        subs = {}
         seqZPred = {}
-        mu = np.average(list(subs.values()))
-        sigma = np.std(list(subs.values()))
-        for seq, score in subs.items():
-            seqZPred[seq] = (score - mu) / sigma
+        if subLen <= len(matrix.columns):
+            print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n')
+            for seq, count in subsCounts.items():
+                subs[seq] = self.scoreSubstrate(seq, matrix)
+
+            # Normalize pred scores
+            maxVal = max(subs.values())
+            for seq, score in subs.items():
+                subs[seq] = score / maxVal
+
+            # Calculate: Z-scores Predicted
+            mu = np.average(list(subs.values()))
+            sigma = np.std(list(subs.values()))
+            for seq, score in subs.items():
+                seqZPred[seq] = (score - mu) / sigma
 
 
         # Pre-format values
-        pSeqs = list(subs)[:self.printNumber]
+        pSeqs = list(subsCounts)[:self.printNumber]
         formattedCounts = [f'{seqs[seq]:,}' for seq in pSeqs]
         formattedZCounts = [f'{subsZCounts[seq]:.3f}' for seq in pSeqs]
-        formattedProducts = [f'{subs[seq]:.3f}' for seq in pSeqs]
-        formattedZ = [f'{seqZPred[seq]:,.3f}' for seq in pSeqs]
 
         # Compute column widths
-        countWidth = max(len(val) for val in formattedCounts)
-        zcountWidth = max(len(val) for val in formattedZCounts)
-        productWidth = max(len(val) for val in formattedProducts)
-        zWidth = max(len(val) for val in formattedZ)
+        widthCount = max(len(val) for val in formattedCounts)
+        widthZCount = max(len(val) for val in formattedZCounts)
 
         # Print data
         print('Substrate Scores:')
-        for seq, countStr, zCountStr, prodStr, zStr in zip(
-                subs, formattedCounts, formattedZCounts, formattedProducts, formattedZ):
-            print(
-                f'    {pink}{seq}{resetColor}, '
-                f'Count: {red}{countStr:>{countWidth}}{resetColor}, '
-                f'Z Score Counts: {red}{zCountStr:>{zcountWidth}}{resetColor}, '
-                f'Z Score Pred: {red}{zStr:>{zWidth}}{resetColor}, '
-                f'Pred: {red}{prodStr:>{productWidth}}{resetColor}'
-            )
-        print()
+        if seqZPred:
+            formattedProducts = [f'{subs[seq]:.3f}' for seq in pSeqs]
+            formattedZ = [f'{seqZPred[seq]:,.3f}' for seq in pSeqs]
+            widthProd = max(len(val) for val in formattedProducts)
+            widthZ = max(len(val) for val in formattedZ)
 
+            for seq, countStr, zCountStr, prodStr, zStr in zip(
+                    pSeqs, formattedCounts, formattedZCounts, formattedProducts, formattedZ):
+                print(
+                    f'    {pink}{seq}{resetColor}, '
+                    f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
+                    f'Z Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}, '
+                    f'Z Score Pred: {red}{zStr:>{widthZ}}{resetColor}, '
+                    f'Pred: {red}{prodStr:>{widthProd}}{resetColor}'
+                )
+        else:
+            for seq, countStr, zCountStr in zip(
+                    pSeqs, formattedCounts, formattedZCounts):
+                print(f'    {pink}{seq}{resetColor}, '
+                      f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
+                      f'Z Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}'
+                )
+        print()
         print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\nSave path:')
 
 
@@ -1616,9 +1633,9 @@ class NGS:
                 for seq, score in subsZCounts.items():
                     writer.writerow([seq, score])
 
-        # CSV: Z-Scores
+        # CSV: Z-Pred
         savePath = paths[2]
-        if not os.path.exists(savePath):
+        if seqZPred and not os.path.exists(savePath):
             print(f'    {greenDark}{savePath}{resetColor}')
             with open(savePath, 'w', newline='') as c:
                 writer = csv.writer(c)
