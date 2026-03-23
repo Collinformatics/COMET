@@ -4,17 +4,25 @@ COMET (COmprehensive Motif Evaluation Toolkit) was developed to process high-thr
 
 # Installation:
 
+Clone the GitHub with the terminal command:
+
+    git clone https://github.com/Collinformatics/COMET
+
+Then move to the COMET directory:
+
+    cd COMET
+
 Create Environment:
 
     conda env create -f environment.yml
 
-Activate Environment
+Activate Environment:
 
     conda activate comet
 
 # Host Website
 
-You can use your computer to host the website.
+You can start up the website with:
 
     python app.py
 
