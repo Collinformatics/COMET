@@ -12,5 +12,10 @@ git add .
 echo -e '\n$ git commit -m "Initial commit"'
 git commit -m "Initial commit"
 
+
+echo -e '\n$ git remote add origin git@github.com:Collinformatics/COMET'
+git remote add origin git@github.com:Collinformatics/COMET
+
+
 echo -e '\n$ git push -u origin main'
 git push -u origin main
