@@ -1,6 +1,6 @@
 from flask import (Flask, jsonify, redirect, render_template, request,
                    send_from_directory, url_for)
-from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from functions import WebApp
 from getKey import genKey
 import sys

@@ -33,6 +33,7 @@ class WebApp:
         self.seqLength = False
         self.minCounts = 1
         self.printN = 10
+        self.roundVal = 3
         self.xAxisLabel = False
         self.subsExp = {}
         self.countsExp = 'Initialize me'
@@ -930,7 +931,264 @@ class WebApp:
             totalCounts += count
             for index, AA in enumerate(substrate):
                 countMatrix.loc[AA, f'R{index + 1}'] += count
-        self.log(f'Unique Substrates: {len(substrates.keys())}\n'
-                 f'Total Counts: {totalCounts}\n\n{countMatrix}\n\n')
+        self.log(f'Total Counts: {totalCounts}\n\n{countMatrix}\n\n')
 
 
+
+    def calculateEnrichment(self, rfExp, rfBg, releasedCounts=False, combinedMotifs=False,
+                            posFilter=False, relFilter=False, releasedIteration=False):
+        self.log('========================== Calculate: Enrichment Score '
+                 '==========================')
+        self.log(f'Enrichment Scores:\n'
+              f'     log₂(RF Experimental / RF Background)\n\n')
+        self.log(f'RF Experimental:\n{rfExp}\n\n')
+        self.log(f'RF Background:\n{rfExp}\n\n')
+
+        # Calculate: Enrichment scores
+        if len(rfBg.columns) == 1:
+            matrix = pd.DataFrame(0.0, index=rfExp.index,
+                                  columns=rfExp.columns)
+            for position in rfExp.columns:
+                matrix.loc[:, position] = np.log2(rfExp.loc[:, position] /
+                                                  rfBg.iloc[:, 0])
+        else:
+            if len(rfBg.columns) != len(rfExp.columns):
+                self.log(f'ERROR: The number of columns in the Initial Sort '
+                      f'({len(rfBg.columns)}) needs to equal to the '
+                      f'number of columns in the Final Sort '
+                      f'({len(rfExp.columns)})\n'
+                      f'     Initial: {rfBg.columns}\n'
+                      f'       Final: {rfExp.columns}\n\n')
+                sys.exit(1)
+
+            rfBg.columns = rfExp.columns
+            matrix = np.log2(rfExp / rfBg)
+            # matrix = rfExp
+        if releasedCounts:
+            self.log(f'Enrichment Score: Released Counts\n'
+                  f'{matrix.round(self.roundVal)}\n\n')
+            self.log(f'Prob Initial:\n{rfBg}\n\n'
+                  f'RF Expl:\n{rfExp}\n\n')
+        else:
+            self.log(f'Enrichment Score: {self.datasetTag}\n'
+                  f'{matrix.round(self.roundVal)}\n\n')
+
+        self.log('====================== Calculate: Scaled Enrichment Score '
+              '=======================')
+        if releasedCounts:
+            self.log(f'Scale Enrichment Scores: Released Counts\n'
+                  f'     Enrichment Scores * ΔS\n')
+        else:
+            self.log(f'Scale Enrichment Scores:\n'
+                  f'     Enrichment Scores * ΔS\n')
+
+
+        # Calculate: Letter heights
+        heights = pd.DataFrame(0, index=matrix.index,
+                               columns=matrix.columns, dtype=float)
+        for indexColumn in heights.columns:
+            heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
+                                           self.entropy.loc[indexColumn, 'ΔS'])
+
+        # Record values
+        if releasedCounts:
+            self.eMapReleased = matrix
+            self.eMapReleasedScaled = heights.copy()
+        else:
+            self.eMap = matrix
+            self.eMapScaled = heights.copy()
+
+        # Calculate: Max positive
+        columnTotals = []
+        for indexColumn in heights.columns:
+            totalPos = 0
+            for value in heights.loc[:, indexColumn]:
+                if value > 0:
+                    totalPos += value
+            columnTotals.append(totalPos)
+        yMax = max(columnTotals)
+        self.log(f'Y Max: {yMax}\n')
+
+        # Adjust values
+        for column in heights.columns:
+            if heights.loc[:, column].isna().any():
+                nValues = heights[column].notna().sum()
+                self.log(f'Number non NaN values: {nValues}\n')
+                heights.loc[heights[column].notna(), column] = yMax / nValues
+                heights.loc[:, column] = heights.loc[:, column].fillna(0)
+
+        heights = heights.replace([np.inf, -np.inf], 0)
+        self.heights = heights
+        self.log(f'Residue Heights: {self.datasetTag}\n'
+              f'{heights}\n\n')
+
+
+        # Plot: Enrichment Map
+        self.plotEnrichmentScores(dataType='Enrichment',
+                                  releasedCounts=releasedCounts,
+                                  combinedMotifs=combinedMotifs,
+                                  posFilter=posFilter,
+                                  relFilter=relFilter)
+
+        self.plotEnrichmentScores(dataType='Scaled Enrichment',
+                                  releasedCounts=releasedCounts,
+                                  combinedMotifs=combinedMotifs,
+                                  posFilter=posFilter,
+                                  relFilter=relFilter)
+
+        # Plot: Enrichment Logo
+        self.plotEnrichmentLogo(releasedCounts=releasedCounts,
+                                combinedMotifs=combinedMotifs,
+                                posFilter=posFilter,
+                                relFilter=relFilter)
+
+        # Calculate & Plot: Weblogo
+        self.calculateWeblogo(probability=rfExp, releasedCounts=releasedCounts,
+                              combinedMotifs=combinedMotifs)
+
+        return self.eMap
+
+
+
+    def plotEnrichmentScores(self, dataType, combinedMotifs=False, releasedCounts=False,
+                             posFilter=False, relFilter=False):
+        print('============================ Plot: Enrichment Score '
+              '=============================')
+        # Select: Dataset
+        if 'scaled' in dataType.lower():
+            if releasedCounts:
+                scores = self.eMapReleasedScaled
+            else:
+                scores = self.eMapScaled
+        else:
+            if releasedCounts:
+                scores = self.eMapReleased
+            else:
+                scores = self.eMap
+
+        # Define: Figure title
+        if releasedCounts:
+            title = self.titleReleased
+        # elif combinedMotifs and len(self.motifIndexExtracted) > 1:
+        #     print(f'A\n')
+        #     title = self.titleCombined
+        elif combinedMotifs:
+            print(f'B\n')
+            title = self.titleCombined
+        else:
+            title = self.title
+        # if ' - ' in title:
+        #     title = title.replace(' - ', '\n')
+        if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
+            title = title.replace('Frames ', 'Frames\n')
+
+        print(f'Dataset: {self.datasetTag}\n'
+              f'Unique Substrates: {red}{self.nSubsFinalUniqueSeqs:,}')
+        if self.motifFilter:
+            print(f'Figure Number: '
+                  f'{self.saveFigureIteration}')
+        if posFilter:
+            if relFilter:
+                print(f'Releasing Filter: {posFilter}')
+            else:
+                print(f'Applying Filter: {posFilter}')
+
+        print(f'\n\nEnrichment Scores:\n'
+              f'{scores}\n\n')
+
+
+        # Create heatmap
+        cMapCustom = self.createCustomColorMap(colorType='EM')
+
+        # Define the yLabel
+        if self.residueLabelType == 0:
+            scores.index = [residue[0] for residue in self.residues]
+        elif self.residueLabelType == 1:
+            scores.index = [residue[1] for residue in self.residues]
+        elif self.residueLabelType == 2:
+            scores.index = [residue[2] for residue in self.residues]
+
+        # Define color bar limits
+        if np.max(scores) >= np.min(scores):
+            cBarMax = np.max(scores)
+            cBarMin = -1 * cBarMax
+        else:
+            cBarMin = np.min(scores)
+            cBarMax = -1 * cBarMin
+
+        # Plot the heatmap with numbers centered inside the squares
+        fig, ax = plt.subplots(figsize=self.figSizeEM)
+        if self.figEMSquares:
+            heatmap = sns.heatmap(scores, annot=False, cmap=cMapCustom, cbar=True,
+                                  linewidths=self.lineThickness - 1, linecolor='black',
+                                  square=self.figEMSquares, center=None,
+                                  vmax=cBarMax, vmin=cBarMin)
+        else:
+            heatmap = sns.heatmap(scores, annot=True, fmt='.3f', cmap=cMapCustom,
+                                  cbar=True, linewidths=self.lineThickness - 1,
+                                  linecolor='black', square=self.figEMSquares,
+                                  center=None, vmax=cBarMax, vmin=cBarMin,
+                                  annot_kws={'fontweight': 'bold'})
+        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
+        if self.figEMSquares:
+            figBorders = [0.852, 0.075, 0, 0.895]
+        else:
+            figBorders = [0.852, 0.075, 0.117, 1]  # Top, bottom, left, right
+        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
+                            left=figBorders[2], right=figBorders[3])
+
+        # Set the thickness of the figure border
+        for _, spine in ax.spines.items():
+            spine.set_visible(True)
+            spine.set_linewidth(self.lineThickness)
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', rotation=0, length=self.tickLength,
+                       labelsize=self.labelSizeTicks, width=self.lineThickness)
+
+        # Set x-ticks
+        xTicks = np.arange(len(scores.columns)) + 0.5
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(scores.columns)
+
+        # Set y-ticks
+        yTicks = np.arange(len(scores.index)) + 0.5
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(scores.index)
+
+        # Set invalid values to grey
+        cmap = plt.cm.get_cmap(cMapCustom)
+        cmap.set_bad(color='lightgrey')
+
+        # Modify the colorbar
+        cbar = heatmap.collections[0].colorbar
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        cbar.outline.set_linewidth(self.lineThickness)
+        cbar.outline.set_edgecolor('black')
+
+        fig.canvas.mpl_connect('key_press_event', pressKey)
+        if self.setFigureTimer:
+            plt.ion()
+            plt.show()
+            plt.pause(self.figureTimerDuration)
+            plt.close(fig)
+            plt.ioff()
+        else:
+            plt.show()
+
+
+        # Save the figure
+        if self.saveFigures:
+            if 'Scaled' in dataType:
+                datasetType = 'EM Scaled'
+            elif 'Enrichment' in dataType:
+                datasetType = 'EM'
+            else:
+                print(f'ERROR: What do I do with this dataset type -'
+                      f' {dataType}\n')
+                sys.exit(1)
+            self.saveFigure(fig=fig, figType=datasetType, seqLen=len(xTicks),
+                            combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)

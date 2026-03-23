@@ -184,7 +184,7 @@ p {
     border-radius: 0px;
 }
 .dropdown-content a {
-    color: var(--white);
+    color: var(--orange);
     padding: 10px 5px;
     text-decoration: none;
     display: block;
@@ -201,7 +201,7 @@ p {
 }
 .dropdown:hover .dropbtn {
     background-color: var(--grey);
-    color: var(--orange);
+    color: var(--white);
 }
 
 /* Figures*/

@@ -1,13 +1,11 @@
 # Purpose:
 
-This website can be used to process and evauate enzyme profiling data.
+This is a template for a website that runs Python on the backend
 
 # Install Modules:
 
 You will need to install the following Python modules:
 
-    pip install biopython
-    pip install pandas
     pip install Flask
 
 # Terminating The Server:

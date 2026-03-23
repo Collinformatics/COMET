@@ -115,6 +115,8 @@ function buttonProcessDNA() {
     const json = {}; // Dont send files as a JSON
     const selectedFixPositions = [];
 
+    // Redirect
+//    window.location.href = '/results';
 
     // Process the input form
     for (const [key, value] of formData.entries()) {
