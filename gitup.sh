@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Update a github with the terminal
+
 echo -e '\n$ git pull origin'
 git pull origin main
 
