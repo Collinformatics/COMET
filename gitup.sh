@@ -13,3 +13,8 @@ git commit -m "Merge remote changes"
 
 echo -e '\n$ git push origin main'
 git push origin main
+
+
+git checkout update
+git pull origin main --rebase
+git push origin update
