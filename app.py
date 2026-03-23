@@ -134,8 +134,15 @@ def filterAA():
 def filterMotif():
     return render_template('filterMotif.html')
 
+def shutdown():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return 'Server shutting down...'
 
 # Run the app
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)
-
+    app.run(debug=True, use_reloader=False, port=9090)
+    shutdown()
+    sys.exit(0)

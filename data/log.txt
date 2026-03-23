@@ -1,0 +1,10 @@
+================================== Job Summary ==================================
+Enzyme: Name
+Substrate Length: 8
+Job: Evaluate DNA
+5' Sequence: AAAGGCAGT
+3' Sequence: GGTGGAAGT
+Min Phred Score: 20
+Dataset Filter: Unfiltered
+
+
