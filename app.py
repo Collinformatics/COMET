@@ -2,19 +2,18 @@ from flask import (Flask, jsonify, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from functions import WebApp
-from getKey import genKey
 import sys
 import threading
 
 
 # Set up the app
 app = Flask(__name__)
-genKey(app)
 csrf = CSRFProtect(app)
 
 
 # Initialize: Application
 webapp = WebApp()
+webapp.genKey(app)
 
 # Figure storage
 figures = {}

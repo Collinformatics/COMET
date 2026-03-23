@@ -13,12 +13,11 @@ import pandas as pd
 import pickle as pk
 import queue
 import seaborn as sns
+import secrets
 import sys
 import threading
 import time
 import warnings
-
-
 
 # Generate figures entirely in memory without opening a window
 matplotlib.use('Agg')  # Use a non-interactive backend for servers
@@ -207,6 +206,12 @@ class WebApp:
 
         return figBase64
 
+
+    @staticmethod
+    def genKey(app):  # required for CSRF
+        app.config['SECRET_KEY'] = secrets.token_hex(nbytes=32)
+        # print(f'Key: {app.config['SECRET_KEY']}\n'
+        #       f'Len: {len(app.config['SECRET_KEY'])}\n')
 
 
     def pressButton(self, message):
