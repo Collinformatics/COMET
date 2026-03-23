@@ -12,11 +12,11 @@ Then move to the COMET directory:
 
     cd COMET
 
-Create Environment:
+Create environment:
 
     conda env create -f environment.yml
 
-Activate Environment:
+Activate environment:
 
     conda activate comet
 
@@ -26,5 +26,5 @@ You can start up the website with:
 
     python app.py
 
-- This will generate a URL with ip address and port, likely http://127.0.0.1:9090
+- This will generate a URL with an ip address and port, likely http://127.0.0.1:9090
   - Click on it to go to the site, or enter the address in a browser.
