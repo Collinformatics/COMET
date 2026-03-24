@@ -484,8 +484,8 @@ class WebApp:
         print()
 
         # # Placeholder for files
-        self.fileExp = ['data/variantsExp.fastq', 'data/variantsExp2.fastq']
-        self.fileBg = ['data/variantsBg.fasta', 'data/variantsBg2.fasta']
+        self.fileExp = ['data/variantsExp.fastq'] # , 'data/variantsExp2.fastq'
+        self.fileBg = ['data/variantsBg.fasta'] # , 'data/variantsBg2.fasta'
         print(f'File Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'
