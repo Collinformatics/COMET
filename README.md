@@ -29,3 +29,10 @@ You can start up the website with:
 
 - This will generate a URL with an ip address and port, likely http://127.0.0.1:9090
   - Click on the link to go to the website, or enter the address in a browser.
+
+
+# Terminating Processes:
+
+Non-terminated processes can result in the website not starting correctly. To fix this run this script to terminate the python processes at the port used to host the server:
+
+    ./killServer.sh
