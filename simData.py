@@ -47,10 +47,10 @@ pathExp = os.path.join(dir, 'variantsExp.fastq')
 pathBg = os.path.join(dir, 'variantsBg.fasta')
 
 
-def generateVariants(sequence, mutationOdds=4, numVariants=50):
+def generateVariants(sequence, mutationOdds, numVariants, path):
     bases = ['A', 'T', 'C', 'G']
     variants = [('variant_0', f'{seq5Prime}{sequence}{seq3Prime}')]
-    numVariants = 100 - numVariants
+    mutationOdds = 100 - mutationOdds
 
     while len(variants) < numVariants:
         var = list(sequence)
@@ -65,7 +65,8 @@ def generateVariants(sequence, mutationOdds=4, numVariants=50):
             subCassette = seq5Prime + "".join(var) + seq3Prime
             variants.append((name, subCassette))
 
-    return variants
+    # Save to FASTA and FASTQ
+    saveSeqs(variants,  path)
 
 
 def saveSeqs(variants, fileName):
@@ -81,16 +82,13 @@ def saveSeqs(variants, fileName):
 
 
 # Generate variants
-variantsExp = generateVariants(
-    seqDNA, mutationOdds=args.mut_exp, numVariants=args.num_variants
+generateVariants(
+    seqDNA, mutationOdds=args.mut_exp, numVariants=args.num_variants, path=pathExp
 )
-variantsBg = generateVariants(
-    seqDNA, mutationOdds=args.mut_bg, numVariants=args.num_variants
+generateVariants(
+    seqDNA, mutationOdds=args.mut_bg, numVariants=args.num_variants, path=pathBg
 )
 
-# Save to FASTA and FASTQ
-saveSeqs(variantsExp,  pathExp)
-saveSeqs(variantsBg,  pathBg)
 
 print(f'Saved {args.num_variants:,} variants at:\n'
       f'     {pathExp}\n'
