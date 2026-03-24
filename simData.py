@@ -30,24 +30,21 @@ seqDNA = 'GTTATTTTACAACTTGAACGTGTT' # Starting protein sequence
 seq5Prime = 'AAAGGCAGT' # 5' flanking sequence
 seq3Prime = 'GGTGGAAGT' # 3' flanking sequence
 
-print(f'Generating {args.num_variants} variants\n'
+print(f'Generating {args.num_variants:,} variants\n\n'
       f'Starting sequence: {seqDNA}\n'
-      f'Full sequence: {seq5Prime}-{seqDNA}-{seq3Prime}\n'
+      f'Flanking sequence:\n'
+      f'* 5\': {seq5Prime}\n'
+      f'* 3\': {seq3Prime}\n'
+      f'Full sequence: {seq5Prime}-{seqDNA}-{seq3Prime}\n\n'
       f'Mutation Odds:\n'
       f'* Experimental: {args.mut_exp} %\n'
       f'* Background: {args.mut_bg} %\n')
 
-setInit = False
 dir = 'data'
 if not os.path.exists(dir):
     os.makedirs(dir, exist_ok=True)
-if setInit:
-    pathExp = os.path.join(dir, 'variantsExp.fastq')
-    pathBg = os.path.join(dir, 'variantsBg.fasta')
-else:
-    seqDNA = 'CCTTATATTCAGATTGATAATGCG'
-    pathExp = os.path.join(dir, 'variantsExp2.fastq')
-    pathBg = os.path.join(dir, 'variantsBg2.fasta')
+pathExp = os.path.join(dir, 'variantsExp.fastq')
+pathBg = os.path.join(dir, 'variantsBg.fasta')
 
 
 def generateVariants(sequence, mutationOdds=4, numVariants=50):
@@ -95,6 +92,6 @@ variantsBg = generateVariants(
 saveSeqs(variantsExp,  pathExp)
 saveSeqs(variantsBg,  pathBg)
 
-print(f'Saved {args.num_variants} variants at:\n'
+print(f'Saved {args.num_variants:,} variants at:\n'
       f'     {pathExp}\n'
       f'     {pathBg}')
