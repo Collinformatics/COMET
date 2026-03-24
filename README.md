@@ -33,6 +33,8 @@ You can start up the website with:
 
 # Terminating Processes:
 
-Non-terminated processes can result in the website not starting correctly. To fix this run this script to terminate the python processes at the port used to host the server:
+Unterminated processes can result in the website not starting correctly.
+
+To fix this run this script to terminate the python processes at the port used to host the server:
 
     ./killServer.sh
