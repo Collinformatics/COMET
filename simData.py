@@ -80,7 +80,6 @@ def saveSeqs(variants, fileName):
             for name, seq in variants:
                 fasta.write(f">{name}\n{seq}\n")
 
-
 # Generate variants
 generateVariants(
     seqDNA, mutationOdds=args.mut_exp, numVariants=args.num_variants, path=pathExp
