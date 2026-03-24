@@ -90,6 +90,6 @@ generateVariants(
 )
 
 
-print(f'Saved {args.num_variants:,} variants at:\n'
+print(f'The variants were saved at:\n'
       f'     {pathExp}\n'
       f'     {pathBg}')
