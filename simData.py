@@ -1,30 +1,59 @@
+import argparse
+import os
 import random
 
+"""
+    Generate variants from a template DNA sequence
+    This starting sequence will be flanked by separate sequences on the 5' and 3' sides
+    
+    The sequences generated can be used for trial datapoints COMET 
+"""
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+	'-n', '--num_variants', default=1000, type=int,
+	help='Number of generated variants'
+)
+parser.add_argument(
+	'-me', '--mut_exp', default=70, type=int,
+	help='Percent chance of mutating a codon in experimental set'
+)
+parser.add_argument(
+	'-mb', '--mut_bg', default=10, type=int,
+	help='Percent chance of mutating a codon in background set'
+)
+args = parser.parse_args()
 
 # Original sequences
 seqDNA = 'GTTATTTTACAACTTGAACGTGTT' # Starting protein sequence
 seq5Prime = 'AAAGGCAGT' # 5' flanking sequence
 seq3Prime = 'GGTGGAAGT' # 3' flanking sequence
 
-# Dataset parameters
-
-N=1 # Number of variants
-oddMutationExp = 30 # Percent chance of mutating a codon in experimental set
-oddMutationBg = 90
+print(f'Generating {args.num_variants} variants\n'
+      f'Starting sequence: {seqDNA}\n'
+      f'Full sequence: {seq5Prime}-{seqDNA}-{seq3Prime}\n'
+      f'Mutation Odds:\n'
+      f'* Experimental: {args.mut_exp} %\n'
+      f'* Background: {args.mut_bg} %\n')
 
 setInit = False
+dir = 'data'
+if not os.path.exists(dir):
+    os.makedirs(dir, exist_ok=True)
 if setInit:
-    pathExp = "data/variantsExp.fastq"
-    pathBg = "data/variantsBg.fasta"
+    pathExp = os.path.join(dir, 'variantsExp.fastq')
+    pathBg = os.path.join(dir, 'variantsBg.fasta')
 else:
     seqDNA = 'CCTTATATTCAGATTGATAATGCG'
-    pathExp = "data/variantsExp2.fastq"
-    pathBg = "data/variantsBg2.fasta"
+    pathExp = os.path.join(dir, 'variantsExp2.fastq')
+    pathBg = os.path.join(dir, 'variantsBg2.fasta')
 
 
 def generateVariants(sequence, mutationOdds=4, numVariants=50):
     bases = ['A', 'T', 'C', 'G']
     variants = [('variant_0', f'{seq5Prime}{sequence}{seq3Prime}')]
+    numVariants = 100 - numVariants
 
     while len(variants) < numVariants:
         var = list(sequence)
@@ -55,13 +84,17 @@ def saveSeqs(variants, fileName):
 
 
 # Generate variants
-variantsExp = generateVariants(seqDNA, mutationOdds=oddMutationExp, numVariants=N)
-variantsBg = generateVariants(seqDNA, mutationOdds=oddMutationBg, numVariants=N)
+variantsExp = generateVariants(
+    seqDNA, mutationOdds=args.mut_exp, numVariants=args.num_variants
+)
+variantsBg = generateVariants(
+    seqDNA, mutationOdds=args.mut_bg, numVariants=args.num_variants
+)
 
 # Save to FASTA and FASTQ
 saveSeqs(variantsExp,  pathExp)
 saveSeqs(variantsBg,  pathBg)
 
-print(f"Saved {N} variants at:\n"
-      f"     {pathExp}\n"
-      f"     {pathBg}")
+print(f'Saved {args.num_variants} variants at:\n'
+      f'     {pathExp}\n'
+      f'     {pathBg}')
