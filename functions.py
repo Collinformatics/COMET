@@ -3,6 +3,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
 import gzip
+import hashlib
 import io
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,6 +20,7 @@ import threading
 import time
 import warnings
 
+
 # Generate figures entirely in memory without opening a window
 matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
@@ -28,6 +30,8 @@ class WebApp:
     def __init__(self):
         # Params: Dataset
         self.jobParams = {}
+        self.jobLabel = ''
+        self.jobHash = ''
         self.enzymeName = ''
         self.seqLength = False
         self.minCounts = 1
@@ -263,6 +267,7 @@ class WebApp:
         if self.fixAA:
             print('Fix AA')
             for index, (pos, AA) in enumerate(self.fixAA.items()):
+                print(index, pos, AA)
                 if len(AA) > 1:
                     tag = f'[{','.join(AA)}]@{pos.replace('fix', '')}'
                 else:
@@ -276,6 +281,7 @@ class WebApp:
             self.datasetTag = tagFix
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset Filter: {self.datasetTag}\n\n')
+        sys.exit()
 
 
         # Initialize: Save tags
@@ -357,6 +363,11 @@ class WebApp:
         with open(self.pathLog, 'a') as log:
             while not logQueue.empty():
                 log.write(logQueue.get() + '\n')
+
+
+
+    def hashStr(self, string):
+        return hashlib.sha256(string.encode('utf-8')).hexdigest()
 
 
 
@@ -471,6 +482,7 @@ class WebApp:
         self.seqLength = int(form['seqLength'])
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
+        self.jobLabel = f'{self.enzymeName}_{self.seqLength}'
 
         # Get the files
         print('Job Parameters:')
@@ -500,6 +512,7 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
+            self.jobLabel += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
         elif fixAA:
             print('Fix AA')
         elif fixMotif:
@@ -511,7 +524,15 @@ class WebApp:
         # Complete initialization
         self.getFilter(form)
         self.initDataStructures()
-
+        self.jobLabel += (f'_{self.datasetTag.replace(' ','-')}'
+                          f'_Exp-{"-".join(self.fileExp)}'
+                          f'_Bg-{"-".join(self.fileBg)}'
+                          f'_{time.ctime().replace(' ', '-')}')
+        self.jobHash = self.hashStr(self.jobLabel)
+        print(f'Job:\n'
+              f'* Label: {self.jobLabel}\n'
+              f'* Hash: {self.jobHash}\n')
+        sys.exit()
 
 
     def evalDNA(self):

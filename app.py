@@ -19,19 +19,24 @@ webapp.genKey(app)
 figures = {}
 
 
-
 def parseForm():
-    # Parse the form
     data = {}
-    for key, value in request.form.items():
-        data[key] = value
 
+    # Parse form
+    keys = set(request.form.keys())
+    for key in keys:
+        values = request.form.getlist(key)
+        if len(values) == 1:  # Check if there are multiple values
+            data[key] = values[0]
+        else:
+            data[key] = values  # Store as a list if multiple values exist
+
+    # Parse files
     for key, value in request.files.items():
         if value:
             data[key] = value
 
     return data
-
 
 
 @app.route('/run', methods=['POST'])
@@ -60,18 +65,14 @@ def jobSummary():
                            parameters=webapp.jobParams())
 
 
-
 @app.route('/evalFormDNA', methods=['POST'])
 def evalDNA():
-    # Parse the form
-    form = parseForm()
-    # Evaluate job request
-    jobID(form, 'evalDNA')
+    form = parseForm() # Parse the form
+    jobID(form, 'evalDNA') # Evaluate job request
 
     # Process the data
     webapp.evalDNA()
     print('Done')
-
     return render_template('results.html',
                            parameters=webapp.jobParams)
 
@@ -136,4 +137,4 @@ def filterMotif():
 # Run the app
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False, port=9090)
-    sys.exit(0)
+    # sys.exit(0)
