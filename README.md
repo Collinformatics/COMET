@@ -16,11 +16,12 @@ Create environment:
 
     conda env create -f environment.yml
 
+
+# Host Website
+
 Activate environment:
 
     conda activate comet
-
-# Host Website
 
 You can start up the website with:
 
