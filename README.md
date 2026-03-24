@@ -12,14 +12,14 @@ Then move to the COMET directory:
 
     cd COMET
 
-Create environment:
+Create conda environment:
 
     conda env create -f environment.yml
 
 
 # Host Website
 
-Activate environment:
+Activate conda environment:
 
     conda activate comet
 
