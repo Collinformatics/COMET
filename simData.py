@@ -12,30 +12,39 @@ import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-	'-n', '--num_variants', default=1000, type=int,
+	'-n', '--num_variants', default=2000, type=int,
 	help='Number of generated variants'
 )
 parser.add_argument(
-	'-me', '--mut_exp', default=70, type=int,
+	'-me', '--mut_exp', default=60, type=int,
 	help='Percent chance of mutating a codon in experimental set'
 )
 parser.add_argument(
-	'-mb', '--mut_bg', default=10, type=int,
+	'-mb', '--mut_bg', default=100, type=int,
 	help='Percent chance of mutating a codon in background set'
 )
 args = parser.parse_args()
 
+
+# CCGGAGCATAAACAGTACCGCGTT → PEHKQYRV
+# GCAATCGTTGGGAATGTGAAGTTA → AINVGNAK
+# AGCTGCACCGTGAACCTCGAGCCG → SCTVNLEP
+# CAGGGCGCGCTGATTCGCCATGAA → QGALIRHE
+
 # Original sequences
-seqDNA = 'GTTATTTTACAACTTGAACGTGTT' # Starting protein sequence
+seqDNA = [
+    'CCGGAGCATAAACAGTACCGCGTT', 'GCAATCGTTGGGAATGTGAAGTTA',
+    'AGCTGCACCGTGAACCTCGAGCCG', 'CAGGGCGCCTTTATTCGCCATGAA'
+] # Starting protein sequence
 seq5Prime = 'AAAGGCAGT' # 5' flanking sequence
 seq3Prime = 'GGTGGAAGT' # 3' flanking sequence
 
 print(f'Generating {args.num_variants:,} variants\n\n'
-      f'Starting sequence: {seqDNA}\n'
+      # f'Starting sequence: {seqDNA}\n'
       f'Flanking sequence:\n'
       f'* 5\': {seq5Prime}\n'
       f'* 3\': {seq3Prime}\n'
-      f'Full sequence: {seq5Prime}-{seqDNA}-{seq3Prime}\n\n'
+      f'Full sequence: {seq5Prime}-{seqDNA[0]}-{seq3Prime}\n\n'
       f'Mutation Odds:\n'
       f'* Experimental: {args.mut_exp} %\n'
       f'* Background: {args.mut_bg} %\n')
@@ -47,12 +56,13 @@ pathExp = os.path.join(dir, 'variantsExp.fastq')
 pathBg = os.path.join(dir, 'variantsBg.fasta')
 
 
-def generateVariants(sequence, mutationOdds, numVariants, path):
+def generateVariants(sequences, mutationOdds, numVariants, path):
     bases = ['A', 'T', 'C', 'G']
-    variants = [('variant_0', f'{seq5Prime}{sequence}{seq3Prime}')]
-    mutationOdds = 100 - mutationOdds
+    variants = [('variant_0', f'{seq5Prime}{sequences[0]}{seq3Prime}')]
+    mutationOdds = mutationOdds
 
     while len(variants) < numVariants:
+        sequence = sequences[random.randint(0, len(sequences) - 1)]
         var = list(sequence)
         for index in range(0, len(sequence), 3):
             codon = sequence[index:index + 3]
