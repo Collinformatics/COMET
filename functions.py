@@ -1,4 +1,6 @@
 import base64
+import math
+
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
@@ -505,7 +507,7 @@ class WebApp:
         print(f'File Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'
-              f'{self.fileBg}\n\n')
+              f'{self.fileBg}\n')
 
         # Job dependant parameters
         if evalDNA:
@@ -631,9 +633,9 @@ class WebApp:
 
     def plotCounts(self, countedData, totalCounts, datasetType):
         # Remove commas from string values and convert to float
-        countedData = countedData.applymap(lambda x:
-                                           float(x.replace(',', ''))
-                                           if isinstance(x, str) else x)
+        # countedData = countedData.applymap(lambda x:
+        #                                    float(x.replace(',', ''))
+        #                                    if isinstance(x, str) else x)
         countedData.index = self.AA
 
         # Create color map
@@ -642,14 +644,23 @@ class WebApp:
         # Set figure title
         title = f'\n\n{self.enzymeName}\n{datasetType}\nN={totalCounts:,}'
 
+        maxCount = np.max(countedData.values)
+        mag = math.floor(math.log10(maxCount)) - 1
+        maxNorm = maxCount / (10 ** mag)
+        maxRound = (math.ceil(maxNorm)) * (10**mag)
+        print(f'Max: {maxCount}\n'
+              f'Magnitude: {mag}\n'
+              f'Norm: {maxNorm}\n'
+              f'Round: {maxRound}\n')
+
 
         # Plot the heatmap with numbers centered inside the squares
         fig, ax = plt.subplots(figsize=self.figSize)
         heatmap = sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
                               cbar=True, linewidths=self.lineThickness-1,
                               linecolor='black', square=False, center=None,
-                              annot_kws={'fontweight': 'bold'})
-        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+                              annot_kws={'fontweight': 'bold'}, vmax=maxRound)
+        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         figBorders = [0.852, 0.075, 0.117, 1]
@@ -660,6 +671,7 @@ class WebApp:
         for _, spine in ax.spines.items():
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
+
 
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -675,10 +687,6 @@ class WebApp:
         yTicks = np.arange(len(countedData.index)) + 0.5
         ax.set_yticks(yTicks)
         ax.set_yticklabels(countedData.index)
-
-
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
 
         # Modify the colorbar
         cbar = heatmap.collections[0].colorbar
@@ -699,7 +707,7 @@ class WebApp:
 
         # Close the figure to free memory
         plt.close(fig) 
-        
+
         return figName
 
 
