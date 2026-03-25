@@ -414,8 +414,8 @@ input[type="url"] {
     );*/
     background: linear-gradient(
         45deg,
-        #56F1FF, #FF5BFF, #56F1FF
-    );
+        #FF5BFF, #56ff5d, #FF5BFF
+    ); /* cyan #56F1FF, green #56ff5d, pink #FF5BFF */
     position: absolute;
     top: -2px;
     left: -2px;
