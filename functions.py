@@ -99,6 +99,7 @@ class WebApp:
         self.datasetTag = 'Unfiltered'
         self.datasetTagMotif = None
         self.motifFilter = None
+        self.saveFigureIteration = None
         self.title = ''
         self.titleCombined = ''
         self.titleReleased = ''
@@ -1210,12 +1211,14 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentScores(self, dataType, datasetType, combinedMotifs=False,
+    def plotEnrichmentScores(self, dataType, combinedMotifs=False,
                              releasedCounts=False, posFilter=False, relFilter=False):
         print('============================ Plot: Enrichment Score '
               '=============================')
         # Select: Dataset
+        scaleData = False
         if 'scaled' in dataType.lower():
+            scaleData = True
             if releasedCounts:
                 scores = self.eMapReleasedScaled
             else:
@@ -1227,14 +1230,17 @@ class WebApp:
                 scores = self.eMap
 
         # Define: Figure title
+        datasetType = self.datasetTag
         if releasedCounts:
             title = self.titleReleased
+            datasetType = self.datasetTagMotif # <----- Do we need this -----
         # elif combinedMotifs and len(self.motifIndexExtracted) > 1:
         #     print(f'A\n')
         #     title = self.titleCombined
         elif combinedMotifs:
             print(f'B\n')
             title = self.titleCombined
+            datasetType = self.datasetTagMotif # <----- Do we need this -----
         else:
             title = self.title
         # if ' - ' in title:
@@ -1242,8 +1248,7 @@ class WebApp:
         if len(self.datasetTag.replace('[', ''
             ).replace(']', ''
             ).replace( '-', ''
-            )
-        ) > 40:
+            )) > 40:
             title = title.replace('Frames ', 'Frames\n')
 
         print(f'Dataset: {self.datasetTag}\n'
@@ -1340,7 +1345,10 @@ class WebApp:
         ##
 
         # File path
-        figName = f'eMap - {self.enzymeName} - {datasetType}.png'
+        if scaleData:
+            figName = f'eMap - {self.enzymeName} - {datasetType}.png'
+        else:
+            figName = f'eMap Scaled - {self.enzymeName} - {datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
         print(f'Saving Fig: {datasetType}\n     {path}\n')
 
