@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Usage:
+#   To terminate the server processes execute the command:
+#     $ ./killServer.sh
+#
+#   If you run the website at a port other than 9090, add the port to the command:
+#     $ ./killServer.sh <port>
+#
+
+
 # Parameters
 colorR='\e[91m'
 color='\e[34m'

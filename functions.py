@@ -490,18 +490,19 @@ class WebApp:
         self.log(f'Substrate Length: {self.seqLength}')
         self.jobID = f'{self.enzymeName}_{self.seqLength}'
 
-        # Get the files
         print('Job Parameters:')
+        for key, value in form.items():
+            print(f'     {key}: {value}')
+        print()
+
+        # Get the files
         for key, value in form.items():
             if 'fileExp' in key:
                 self.fileExp.append(value)
             elif 'fileBg' in key:
                 self.fileBg.append(value)
-            else:
-                print(f'     {key}: {value}')
-        print()
 
-        # # Placeholder for files
+        ## Placeholder for files
         self.fileExp = ['data/variantsExp.fastq'] # , 'data/variantsExp2.fastq'
         self.fileBg = ['data/variantsBg.fasta'] # , 'data/variantsBg2.fasta'
         print(f'File Exp: {type(self.fileExp)}\n'
@@ -535,9 +536,9 @@ class WebApp:
                           f'_Bg-{"-".join(self.fileBg)}'
                           f'_{time.ctime().replace(' ', '-')}')
         self.jobHash = self.hashStr(self.jobID)
-        print(f'Job:\n'
-              f'* Label: {self.jobID}\n'
-              f'* Hash: {self.jobHash}\n')
+        # print(f'Job:\n'
+        #       f'* Label: {self.jobID}\n'
+        #       f'* Hash: {self.jobHash}\n')
 
 
 
@@ -572,7 +573,6 @@ class WebApp:
                     args=(file, self.datasetTypes['Bg'], queueBg, queueLog, True,))
                 thread.start()
                 threads.append(thread)
-
 
         # Wait for all threads to finish
         for thread in threads:
@@ -629,8 +629,8 @@ class WebApp:
                                 totalCounts=self.countBgTotal,
                                 datasetType=self.datasetTypes['Bg']))
 
-        # if self.subsExp and self.subsBg:
-        #     self.calculateEnrichment(rfExp=self.countsExp, rfBg=self.countsBg)
+        if self.subsExp and self.subsBg:
+            self.calculateEnrichment(rfExp=self.countsExp, rfBg=self.countsBg)
 
 
 
