@@ -23,6 +23,17 @@ import time
 import warnings
 
 
+defaultResidues = (
+    ('Alanine', 'Ala', 'A'), ('Arginine', 'Arg', 'R'), ('Asparagine', 'Asn', 'N'),
+    ('Aspartic Acid', 'Asp', 'D'), ('Cysteine', 'Cys', 'C'), ('Glutamic Acid', 'Glu', 'E'),
+    ('Glutamine', 'Gln', 'Q'), ('Glycine', 'Gly', 'G'), ('Histidine', 'His ', 'H'),
+    ('Isoleucine', 'Ile', 'I'), ('Leucine', 'Leu', 'L'), ('Lysine', 'Lys', 'K'),
+    ('Methionine', 'Met', 'M'), ('Phenylalanine', 'Phe', 'F'), ('Proline', 'Pro', 'P'),
+    ('Serine', 'Ser', 'S'), ('Threonine', 'Thr', 'T'), ('Tryptophan', 'Typ', 'W'),
+    ('Tyrosine', 'Tyr', 'Y'), ('Valine', 'Val', 'V')
+)
+
+
 # Generate figures entirely in memory without opening a window
 matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
@@ -85,6 +96,7 @@ class WebApp:
         # Params: Figures
         self.datasetTag = 'Unfiltered'
         self.datasetTagMotif = None
+        self.motifFilter = None
         self.title = ''
         self.titleCombined = ''
         self.titleReleased = ''
@@ -93,11 +105,9 @@ class WebApp:
         self.titleWeblogoReleased = ''
         self.titleWords = ''
         self.titleWordsCombined = ''
-        # self.figEMSquares = figEMSquares
-        # if figEMSquares:
-        #     self.figSizeEM = (5, 8)  # (width, height)
-        # else:
-        self.figSize = (9.5, 8)
+        self.figEMSquares = False
+        self.figSize = (9.5, 8) # (width, height)
+        self.figSizeSq = (5, 8)
         self.figSizeMini = (self.figSize[0], 6)
         self.residueLabelType = 2  # 0 = full AA name, 1 = 3-letter code, 2 = 1 letter
         self.labelSizeTitle = 18
@@ -106,7 +116,8 @@ class WebApp:
         self.lineThickness = 1.5
         self.tickLength = 4
         self.colorsAA = self.residueColors()
-        self.AA = list(self.colorsAA.keys())
+        self.residues = defaultResidues
+        self.AA = [residue[2] for residue in self.residues]
 
         # # Params:
         # self. = False
@@ -659,7 +670,15 @@ class WebApp:
         # Set figure title
         title = f'{self.enzymeName}\n{datasetType} Substrates\nN={totalCounts:,}'
 
-        # Set colorbar max value
+        # Define the yLabel
+        if self.residueLabelType == 0:
+            countedData.index = [residue[0] for residue in self.residues]
+        elif self.residueLabelType == 1:
+            countedData.index = [residue[1] for residue in self.residues]
+        elif self.residueLabelType == 2:
+            countedData.index = [residue[2] for residue in self.residues]
+
+        # Define color bar limit
         maxCount = np.max(countedData.values)
         mag = math.floor(math.log10(maxCount)) - 1
         maxNorm = maxCount / (10 ** mag)
@@ -1218,7 +1237,7 @@ class WebApp:
             title = title.replace('Frames ', 'Frames\n')
 
         print(f'Dataset: {self.datasetTag}\n'
-              f'Unique Substrates: {self.nSubsFinalUniqueSeqs:,}')
+              f'Unique Substrates: {self.countExpUnique:,}')
         if self.motifFilter:
             print(f'Figure Number: '
                   f'{self.saveFigureIteration}')
@@ -1252,27 +1271,31 @@ class WebApp:
             cBarMax = -1 * cBarMin
 
         # Plot the heatmap with numbers centered inside the squares
-        fig, ax = plt.subplots(figsize=self.figSizeEM)
         if self.figEMSquares:
-            heatmap = sns.heatmap(scores, annot=False, cmap=cMapCustom, cbar=True,
-                                  linewidths=self.lineThickness - 1, linecolor='black',
-                                  square=self.figEMSquares, center=None,
-                                  vmax=cBarMax, vmin=cBarMin)
+            fig, ax = plt.subplots(figsize=self.figSizeSq)
+            heatmap = sns.heatmap(
+                scores, annot=False, cmap=cMapCustom, cbar=True,
+                linewidths=self.lineThickness - 1, linecolor='black',
+                square=True, center=None, vmax=cBarMax, vmin=cBarMin
+            )
         else:
-            heatmap = sns.heatmap(scores, annot=True, fmt='.3f', cmap=cMapCustom,
-                                  cbar=True, linewidths=self.lineThickness - 1,
-                                  linecolor='black', square=self.figEMSquares,
-                                  center=None, vmax=cBarMax, vmin=cBarMin,
-                                  annot_kws={'fontweight': 'bold'})
+            fig, ax = plt.subplots(figsize=self.figSize)
+            heatmap = sns.heatmap(
+                scores, annot=True, fmt='.3f', cmap=cMapCustom, cbar=True,
+                linewidths=self.lineThickness - 1, linecolor='black',
+                square=False, center=None, vmax=cBarMax, vmin=cBarMin,
+                annot_kws={'fontweight': 'bold'}
+            )
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        if self.figEMSquares:
-            figBorders = [0.852, 0.075, 0, 0.895]
-        else:
-            figBorders = [0.852, 0.075, 0.117, 1]  # Top, bottom, left, right
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
+        # if self.figEMSquares:
+        #     figBorders = [0.852, 0.075, 0, 0.895]
+        # else:
+        #     figBorders = [0.852, 0.075, 0.117, 1]  # Top, bottom, left, right
+        # plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
+        #                     left=figBorders[2], right=figBorders[3])
+        fig.tight_layout()
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
