@@ -40,15 +40,20 @@ class WebApp:
         self.printN = 10
         self.roundVal = 3
         self.xAxisLabel = False
+        self.entropy = None
         self.subsExp = {}
         self.countsExp = 'Initialize me'
         self.countExpTotal = 0
         self.countExpUnique = 0
+        self.rfExp = None
         self.saveTagExp = {}
         self.subsBg = {}
         self.countsBg = 'Initialize me'
         self.countBgTotal = 0
         self.countBgUnique = 0
+        self.rfBg = None
+        self.eMap = None
+        self.eMapScaled = None
         self.saveTagBg = {}
         self.saveTagFig = {}
         self.fixMotif = False
@@ -129,6 +134,8 @@ class WebApp:
                         shutil.rmtree(file_path)  # delete subdirectory
                 time.sleep(5)
                 os.makedirs(self.pathFigs, exist_ok=True)
+
+        pd.options.display.float_format = '{:,.3f}'.format
 
 
 
@@ -322,6 +329,7 @@ class WebApp:
                            f'Min Counts {self.minCounts} - {self.seqLength} AA')
 
 
+
     def initDataStructures(self):
         # Initialize data structures
         self.subsExp = {}
@@ -329,6 +337,72 @@ class WebApp:
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+
+
+
+    def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
+        self.log()  # Clear the log
+        self.log('================================= Job Summary '
+                 '================================')
+
+        # Record job params
+        self.enzymeName = form['enzymeName']
+        self.jobParams['Enzyme Name'] = self.enzymeName
+        self.log(f'Enzyme: {self.enzymeName}')
+        self.seqLength = int(form['seqLength'])
+        self.jobParams['Substrate Length'] = self.seqLength
+        self.log(f'Substrate Length: {self.seqLength}')
+        self.jobID = f'{self.enzymeName}_{self.seqLength}'
+
+        print('Job Parameters:')
+        for key, value in form.items():
+            print(f'     {key}: {value}')
+        print()
+
+        # Get the files
+        for key, value in form.items():
+            if 'fileExp' in key:
+                self.fileExp.append(value)
+            elif 'fileBg' in key:
+                self.fileBg.append(value)
+
+        ## Placeholder for files
+        self.fileExp = ['data/variantsExp.fastq'] # , 'data/variantsExp2.fastq'
+        self.fileBg = ['data/variantsBg.fasta'] # , 'data/variantsBg2.fasta'
+        print(f'File Exp: {type(self.fileExp)}\n'
+              f'{self.fileExp}\n')
+        print(f'File Bg: {type(self.fileBg)}\n'
+              f'{self.fileBg}\n')
+
+        # Job dependant parameters
+        if evalDNA:
+            self.log('Job: Evaluate DNA')
+            self.seq5Prime = form['seq5Prime']
+            self.seq3Prime = form['seq3Prime']
+            self.minPhred = int(form['minPhred']) if form['minPhred'] != '' else 0
+            self.log(f'5\' Sequence: {self.seq5Prime}\n'
+                     f'3\' Sequence: {self.seq3Prime}\n'
+                     f'Min Phred Score: {self.minPhred}')
+            self.jobID += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
+        elif fixAA:
+            print('Fix AA')
+        elif fixMotif:
+            print('Fix Motif')
+        else:
+            print('ERROR: What Script Is Running')
+            sys.exit()
+
+        # Complete initialization
+        self.getFilter(form)
+        self.initDataStructures()
+        self.jobID += (f'_{self.datasetTag.replace(' ','-')}'
+                          f'_Exp-{"-".join(self.fileExp)}'
+                          f'_Bg-{"-".join(self.fileBg)}'
+                          f'_{time.ctime().replace(' ', '-')}')
+        self.jobHash = self.hashStr(self.jobID)
+        # print(f'Job:\n'
+        #       f'* Label: {self.jobID}\n'
+        #       f'* Hash: {self.jobHash}\n')
 
 
 
@@ -377,10 +451,37 @@ class WebApp:
 
 
 
+    def logErrorFn(self, function, msg, getStr=False):
+        if getStr:
+            return (f'\n========================================='
+                    f'========================================\n'
+                     f'========================================='
+                     f'========================================\n\n'
+                     f'ERROR: {function}\n'
+                     f'{msg}\n\n'
+                     f'========================================='
+                     f'========================================\n'
+                     f'========================================='
+                     f'========================================\n')
+        else:
+            self.log(f'\n========================================='
+                     f'========================================\n'
+                     f'========================================='
+                     f'========================================\n\n'
+                     f'ERROR: {function}\n'
+                     f'{msg}\n\n'
+                     f'========================================='
+                     f'========================================\n'
+                     f'========================================='
+                     f'========================================\n')
+            sys.exit(1)
+
+
+
     def processSubs(self, substrates, datasetType, filteredAA):
-        self.log('================================== Substrates '
-                 '===================================')
-        self.log(f'Substrates: {datasetType}\n')
+        self.log('================================= Substrates '
+                 '=================================')
+        self.log(f'Dataset: {datasetType}\n')
 
         # Inspect sequences
         if not filteredAA:
@@ -448,97 +549,6 @@ class WebApp:
         # Count AAs
         self.countAA(substrates=substrates, countMatrix=countMatrix,
                      datasetType=datasetType, filteredAA=filteredAA)
-
-
-    def logErrorFn(self, function, msg, getStr=False):
-        if getStr:
-            return (f'\n========================================='
-                    f'========================================\n'
-                     f'========================================='
-                     f'========================================\n\n'
-                     f'ERROR: {function}\n'
-                     f'{msg}\n\n'
-                     f'========================================='
-                     f'========================================\n'
-                     f'========================================='
-                     f'========================================\n')
-        else:
-            self.log(f'\n========================================='
-                     f'========================================\n'
-                     f'========================================='
-                     f'========================================\n\n'
-                     f'ERROR: {function}\n'
-                     f'{msg}\n\n'
-                     f'========================================='
-                     f'========================================\n'
-                     f'========================================='
-                     f'========================================\n')
-            sys.exit(1)
-
-
-    def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
-        self.log()  # Clear the log
-        self.log('================================== Job Summary '
-                 '==================================')
-
-        # Record job params
-        self.enzymeName = form['enzymeName']
-        self.jobParams['Enzyme Name'] = self.enzymeName
-        self.log(f'Enzyme: {self.enzymeName}')
-        self.seqLength = int(form['seqLength'])
-        self.jobParams['Substrate Length'] = self.seqLength
-        self.log(f'Substrate Length: {self.seqLength}')
-        self.jobID = f'{self.enzymeName}_{self.seqLength}'
-
-        print('Job Parameters:')
-        for key, value in form.items():
-            print(f'     {key}: {value}')
-        print()
-
-        # Get the files
-        for key, value in form.items():
-            if 'fileExp' in key:
-                self.fileExp.append(value)
-            elif 'fileBg' in key:
-                self.fileBg.append(value)
-
-        ## Placeholder for files
-        self.fileExp = ['data/variantsExp.fastq'] # , 'data/variantsExp2.fastq'
-        self.fileBg = ['data/variantsBg.fasta'] # , 'data/variantsBg2.fasta'
-        print(f'File Exp: {type(self.fileExp)}\n'
-              f'{self.fileExp}\n')
-        print(f'File Bg: {type(self.fileBg)}\n'
-              f'{self.fileBg}\n')
-
-        # Job dependant parameters
-        if evalDNA:
-            self.log('Job: Evaluate DNA')
-            self.seq5Prime = form['seq5Prime']
-            self.seq3Prime = form['seq3Prime']
-            self.minPhred = int(form['minPhred']) if form['minPhred'] != '' else 0
-            self.log(f'5\' Sequence: {self.seq5Prime}\n'
-                     f'3\' Sequence: {self.seq3Prime}\n'
-                     f'Min Phred Score: {self.minPhred}')
-            self.jobID += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
-        elif fixAA:
-            print('Fix AA')
-        elif fixMotif:
-            print('Fix Motif')
-        else:
-            print('ERROR: What Script Is Running')
-            sys.exit()
-
-        # Complete initialization
-        self.getFilter(form)
-        self.initDataStructures()
-        self.jobID += (f'_{self.datasetTag.replace(' ','-')}'
-                          f'_Exp-{"-".join(self.fileExp)}'
-                          f'_Bg-{"-".join(self.fileBg)}'
-                          f'_{time.ctime().replace(' ', '-')}')
-        self.jobHash = self.hashStr(self.jobID)
-        # print(f'Job:\n'
-        #       f'* Label: {self.jobID}\n'
-        #       f'* Hash: {self.jobHash}\n')
 
 
 
@@ -630,7 +640,9 @@ class WebApp:
                                 datasetType=self.datasetTypes['Bg']))
 
         if self.subsExp and self.subsBg:
-            self.calculateEnrichment(rfExp=self.countsExp, rfBg=self.countsBg)
+            self.calculateRF()
+            self.calculateEntropy()
+            self.calculateEnrichment()
 
 
 
@@ -958,15 +970,15 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathSeqs, saveTag)
-        self.log(f'Saving Substrates: {datasetType}\n     {path}\n\n')
+        self.log(f'Saving Substrates:\n     {path}\n\n')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
 
 
 
     def countAA(self, substrates, countMatrix, datasetType, filteredAA):
-        self.log('=================================== Count AA '
-                 '====================================')
+        self.log('================================== Count AA '
+                 '==================================')
         self.log(f'Dataset: {datasetType}\n'
                  f'Unique Substrates: {len(substrates.keys())}')
         totalCounts = 0
@@ -1000,45 +1012,93 @@ class WebApp:
 
         # Save the counts
         path = os.path.join(self.pathSeqs, saveTag)
-        self.log(f'Saving Counts: {datasetType}\n     {path}\n\n')
+        self.log(f'Saving Counts:\n     {path}\n\n')
         countMatrix.to_csv(path)
 
 
 
-    def calculateEnrichment(self, rfExp, rfBg, releasedCounts=False, combinedMotifs=False,
+    def calculateRF(self):
+        self.log('================================ Calculate: RF '
+                 '===============================')
+        self.log(f'Dataset: {self.datasetTag}\n')
+        self.rfExp = pd.DataFrame(
+            0.0, index=self.countsExp.index, columns=self.countsExp.columns
+        )
+        for pos in self.countsExp.columns:
+            totalCounts = sum(self.countsExp[pos])
+            self.rfExp.loc[:, pos] = self.countsExp[pos] / totalCounts
+        self.log(f'RF Experimental:\n{self.rfExp}\n')
+
+        self.rfBg = pd.DataFrame(
+            0.0, index=self.countsBg.index, columns=self.countsBg.columns
+        )
+        for pos in self.countsBg.columns:
+            totalCounts = sum(self.countsBg[pos])
+            self.rfBg.loc[:, pos] = self.countsBg[pos] / totalCounts
+        self.log(f'RF Background:\n{self.rfBg}\n\n')
+
+
+
+    def calculateEntropy(self):
+        self.log('============================= Calculate: Entropy '
+                 '=============================')
+        self.log(f'Dataset: {self.datasetTag}\n')
+
+        self.entropy = pd.DataFrame(0.0, index=self.rfExp.columns, columns=['ΔS'])
+        self.entropyMax = np.log2(len(self.rfExp.index))
+        for indexColumn in self.rfExp.columns:
+            S = 0
+            for indexRow, probRatio in self.rfExp.iterrows():
+                prob = probRatio[indexColumn]
+                if prob == 0:
+                    continue
+                else:
+                    S += -prob * np.log2(prob)
+            self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
+        self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}\n\n')
+
+
+
+    def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
                             posFilter=False, relFilter=False, releasedIteration=False):
         self.log('========================== Calculate: Enrichment Score '
                  '==========================')
         self.log(f'Enrichment Scores:\n'
-              f'     log₂(RF Experimental / RF Background)\n\n')
-        self.log(f'RF Experimental:\n{rfExp}\n\n')
-        self.log(f'RF Background:\n{rfExp}\n\n')
+                 f'     log₂(RF Experimental / RF Background)\n\n')
 
         # Calculate: Enrichment scores
-        if len(rfBg.columns) == 1:
-            matrix = pd.DataFrame(0.0, index=rfExp.index,
-                                  columns=rfExp.columns)
-            for position in rfExp.columns:
-                matrix.loc[:, position] = np.log2(rfExp.loc[:, position] /
-                                                  rfBg.iloc[:, 0])
+        matrix = pd.DataFrame(0.0, index=self.rfExp.index,
+                              columns=self.rfExp.columns)
+        if len(self.rfBg.columns) == 1: ##
+            # Eval: ES
+            for pos in self.rfExp.columns:
+                for AA in self.rfExp.index:
+                    rf = self.rfBg.iloc[AA, 0]
+                    if rf == 0:
+                        rf = 1
+                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
         else:
-            if len(rfBg.columns) != len(rfExp.columns):
+            if len(self.rfBg.columns) != len(self.rfExp.columns):
                 self.log(f'ERROR: The number of columns in the Initial Sort '
-                      f'({len(rfBg.columns)}) needs to equal to the '
+                      f'({len(self.rfBg.columns)}) needs to equal to the '
                       f'number of columns in the Final Sort '
-                      f'({len(rfExp.columns)})\n'
-                      f'     Initial: {rfBg.columns}\n'
-                      f'       Final: {rfExp.columns}\n\n')
+                      f'({len(self.rfExp.columns)})\n'
+                      f'     Initial: {self.rfBg.columns}\n'
+                      f'       Final: {self.rfExp.columns}\n\n')
                 sys.exit(1)
 
-            rfBg.columns = rfExp.columns
-            matrix = np.log2(rfExp / rfBg)
-            # matrix = rfExp
+            # Eval: ES
+            for pos in self.rfExp.columns:
+                for AA in self.rfExp.index:
+                    rf = self.rfBg.iloc[AA, pos]
+                    if rf == 0:
+                        rf = 1
+                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
         if releasedCounts:
             self.log(f'Enrichment Score: Released Counts\n'
                   f'{matrix.round(self.roundVal)}\n\n')
-            self.log(f'Prob Initial:\n{rfBg}\n\n'
-                  f'RF Expl:\n{rfExp}\n\n')
+            self.log(f'Prob Initial:\n{self.rfBg}\n\n'
+                  f'RF Expl:\n{self.rfExp}\n\n')
         else:
             self.log(f'Enrichment Score: {self.datasetTag}\n'
                   f'{matrix.round(self.roundVal)}\n\n')
@@ -1061,12 +1121,12 @@ class WebApp:
                                            self.entropy.loc[indexColumn, 'ΔS'])
 
         # Record values
-        if releasedCounts:
-            self.eMapReleased = matrix
-            self.eMapReleasedScaled = heights.copy()
-        else:
-            self.eMap = matrix
-            self.eMapScaled = heights.copy()
+        # if releasedCounts:
+        #     self.eMapReleased = matrix
+        #     self.eMapReleasedScaled = heights.copy()
+        # else:
+        self.eMap = matrix
+        self.eMapScaled = heights.copy()
 
         # Calculate: Max positive
         columnTotals = []
@@ -1077,19 +1137,20 @@ class WebApp:
                     totalPos += value
             columnTotals.append(totalPos)
         yMax = max(columnTotals)
-        self.log(f'Y Max: {yMax}\n')
+        self.log(f'Y Max: {yMax}')
 
         # Adjust values
         for column in heights.columns:
             if heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
-                self.log(f'Number non NaN values: {nValues}\n')
+                if nValues > 0:
+                    self.log(f'{len(heights[column]) - nValues} NaN values at: {column}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
                 heights.loc[:, column] = heights.loc[:, column].fillna(0)
 
         heights = heights.replace([np.inf, -np.inf], 0)
         self.heights = heights
-        self.log(f'Residue Heights: {self.datasetTag}\n'
+        self.log(f'\nResidue Heights: {self.datasetTag}\n'
               f'{heights}\n\n')
 
 
@@ -1113,7 +1174,7 @@ class WebApp:
                                 relFilter=relFilter)
 
         # Calculate & Plot: Weblogo
-        self.calculateWeblogo(probability=rfExp, releasedCounts=releasedCounts,
+        self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
                               combinedMotifs=combinedMotifs)
 
         return self.eMap
@@ -1153,7 +1214,7 @@ class WebApp:
             title = title.replace('Frames ', 'Frames\n')
 
         print(f'Dataset: {self.datasetTag}\n'
-              f'Unique Substrates: {red}{self.nSubsFinalUniqueSeqs:,}')
+              f'Unique Substrates: {self.nSubsFinalUniqueSeqs:,}')
         if self.motifFilter:
             print(f'Figure Number: '
                   f'{self.saveFigureIteration}')
