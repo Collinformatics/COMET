@@ -65,6 +65,8 @@ class WebApp:
         self.rfBg = None
         self.eMap = None
         self.eMapScaled = None
+        self.eMapReleased = None
+        self.eMapReleasedScaled = None
         self.saveTagBg = {}
         self.saveTagFig = {}
         self.fixMotif = False
@@ -626,7 +628,11 @@ class WebApp:
                         self.subsBg[substrate] = count
 
         # Make figures
-        self.figures = {'eMap': False, 'exp_counts': False, 'bg_counts': False}
+        self.figures = {
+            'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
+            'words': False, 'barCounts': False, 'barRF': False,
+            'exp_counts': False, 'bg_counts': False
+        }
         if self.subsExp:
             # Sort substrates and count AA
             self.processSubs(substrates=self.subsExp,
@@ -635,9 +641,11 @@ class WebApp:
 
             # Plot counts
             self.figures['exp_counts'] = (
-                self.plotCounts(countedData=self.countsExp,
-                                totalCounts=self.countExpTotal,
-                                datasetType=self.datasetTypes['Exp']))
+                self.plotCounts(
+                    countedData=self.countsExp, totalCounts=self.countExpTotal,
+                    datasetType=self.datasetTypes['Exp']
+                )
+            )
         if self.subsBg:
             # Sort substrates and count AA
             self.processSubs(substrates=self.subsBg,
@@ -646,105 +654,16 @@ class WebApp:
 
             # Plot counts
             self.figures['bg_counts'] = (
-                self.plotCounts(countedData=self.countsBg,
-                                totalCounts=self.countBgTotal,
-                                datasetType=self.datasetTypes['Bg']))
+                self.plotCounts(
+                    countedData=self.countsBg, totalCounts=self.countBgTotal,
+                    datasetType=self.datasetTypes['Bg']
+                )
+            )
 
         if self.subsExp and self.subsBg:
             self.calculateRF()
             self.calculateEntropy()
             self.calculateEnrichment()
-
-
-
-    def plotCounts(self, countedData, totalCounts, datasetType):
-        # Remove commas from string values and convert to float
-        # countedData = countedData.applymap(lambda x:
-        #                                    float(x.replace(',', ''))
-        #                                    if isinstance(x, str) else x)
-        countedData.index = self.AA
-
-        # Create color map
-        cMapCustom = self.createCustomColorMap(colorType='Counts')
-
-        # Set figure title
-        title = f'{self.enzymeName}\n{datasetType} Substrates\nN={totalCounts:,}'
-
-        # Define the yLabel
-        if self.residueLabelType == 0:
-            countedData.index = [residue[0] for residue in self.residues]
-        elif self.residueLabelType == 1:
-            countedData.index = [residue[1] for residue in self.residues]
-        elif self.residueLabelType == 2:
-            countedData.index = [residue[2] for residue in self.residues]
-
-        # Define color bar limit
-        maxCount = np.max(countedData.values)
-        mag = math.floor(math.log10(maxCount)) - 1
-        maxNorm = maxCount / (10 ** mag)
-        maxRound = (math.ceil(maxNorm)) * (10**mag)
-        # print(f'Max: {maxCount}\n'
-        #       f'Magnitude: {mag}\n'
-        #       f'Norm: {maxNorm}\n'
-        #       f'Round: {maxRound}\n')
-
-
-        # Plot the heatmap with numbers centered inside the squares
-        fig, ax = plt.subplots(figsize=self.figSize)
-        heatmap = sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
-                              cbar=True, linewidths=self.lineThickness-1,
-                              linecolor='black', square=False, center=None,
-                              annot_kws={'fontweight': 'bold'}, vmax=maxRound)
-        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
-        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        figBorders = [0.852, 0.075, 0.117, 1]
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
-        # fig.tight_layout()
-
-        # Set the thickness of the figure border
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-            spine.set_linewidth(self.lineThickness)
-
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
-        ax.tick_params(axis='y', labelrotation=0)
-
-        # Set x-ticks
-        xTicks = np.arange(len(countedData.columns)) + 0.5
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(countedData.columns)
-
-        # Set y-ticks
-        yTicks = np.arange(len(countedData.index)) + 0.5
-        ax.set_yticks(yTicks)
-        ax.set_yticklabels(countedData.index)
-
-        # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
-        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth(self.lineThickness)
-        cbar.outline.set_edgecolor('black')
-
-        # File path
-        figName = f'counts - {self.enzymeName} - {datasetType}.png'
-        path = os.path.join(self.pathFigs, figName)
-        print(f'Saving Fig: {datasetType}\n     {path}\n')
-
-        # Encode the figure
-        figBase64 = self.encodeFig(fig)
-        with open(path, "wb") as file:
-            file.write(base64.b64decode(figBase64))
-
-        # Close the figure to free memory
-        plt.close(fig) 
-
-        return figName
 
 
 
@@ -1139,24 +1058,24 @@ class WebApp:
                                            self.entropy.loc[indexColumn, 'ΔS'])
 
         # Record values
-        # if releasedCounts:
-        #     self.eMapReleased = matrix
-        #     self.eMapReleasedScaled = heights.copy()
-        # else:
-        self.eMap = matrix
-        self.eMapScaled = heights.copy()
+        if releasedCounts:
+            self.eMapReleased = matrix.copy()
+            self.eMapReleasedScaled = heights.copy()
+        else:
+            self.eMap = matrix.copy()
+            self.eMapScaled = heights.copy()
 
         # Calculate: Max positive
         columnTotals = []
-        for indexColumn in heights.columns:
+        totalES = pd.DataFrame(0, index=self.xAxisLabel, columns=['+Stack'])
+        for pos in heights.columns:
             totalPos = 0
-            for value in heights.loc[:, indexColumn]:
+            for value in heights.loc[:, pos]:
                 if value > 0:
                     totalPos += value
             columnTotals.append(totalPos)
+            totalES.loc[pos, '+Stack'] += totalPos
         yMax = max(columnTotals)
-        self.log(f'Y Max: {yMax}')
-        self.log(f'Y Max: {np.max(heights)}')
 
         # Adjust values
         for column in heights.columns:
@@ -1166,42 +1085,133 @@ class WebApp:
                     self.log(f'{len(heights[column]) - nValues} NaN values at: {column}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
                 heights.loc[:, column] = heights.loc[:, column].fillna(0)
-
         heights = heights.replace([np.inf, -np.inf], 0)
         self.heights = heights
         self.log(f'\nResidue Heights: {self.datasetTag}\n'
               f'{heights}\n\n')
+        self.log(f'Stack Height:\n{totalES}\n\nY Max: {yMax}')
 
 
         # Plot: Enrichment Map
-        self.plotEnrichmentScores(dataType='Enrichment',
-                                  releasedCounts=releasedCounts,
-                                  combinedMotifs=combinedMotifs,
-                                  posFilter=posFilter,
-                                  relFilter=relFilter)
+        x = {
+            'eMap': False, 'elogo': False, 'eMapSc': False, 'wLogo': False,
+            'words': False, 'barCounts': False, 'barRF': False,
+            'exp_counts': False, 'bg_counts': False
+        }
+        self.figures['eMap'] = (
+            self.plotEnrichmentScores(
+                dataType='Enrichment', releasedCounts=releasedCounts,
+                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
+            )
+        )
 
-        self.plotEnrichmentScores(dataType='Scaled Enrichment',
-                                  releasedCounts=releasedCounts,
-                                  combinedMotifs=combinedMotifs,
-                                  posFilter=posFilter,
-                                  relFilter=relFilter)
+        self.figures['eMapSc'] = (
+            self.plotEnrichmentScores(
+                dataType='Scaled Enrichment', releasedCounts=releasedCounts,
+                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
+            )
+        )
 
-        # Plot: Enrichment Logo
-        self.plotEnrichmentLogo(releasedCounts=releasedCounts,
-                                combinedMotifs=combinedMotifs,
-                                posFilter=posFilter,
-                                relFilter=relFilter)
-
-        # Calculate & Plot: Weblogo
-        self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
-                              combinedMotifs=combinedMotifs)
-
-        return self.eMap
-
+        # # Plot: Enrichment Logo
+        # self.plotEnrichmentLogo(releasedCounts=releasedCounts,
+        #                         combinedMotifs=combinedMotifs,
+        #                         posFilter=posFilter,
+        #                         relFilter=relFilter)
+        #
+        # # Calculate & Plot: Weblogo
+        # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
+        #                       combinedMotifs=combinedMotifs)
 
 
-    def plotEnrichmentScores(self, dataType, combinedMotifs=False, releasedCounts=False,
-                             posFilter=False, relFilter=False):
+
+    def plotCounts(self, countedData, totalCounts, datasetType):
+        # Remove commas from string values and convert to float
+        # countedData = countedData.applymap(lambda x:
+        #                                    float(x.replace(',', ''))
+        #                                    if isinstance(x, str) else x)
+        countedData.index = self.AA
+
+        # Create color map
+        cMapCustom = self.createCustomColorMap(colorType='Counts')
+
+        # Set figure title
+        title = f'{self.enzymeName}\n{datasetType} Substrates\nN={totalCounts:,}'
+
+        # Define the yLabel
+        if self.residueLabelType == 0:
+            countedData.index = [residue[0] for residue in self.residues]
+        elif self.residueLabelType == 1:
+            countedData.index = [residue[1] for residue in self.residues]
+        elif self.residueLabelType == 2:
+            countedData.index = [residue[2] for residue in self.residues]
+
+        # Define color bar limit
+        maxCount = np.max(countedData.values)
+        mag = math.floor(math.log10(maxCount)) - 1
+        maxNorm = maxCount / (10 ** mag)
+        maxRound = (math.ceil(maxNorm)) * (10**mag)
+        # print(f'Max: {maxCount}\n'
+        #       f'Magnitude: {mag}\n'
+        #       f'Norm: {maxNorm}\n'
+        #       f'Round: {maxRound}\n')
+
+
+        # Plot the heatmap with numbers centered inside the squares
+        fig, ax = plt.subplots(figsize=self.figSize)
+        heatmap = sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
+                              cbar=True, linewidths=self.lineThickness-1,
+                              linecolor='black', square=False, center=None,
+                              annot_kws={'fontweight': 'bold'}, vmax=maxRound)
+        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
+        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
+        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        fig.tight_layout()
+
+        # Set the thickness of the figure border
+        for _, spine in ax.spines.items():
+            spine.set_visible(True)
+            spine.set_linewidth(self.lineThickness)
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks, width=self.lineThickness)
+        ax.tick_params(axis='y', labelrotation=0)
+
+        # Set x-ticks
+        xTicks = np.arange(len(countedData.columns)) + 0.5
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(countedData.columns)
+
+        # Set y-ticks
+        yTicks = np.arange(len(countedData.index)) + 0.5
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(countedData.index)
+
+        # Modify the colorbar
+        cbar = heatmap.collections[0].colorbar
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        cbar.outline.set_linewidth(self.lineThickness)
+        cbar.outline.set_edgecolor('black')
+
+        # File path
+        figName = f'counts - {self.enzymeName} - {datasetType}.png'
+        path = os.path.join(self.pathFigs, figName)
+        print(f'Saving Fig: {datasetType}\n     {path}\n')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
+
+
+    def plotEnrichmentScores(self, dataType, datasetType, combinedMotifs=False,
+                             releasedCounts=False, posFilter=False, relFilter=False):
         print('============================ Plot: Enrichment Score '
               '=============================')
         # Select: Dataset
@@ -1327,26 +1337,19 @@ class WebApp:
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        ##
 
+        # File path
+        figName = f'eMap - {self.enzymeName} - {datasetType}.png'
+        path = os.path.join(self.pathFigs, figName)
+        print(f'Saving Fig: {datasetType}\n     {path}\n')
 
-        # Save the figure
-        if self.saveFigures:
-            if 'Scaled' in dataType:
-                datasetType = 'EM Scaled'
-            elif 'Enrichment' in dataType:
-                datasetType = 'EM'
-            else:
-                print(f'ERROR: What do I do with this dataset type -'
-                      f' {dataType}\n')
-                sys.exit(1)
-            self.saveFigure(fig=fig, figType=datasetType, seqLen=len(xTicks),
-                            combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
