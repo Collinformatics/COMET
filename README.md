@@ -35,6 +35,10 @@ You can start up the website with:
 
 Unterminated processes can result in the website not starting correctly.
 
-To fix this run this script to terminate the python processes at the port used to host the server:
+To fix this problem, execute this command to terminate the python processes:
 
     ./killServer.sh
+
+If you run the website at a port other than 9090, add the port to the command:
+
+    ./killServer.sh <port>
