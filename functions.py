@@ -304,7 +304,7 @@ class WebApp:
                       f'MinCounts {self.minCounts} - {self.seqLength} AA'
         }
         self.saveTagBg = {
-            'subsRaw': f'{self.enzymeName} - Subs Exp - '
+            'subsRaw': f'{self.enzymeName} - Subs Bg - '
                    f'MinCounts {self.minCounts} - {self.seqLength} AA',
             'countsRaw': f'{self.enzymeName} - AA Counts Bg - '
                       f'MinCounts {self.minCounts} - {self.seqLength} AA',
@@ -447,7 +447,7 @@ class WebApp:
 
         # Count AAs
         self.countAA(substrates=substrates, countMatrix=countMatrix,
-                     datasetType=datasetType)
+                     datasetType=datasetType, filteredAA=filteredAA)
 
 
     def logErrorFn(self, function, msg, getStr=False):
@@ -605,7 +605,7 @@ class WebApp:
                         self.subsBg[substrate] = count
 
         # Make figures
-        self.figures = {'exp_counts': False, 'bg_counts': False}
+        self.figures = {'eMap': False, 'exp_counts': False, 'bg_counts': False}
         if self.subsExp:
             # Sort substrates and count AA
             self.processSubs(substrates=self.subsExp,
@@ -629,6 +629,9 @@ class WebApp:
                                 totalCounts=self.countBgTotal,
                                 datasetType=self.datasetTypes['Bg']))
 
+        # if self.subsExp and self.subsBg:
+        #     self.calculateEnrichment(rfExp=self.countsExp, rfBg=self.countsBg)
+
 
 
     def plotCounts(self, countedData, totalCounts, datasetType):
@@ -642,16 +645,17 @@ class WebApp:
         cMapCustom = self.createCustomColorMap(colorType='Counts')
 
         # Set figure title
-        title = f'\n\n{self.enzymeName}\n{datasetType}\nN={totalCounts:,}'
+        title = f'{self.enzymeName}\n{datasetType} Substrates\nN={totalCounts:,}'
 
+        # Set colorbar max value
         maxCount = np.max(countedData.values)
         mag = math.floor(math.log10(maxCount)) - 1
         maxNorm = maxCount / (10 ** mag)
         maxRound = (math.ceil(maxNorm)) * (10**mag)
-        print(f'Max: {maxCount}\n'
-              f'Magnitude: {mag}\n'
-              f'Norm: {maxNorm}\n'
-              f'Round: {maxRound}\n')
+        # print(f'Max: {maxCount}\n'
+        #       f'Magnitude: {mag}\n'
+        #       f'Norm: {maxNorm}\n'
+        #       f'Round: {maxRound}\n')
 
 
         # Plot the heatmap with numbers centered inside the squares
@@ -666,6 +670,7 @@ class WebApp:
         figBorders = [0.852, 0.075, 0.117, 1]
         plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
                             left=figBorders[2], right=figBorders[3])
+        # fig.tight_layout()
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -935,8 +940,6 @@ class WebApp:
             if self.datasetTag is None:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
-
-            print(f'Saving Substrates: {datasetType}\n')
             if datasetType == self.datasetTypes['Exp']:
                 saveTag = self.saveTagExp['subs']
             elif datasetType == self.datasetTypes['Bg']:
@@ -961,7 +964,7 @@ class WebApp:
 
 
 
-    def countAA(self, substrates, countMatrix, datasetType):
+    def countAA(self, substrates, countMatrix, datasetType, filteredAA):
         self.log('=================================== Count AA '
                  '====================================')
         self.log(f'Dataset: {datasetType}\n'
@@ -971,7 +974,34 @@ class WebApp:
             totalCounts += count
             for index, AA in enumerate(substrate):
                 countMatrix.loc[AA, f'R{index + 1}'] += count
-        self.log(f'Total Counts: {totalCounts}\n\n{countMatrix}\n\n')
+        self.log(f'Total Counts: {totalCounts}\n\n{countMatrix}\n')
+
+        # File path ##
+        saveTag = None
+        if filteredAA:
+            if self.datasetTag is None:
+                print(f'Dont save, dataset tag: {self.datasetTag}\n')
+                sys.exit()
+            if datasetType == self.datasetTypes['Exp']:
+                saveTag = self.saveTagExp['counts']
+            elif datasetType == self.datasetTypes['Bg']:
+                saveTag = self.saveTagBg['counts']
+            else:
+                self.logErrorFn(function='countAA()',
+                                msg=f'Unknown dataset type: {datasetType}')
+        else:
+            if datasetType == self.datasetTypes['Exp']:
+                saveTag = self.saveTagExp['countsRaw']
+            elif datasetType == self.datasetTypes['Bg']:
+                saveTag = self.saveTagBg['countsRaw']
+            else:
+                self.logErrorFn(function='countAA()',
+                                msg=f'Unknown dataset type: {datasetType}')
+
+        # Save the counts
+        path = os.path.join(self.pathSeqs, saveTag)
+        self.log(f'Saving Counts: {datasetType}\n     {path}\n\n')
+        countMatrix.to_csv(path)
 
 
 
