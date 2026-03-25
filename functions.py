@@ -1068,21 +1068,12 @@ class WebApp:
 
         # Calculate: Max positive
         columnTotals = []
-        totalES = pd.DataFrame(0.0, index=heights.columns,
-                               columns=['+Stack', '-Stack'])
-        print(f'Totals:\n{totalES}\n')
         for pos in heights.columns:
-            print(f'Pos: {pos}')
             totalPos = 0
-            totalNeg = 0
             for value in heights.loc[:, pos]:
                 if value > 0:
                     totalPos += value
-                if value < 0:
-                    totalNeg += value
             columnTotals.append(totalPos)
-            totalES.loc[pos, '+Stack'] = totalPos
-            totalES.loc[pos, '-Stack'] = totalNeg
         yMax = max(columnTotals)
 
         # Adjust values
@@ -1096,8 +1087,22 @@ class WebApp:
         heights = heights.replace([np.inf, -np.inf], 0)
         self.heights = heights
         self.log(f'\nResidue Heights: {self.datasetTag}\n'
-              f'{heights}\n\n')
-        self.log(f'Stack Heights:\n{totalES}\n\nY Max: {yMax}')
+              f'{self.heights}\n')
+
+        # Evaluate stack heights
+        stacks = pd.DataFrame(0.0, index=heights.columns,
+                               columns=['+Stack', '-Stack'])
+        for pos in self.heights.columns:
+            totalPos = 0
+            totalNeg = 0
+            for value in self.heights.loc[:, pos]:
+                if value > 0:
+                    totalPos += value
+                if value < 0:
+                    totalNeg += value
+            stacks.loc[pos, '+Stack'] = totalPos
+            stacks.loc[pos, '-Stack'] = totalNeg
+        self.log(f'Stack Heights:\n{stacks}\n\n')
 
 
         # Plot: Enrichment Map
@@ -1268,9 +1273,6 @@ class WebApp:
                 print(f'Releasing Filter: {posFilter}')
             else:
                 print(f'Applying Filter: {posFilter}')
-
-        print(f'\n\nEnrichment Scores:\n'
-              f'{scores}\n\n')
 
 
         # Create heatmap
