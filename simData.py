@@ -41,10 +41,11 @@ seq3Prime = 'GGTGGAAGT' # 3' flanking sequence
 
 print(f'Generating {args.num_variants:,} variants\n\n'
       # f'Starting sequence: {seqDNA}\n'
-      f'Flanking sequence:\n'
-      f'* 5\': {seq5Prime}\n'
-      f'* 3\': {seq3Prime}\n'
-      f'Full sequence: {seq5Prime}-{seqDNA[0]}-{seq3Prime}\n\n'
+      f'Full sequence: {seq5Prime}-{seqDNA[0]}-{seq3Prime}\n'
+      f'Flanking sequences:\n'
+      f'* 5\' {seq5Prime}\n'
+      f'* 3\' {seq3Prime}\n\n'
+      
       f'Mutation Odds:\n'
       f'* Experimental: {args.mut_exp} %\n'
       f'* Background: {args.mut_bg} %\n')
@@ -99,6 +100,7 @@ def saveSeqs(variants, fileName):
             for name, seq in variants:
                 fasta.write(f">{name}\n{seq}\n")
 
+
 # Generate variants
 generateVariants(
     seqDNA, mutationOdds=args.mut_exp, numVariants=args.num_variants, path=pathExp
@@ -106,7 +108,6 @@ generateVariants(
 generateVariants(
     seqDNA, mutationOdds=args.mut_bg, numVariants=args.num_variants, path=pathBg
 )
-
 
 print(f'The variants were saved at:\n'
       f'     {pathExp}\n'
