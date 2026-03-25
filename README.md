@@ -31,7 +31,7 @@ You can start up the website with:
   - Click on the link to go to the website, or enter the address in a browser.
 
 
-# Terminating Processes:
+# Troubleshooting:
 
 Unterminated processes can result in the website not starting correctly.
 
