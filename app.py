@@ -3,17 +3,15 @@ from flask import (Flask, jsonify, redirect, render_template, request,
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from functions import WebApp
 import sys
-import threading
 
 
 # Set up the app
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 
-
 # Initialize: Application
 webapp = WebApp()
-webapp.genKey(app)
+webapp.getKey(app)
 
 # Figure storage
 figures = {}
@@ -50,14 +48,6 @@ def run():
     return jsonify(data)
 
 
-
-def jobID(form, analysis):
-    webapp.jobID(form, analysis)
-    print('Redirect')
-    return redirect(url_for('jobSummary'))
-
-
-
 @app.route('/jobSummary')
 def jobSummary():
     print('Job Summary')
@@ -67,15 +57,12 @@ def jobSummary():
 
 @app.route('/evalFormDNA', methods=['POST'])
 def evalDNA():
-    form = parseForm() # Parse the form
-    jobID(form, 'evalDNA') # Evaluate job request
-
     # Process the data
-    webapp.evalDNA()
+    form = parseForm()
+    webapp.evalDNA(form)
     print('Done')
     return render_template('results.html',
                            parameters=webapp.jobParams)
-
 
 
 # @app.route('/evalFormDNA', methods=['POST'])
@@ -90,11 +77,9 @@ def evalDNA():
 #     return render_template('results.html', parameters=webapp.jobParams)
 
 
-
 @app.route('/data/figures/<filename>')
 def getFigure(filename):
     return send_from_directory('data/figures', filename)
-
 
 
 @app.route('/checkFigures')
@@ -102,7 +87,6 @@ def checkFigures():
     # figures = session.get('figures', {})
     figures = webapp.figures
     return jsonify(figures)
-
 
 
 @app.route('/results')
@@ -113,7 +97,6 @@ def results():
                            parameters=webapp.jobParams)
 
 
-
 @app.route('/')
 def home():
     # return render_template('home.html')
@@ -121,18 +104,20 @@ def home():
     return render_template('processDNA.html', csrf_token=token)
 
 
-
 @app.route('/processDNA')
 def processDNA():
     return render_template('processDNA.html')
+
 
 @app.route('/filterAminoAcids')
 def filterAA():
     return render_template('filterAA.html')
 
+
 @app.route('/filterMotif')
 def filterMotif():
     return render_template('filterMotif.html')
+
 
 # Run the app
 if __name__ == '__main__':

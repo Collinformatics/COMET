@@ -30,7 +30,7 @@ class WebApp:
     def __init__(self):
         # Params: Dataset
         self.jobParams = {}
-        self.jobLabel = ''
+        self.jobID = ''
         self.jobHash = ''
         self.enzymeName = ''
         self.seqLength = False
@@ -211,17 +211,25 @@ class WebApp:
         return figBase64
 
 
+
     @staticmethod
-    def genKey(app):  # required for CSRF
+    def getKey(app):  # required for CSRF
         app.config['SECRET_KEY'] = secrets.token_hex(nbytes=32)
         # print(f'Key: {app.config['SECRET_KEY']}\n'
         #       f'Len: {len(app.config['SECRET_KEY'])}\n')
 
 
+
+    @staticmethod
+    def hashStr(string):
+        return hashlib.sha256(string.encode('utf-8')).hexdigest()
+
+
+    @staticmethod
     def pressButton(self, message):
         print(f'Received data: {message}')
-
         return {'key': 'Returned data'}
+
 
 
     def filterAA(self):
@@ -281,8 +289,6 @@ class WebApp:
             self.datasetTag = tagFix
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset Filter: {self.datasetTag}\n\n')
-        sys.exit()
-
 
         # Initialize: Save tags
         self.saveTagExp = {
@@ -314,7 +320,6 @@ class WebApp:
                            f'Min Counts {self.minCounts} - {self.seqLength} AA')
 
 
-
     def initDataStructures(self):
         # Initialize data structures
         self.subsExp = {}
@@ -326,6 +331,11 @@ class WebApp:
 
 
     def getFilter(self, data):
+        # print('Filter:')
+        # for key, value in data.items():
+        #     print(f'  {key}: {value}')
+        # print()
+
         if 'filterPos' in data.keys():
             self.filterPos = data['filterPos']
             self.fixAA = {}
@@ -344,7 +354,6 @@ class WebApp:
             # Sort filter params
             self.fixAA = dict(sorted(self.fixAA.items()))
             self.exclAA = dict(sorted(self.exclAA.items()))
-
         self.getDatasetTag()
 
 
@@ -363,11 +372,6 @@ class WebApp:
         with open(self.pathLog, 'a') as log:
             while not logQueue.empty():
                 log.write(logQueue.get() + '\n')
-
-
-
-    def hashStr(self, string):
-        return hashlib.sha256(string.encode('utf-8')).hexdigest()
 
 
 
@@ -470,7 +474,7 @@ class WebApp:
             sys.exit(1)
 
 
-    def jobID(self, form, evalDNA=False, fixAA=False, fixMotif=False):
+    def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
         self.log()  # Clear the log
         self.log('================================== Job Summary '
                  '==================================')
@@ -482,7 +486,7 @@ class WebApp:
         self.seqLength = int(form['seqLength'])
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
-        self.jobLabel = f'{self.enzymeName}_{self.seqLength}'
+        self.jobID = f'{self.enzymeName}_{self.seqLength}'
 
         # Get the files
         print('Job Parameters:')
@@ -512,7 +516,7 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-            self.jobLabel += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
+            self.jobID += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
         elif fixAA:
             print('Fix AA')
         elif fixMotif:
@@ -524,18 +528,20 @@ class WebApp:
         # Complete initialization
         self.getFilter(form)
         self.initDataStructures()
-        self.jobLabel += (f'_{self.datasetTag.replace(' ','-')}'
+        self.jobID += (f'_{self.datasetTag.replace(' ','-')}'
                           f'_Exp-{"-".join(self.fileExp)}'
                           f'_Bg-{"-".join(self.fileBg)}'
                           f'_{time.ctime().replace(' ', '-')}')
-        self.jobHash = self.hashStr(self.jobLabel)
+        self.jobHash = self.hashStr(self.jobID)
         print(f'Job:\n'
-              f'* Label: {self.jobLabel}\n'
+              f'* Label: {self.jobID}\n'
               f'* Hash: {self.jobHash}\n')
-        sys.exit()
 
 
-    def evalDNA(self):
+
+    def evalDNA(self, form):
+        self.jobInit(form, evalDNA=True)
+
         # Load the data
         threads = []
         queuesExp = []
