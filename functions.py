@@ -979,14 +979,15 @@ class WebApp:
     def countAA(self, substrates, countMatrix, datasetType, filteredAA):
         self.log('================================== Count AA '
                  '==================================')
-        self.log(f'Dataset: {datasetType}\n'
-                 f'Unique Substrates: {len(substrates.keys())}')
-        totalCounts = 0
+        self.log(f'Dataset: {datasetType}\n')
+        totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
         for substrate, count in substrates.items():
-            totalCounts += count
             for index, AA in enumerate(substrate):
-                countMatrix.loc[AA, f'R{index + 1}'] += count
-        self.log(f'Total Counts: {totalCounts}\n\n{countMatrix}\n')
+                countMatrix.loc[AA, self.xAxisLabel[index]] += count
+        for pos in countMatrix.columns:
+            counts = sum(countMatrix.loc[:, pos])
+            totalCounts.loc[pos, 'Sum'] = counts
+        self.log(f'Counts:\n{countMatrix}\n\n{totalCounts}\n')
 
         # File path ##
         saveTag = None
@@ -1025,16 +1026,14 @@ class WebApp:
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
         )
         for pos in self.countsExp.columns:
-            totalCounts = sum(self.countsExp[pos])
-            self.rfExp.loc[:, pos] = self.countsExp[pos] / totalCounts
+            self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
         self.log(f'RF Experimental:\n{self.rfExp}\n')
 
         self.rfBg = pd.DataFrame(
             0.0, index=self.countsBg.index, columns=self.countsBg.columns
         )
         for pos in self.countsBg.columns:
-            totalCounts = sum(self.countsBg[pos])
-            self.rfBg.loc[:, pos] = self.countsBg[pos] / totalCounts
+            self.rfBg.loc[:, pos] = self.countsBg[pos] / sum(self.countsBg[pos])
         self.log(f'RF Background:\n{self.rfBg}\n\n')
 
 
@@ -1064,7 +1063,7 @@ class WebApp:
         self.log('========================== Calculate: Enrichment Score '
                  '==========================')
         self.log(f'Enrichment Scores:\n'
-                 f'     log₂(RF Experimental / RF Background)\n\n')
+                 f'     log₂(RF Experimental / RF Background)\n')
 
         # Calculate: Enrichment scores
         matrix = pd.DataFrame(0.0, index=self.rfExp.index,
@@ -1073,7 +1072,7 @@ class WebApp:
             # Eval: ES
             for pos in self.rfExp.columns:
                 for AA in self.rfExp.index:
-                    rf = self.rfBg.iloc[AA, 0]
+                    rf = self.rfBg.loc[AA, self.rfBg.columns[0]]
                     if rf == 0:
                         rf = 1
                     matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
@@ -1090,7 +1089,7 @@ class WebApp:
             # Eval: ES
             for pos in self.rfExp.columns:
                 for AA in self.rfExp.index:
-                    rf = self.rfBg.iloc[AA, pos]
+                    rf = self.rfBg.loc[AA, pos]
                     if rf == 0:
                         rf = 1
                     matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
@@ -1138,6 +1137,7 @@ class WebApp:
             columnTotals.append(totalPos)
         yMax = max(columnTotals)
         self.log(f'Y Max: {yMax}')
+        self.log(f'Y Max: {np.max(heights)}')
 
         # Adjust values
         for column in heights.columns:
@@ -1210,7 +1210,11 @@ class WebApp:
             title = self.title
         # if ' - ' in title:
         #     title = title.replace(' - ', '\n')
-        if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
+        if len(self.datasetTag.replace('[', ''
+            ).replace(']', ''
+            ).replace( '-', ''
+            )
+        ) > 40:
             title = title.replace('Frames ', 'Frames\n')
 
         print(f'Dataset: {self.datasetTag}\n'
