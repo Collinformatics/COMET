@@ -1068,14 +1068,21 @@ class WebApp:
 
         # Calculate: Max positive
         columnTotals = []
-        totalES = pd.DataFrame(0, index=self.xAxisLabel, columns=['+Stack'])
+        totalES = pd.DataFrame(0.0, index=heights.columns,
+                               columns=['+Stack', '-Stack'])
+        print(f'Totals:\n{totalES}\n')
         for pos in heights.columns:
+            print(f'Pos: {pos}')
             totalPos = 0
+            totalNeg = 0
             for value in heights.loc[:, pos]:
                 if value > 0:
                     totalPos += value
+                if value < 0:
+                    totalNeg += value
             columnTotals.append(totalPos)
-            totalES.loc[pos, '+Stack'] += totalPos
+            totalES.loc[pos, '+Stack'] = totalPos
+            totalES.loc[pos, '-Stack'] = totalNeg
         yMax = max(columnTotals)
 
         # Adjust values
@@ -1090,7 +1097,7 @@ class WebApp:
         self.heights = heights
         self.log(f'\nResidue Heights: {self.datasetTag}\n'
               f'{heights}\n\n')
-        self.log(f'Stack Height:\n{totalES}\n\nY Max: {yMax}')
+        self.log(f'Stack Heights:\n{totalES}\n\nY Max: {yMax}')
 
 
         # Plot: Enrichment Map
