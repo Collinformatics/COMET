@@ -58,6 +58,7 @@ pathBg = os.path.join(dir, 'variantsBg.fasta')
 
 def generateVariants(sequences, mutationOdds, numVariants, path):
     bases = ['A', 'T', 'C', 'G']
+    stop = ['TAG', 'TAA', 'TGA']
     variants = [('variant_0', f'{seq5Prime}{sequences[0]}{seq3Prime}')]
     mutationOdds = mutationOdds
 
@@ -70,10 +71,18 @@ def generateVariants(sequences, mutationOdds, numVariants, path):
                 bp = codon[random.randint(0, 2)]
                 bpNew = random.choice([b for b in bases if b != bp])
                 var[index] = bpNew
+        var = ''.join(var)
         if var != sequence:
-            name = f"variant_{len(variants)}"
-            subCassette = seq5Prime + "".join(var) + seq3Prime
-            variants.append((name, subCassette))
+            keepSub = True
+            for i in range(0, len(var), 3):
+                codon = var[i:i + 3]
+                if codon in stop:
+                    keepSub = False
+                    break
+            if keepSub: # Dont save seq with stop codons
+                name = f"variant_{len(variants)}"
+                subCassette = seq5Prime + var + seq3Prime
+                variants.append((name, subCassette))
 
     # Save to FASTA and FASTQ
     saveSeqs(variants,  path)
