@@ -39,6 +39,6 @@ To fix this problem, execute this command to terminate the python processes:
 
     ./killServer.sh
 
-If you run the website at a port other than 9090, add the port to the command:
+If you host the website at a port other than 9090, add the port to the command:
 
     ./killServer.sh <port>
