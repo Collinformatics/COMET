@@ -42,13 +42,16 @@ matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
 class WebApp:
     def __init__(self):
+        # Params: Job
+        self.done = False
+        self.jobParams = {}
+        self.jobID = ''
+        self.jobHash = ''
+
         # Params: Dataset
         self.datasetTag = 'Unfiltered'
         self.datasetTagMotif = None
         self.motifFilter = None
-        self.jobParams = {}
-        self.jobID = ''
-        self.jobHash = ''
         self.enzymeName = ''
         self.seqLength = False
         self.minCounts = 1
