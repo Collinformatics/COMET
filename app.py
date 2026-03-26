@@ -62,6 +62,7 @@ def evalDNA():
     form = parseForm()
     webapp.evalDNA(form)
     print('Done')
+    webapp.done = True
     return render_template('results.html',
                            parameters=webapp.jobParams)
 
@@ -76,31 +77,6 @@ def evalDNA():
 #
 #     # Immediately return "job started" page
 #     return render_template('results.html', parameters=webapp.jobParams)
-
-
-@app.route(f'/{webapp.pathFigs}/<filename>')
-def getFigure(filename):
-    return send_from_directory(os.path.join(webapp.pathFigs, filename))
-
-
-@app.route('/checkFigures')
-def checkFigures():
-    # figures = session.get('figures', {})
-    figures = webapp.figures
-    return jsonify(figures)
-
-
-@app.route('/results')
-def results():
-    return render_template('results.html',
-                           figures=webapp.figures,
-                           parameters=webapp.jobParams)
-
-
-@app.route('/download')
-def download():
-    file_path = os.path.join('data' , webapp.enzymeName)
-    return send_file(file_path, as_attachment=True)
 
 
 @app.route('/')
@@ -126,6 +102,32 @@ def filterAA():
 def filterMotif():
     return render_template('filterMotif.html',
                            csrf_token=generate_csrf())
+
+
+@app.route('/results')
+def results():
+    return render_template('results.html',
+                           figures=webapp.figures,
+                           parameters=webapp.jobParams)
+
+
+@app.route(f'/{webapp.pathFigs}/<filename>')
+def getFigure(filename):
+    return send_from_directory(webapp.pathFigs, filename)
+
+
+@app.route('/checkFigures')
+def checkFigures():
+    if webapp.done:
+        return jsonify(webapp.figures)
+    else:
+        return jsonify({}) # No figures yet
+
+
+@app.route('/download')
+def download():
+    file_path = os.path.join('data' , webapp.enzymeName)
+    return send_file(file_path, as_attachment=True)
 
 
 # Run the app
