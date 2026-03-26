@@ -499,7 +499,7 @@ class WebApp:
 
 
     def processSubs(self, substrates, datasetType, filteredAA):
-        self.log('================================= Substrates '
+        self.log('\n\n================================= Substrates '
                  '=================================')
         self.log(f'Dataset: {datasetType}\n')
 
@@ -702,7 +702,7 @@ class WebApp:
 
 
     def translate(self, data, fileName, datasetType, queueLog, forwardRead):
-        queueLog.put('================================ Translate DNA '
+        queueLog.put('\n\n================================ Translate DNA '
                      '===============================')
         data = list(data)
         substrates = {}
@@ -741,7 +741,7 @@ class WebApp:
                          f'- First {self.printN} Sequences')
             queueLog.put(f'     Evaluated DNA Sequences: {totalSeqsDNA:,}\n'
                          f'        Extracted Substrates: {totalSubsExtracted:,}\n'
-                         f'       Extraction Efficiency: {round(perExtracted, 3)} %\n')
+                         f'       Extraction Efficiency: {round(perExtracted, 3)} %')
 
 
         # Translate DNA - Sample Set
@@ -885,7 +885,6 @@ class WebApp:
                                 substrates[substrate] = 1
                             totalSubsExtracted += 1
         extractionEfficiency(fullSet=True)  # Evaluate data quality
-        queueLog.put('')
 
         return substrates
 
@@ -915,14 +914,14 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathSeqs, saveTag)
-        self.log(f'Saving Substrates:\n     {path}\n\n')
+        self.log(f'Saving Substrates:\n     {path}')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
 
 
 
     def countAA(self, substrates, countMatrix, datasetType, filteredAA):
-        self.log('================================== Count AA '
+        self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
@@ -958,7 +957,7 @@ class WebApp:
 
         # Save the counts
         path = os.path.join(self.pathSeqs, saveTag)
-        self.log(f'Saving Counts:\n     {path}\n\n')
+        self.log(f'Saving Counts:\n     {path}')
         countMatrix.to_csv(path)
 
 
@@ -1051,7 +1050,7 @@ class WebApp:
 
 
     def calculateRF(self):
-        self.log('=============================== Calculate: RF '
+        self.log('\n\n=============================== Calculate: RF '
                  '================================')
         self.log(f'Dataset: {self.datasetTag}\n')
         self.rfExp = pd.DataFrame(
@@ -1066,12 +1065,12 @@ class WebApp:
         )
         for pos in self.countsBg.columns:
             self.rfBg.loc[:, pos] = self.countsBg[pos] / sum(self.countsBg[pos])
-        self.log(f'RF Background:\n{self.rfBg}\n\n')
+        self.log(f'RF Background:\n{self.rfBg}')
 
 
 
     def calculateEntropy(self):
-        self.log('============================= Calculate: Entropy '
+        self.log('\n\n============================= Calculate: Entropy '
                  '=============================')
         self.log(f'Dataset: {self.datasetTag}\n')
 
@@ -1086,16 +1085,32 @@ class WebApp:
                 else:
                     S += -prob * np.log2(prob)
             self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
-        self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}\n\n')
+        self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
 
 
 
     def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
                             posFilter=False, relFilter=False, releasedIteration=False):
-        self.log('======================== Calculate: Enrichment Score '
+        self.log('\n\n======================== Calculate: Enrichment Score '
                  '=========================')
         self.log(f'Enrichment Scores:\n'
                  f'     log₂(RF Experimental / RF Background)\n')
+
+        def evalMatrix(data):
+            stacks = pd.DataFrame(0.0, index=data.columns,
+                                  columns=['+Stack', '-Stack'])
+            for pos in data.columns:
+                totalPos = 0
+                totalNeg = 0
+                for value in data.loc[:, pos]:
+                    if value > 0:
+                        totalPos += value
+                    if value < 0:
+                        totalNeg += value
+                stacks.loc[pos, '+Stack'] = totalPos
+                stacks.loc[pos, '-Stack'] = totalNeg
+            self.log(f'Stack Heights:\n{stacks}')
+
 
         # Calculate: Enrichment scores
         matrix = pd.DataFrame(0.0, index=self.rfExp.index,
@@ -1135,21 +1150,9 @@ class WebApp:
                   f'{matrix.round(self.roundVal)}\n')
 
             # Evaluate stack heights
-            stacks = pd.DataFrame(0.0, index=matrix.columns,
-                                  columns=['+Stack', '-Stack'])
-            for pos in matrix.columns:
-                totalPos = 0
-                totalNeg = 0
-                for value in matrix.loc[:, pos]:
-                    if value > 0:
-                        totalPos += value
-                    if value < 0:
-                        totalNeg += value
-                stacks.loc[pos, '+Stack'] = totalPos
-                stacks.loc[pos, '-Stack'] = totalNeg
-            self.log(f'Stack Heights:\n{stacks}\n\n')
+            evalMatrix(matrix)
 
-        self.log('===================== Calculate: Scaled Enrichment Score '
+        self.log('\n\n===================== Calculate: Scaled Enrichment Score '
                  '=====================')
         if releasedCounts:
             self.log(f'Scale Enrichment Scores: Released Counts\n'
@@ -1198,19 +1201,7 @@ class WebApp:
                  f'{self.heights}\n')
 
         # Evaluate stack heights
-        stacks = pd.DataFrame(0.0, index=heights.columns,
-                               columns=['+Stack', '-Stack'])
-        for pos in self.heights.columns:
-            totalPos = 0
-            totalNeg = 0
-            for value in self.heights.loc[:, pos]:
-                if value > 0:
-                    totalPos += value
-                if value < 0:
-                    totalNeg += value
-            stacks.loc[pos, '+Stack'] = totalPos
-            stacks.loc[pos, '-Stack'] = totalNeg
-        self.log(f'Stack Heights:\n{stacks}\n\n')
+        evalMatrix(self.heights)
 
 
         # Plot: Enrichment Map
