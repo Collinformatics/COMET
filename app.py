@@ -91,7 +91,6 @@ def checkFigures():
 
 @app.route('/results')
 def results():
-
     return render_template('results.html',
                            figures=webapp.figures,
                            parameters=webapp.jobParams)
@@ -100,23 +99,26 @@ def results():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    token = generate_csrf()
-    return render_template('processDNA.html', csrf_token=token)
+    return render_template('processDNA.html',
+                           csrf_token=generate_csrf())
 
 
 @app.route('/processDNA')
 def processDNA():
-    return render_template('processDNA.html')
+    return render_template('processDNA.html',
+                           csrf_token=generate_csrf())
 
 
 @app.route('/filterAminoAcids')
 def filterAA():
-    return render_template('filterAA.html')
+    return render_template('filterAA.html',
+                           csrf_token=generate_csrf())
 
 
 @app.route('/filterMotif')
 def filterMotif():
-    return render_template('filterMotif.html')
+    return render_template('filterMotif.html',
+                           csrf_token=generate_csrf())
 
 
 # Run the app

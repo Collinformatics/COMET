@@ -43,6 +43,9 @@ matplotlib.use('Agg')  # Use a non-interactive backend for servers
 class WebApp:
     def __init__(self):
         # Params: Dataset
+        self.datasetTag = 'Unfiltered'
+        self.datasetTagMotif = None
+        self.motifFilter = None
         self.jobParams = {}
         self.jobID = ''
         self.jobHash = ''
@@ -71,8 +74,7 @@ class WebApp:
         self.saveTagBg = {}
         self.saveTagFig = {}
         self.fixMotif = False
-        self.datasetTypes = {'Exp': 'Experimental',
-                             'Bg': 'Background'}
+        self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: Files
         self.figures = {}
@@ -81,10 +83,10 @@ class WebApp:
         self.seqExp = None
         self.fileBg = []
         self.seqBg = None
-        self.pathData = 'data'
-        self.pathSeqs = os.path.join(self.pathData, 'sequences')
-        self.pathFigs = os.path.join(self.pathData, 'figures')
-        self.pathLog = os.path.join(self.pathData, 'log.txt')
+        self.pathData = ''
+        self.pathSeqs = ''
+        self.pathFigs = ''
+        self.pathLog = ''
 
         # Params: Process dna
         self.seq5Prime = False
@@ -97,9 +99,7 @@ class WebApp:
         self.exclAA = {}
 
         # Params: Figures
-        self.datasetTag = 'Unfiltered'
-        self.datasetTagMotif = None
-        self.motifFilter = None
+        self.figureResolution = 600
         self.saveFigureIteration = None
         self.titleCombined = ''
         self.titleReleased = ''
@@ -127,28 +127,6 @@ class WebApp:
         # self. = False
         # self. = False
         # self. = False
-
-        # Verify directory paths
-        if self.pathData is not None:
-            if not os.path.exists(self.pathData):
-                os.makedirs(self.pathData, exist_ok=True)
-        if self.pathSeqs is not None:
-            if not os.path.exists(self.pathSeqs):
-                os.makedirs(self.pathSeqs, exist_ok=True)
-        if self.pathFigs is not None:
-            if not os.path.exists(self.pathFigs):
-                os.makedirs(self.pathFigs, exist_ok=True)
-            else:
-                import shutil
-                # Remove everything inside the directory
-                for filename in os.listdir(self.pathFigs):
-                    file_path = os.path.join(self.pathFigs, filename)
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)  # delete file or link
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)  # delete subdirectory
-                time.sleep(5)
-                os.makedirs(self.pathFigs, exist_ok=True)
 
         pd.options.display.float_format = '{:,.3f}'.format
 
@@ -222,11 +200,12 @@ class WebApp:
 
 
 
-    @staticmethod
-    def encodeFig(fig):
+    def encodeFig(self, fig):
         # Save to a memory buffer instead of disk
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', bbox_inches='tight')
+        plt.savefig(
+            buffer, format='png', bbox_inches='tight', dpi=self.figureResolution
+        )
         buffer.seek(0)
 
         # Encode as base64 for embedding in HTML
@@ -356,18 +335,31 @@ class WebApp:
 
 
     def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
-        self.log()  # Clear the log
-        self.log('================================= Job Summary '
-                 '================================')
-
-        # Record job params
-        self.enzymeName = form['enzymeName']
-        self.jobParams['Enzyme Name'] = self.enzymeName
-        self.log(f'Enzyme: {self.enzymeName}')
-        self.seqLength = int(form['seqLength'])
-        self.jobParams['Substrate Length'] = self.seqLength
-        self.log(f'Substrate Length: {self.seqLength}')
-        self.jobID = f'{self.enzymeName}_{self.seqLength}'
+        # Directories
+        self.pathData = os.path.join('data', form['enzymeName'])
+        self.pathSeqs = os.path.join(self.pathData, 'sequences')
+        self.pathFigs = os.path.join(self.pathData, 'figures')
+        self.pathLog = os.path.join(self.pathData, 'log.txt')
+        if self.pathData is not None:
+            if not os.path.exists(self.pathData):
+                os.makedirs(self.pathData, exist_ok=True)
+        if self.pathSeqs is not None:
+            if not os.path.exists(self.pathSeqs):
+                os.makedirs(self.pathSeqs, exist_ok=True)
+        if self.pathFigs is not None:
+            if not os.path.exists(self.pathFigs):
+                os.makedirs(self.pathFigs, exist_ok=True)
+            else:
+                import shutil
+                # Remove everything inside the directory
+                for filename in os.listdir(self.pathFigs):
+                    file_path = os.path.join(self.pathFigs, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)  # delete file or link
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)  # delete subdirectory
+                time.sleep(5)
+                os.makedirs(self.pathFigs, exist_ok=True)
 
         print('Job Parameters:')
         for key, value in form.items():
@@ -380,6 +372,19 @@ class WebApp:
                 self.fileExp.append(value)
             elif 'fileBg' in key:
                 self.fileBg.append(value)
+
+        self.log()  # Clear the log
+        self.log('================================ Job Summary '
+                 '=================================')
+
+        # Record job params
+        self.enzymeName = form['enzymeName']
+        self.jobParams['Enzyme Name'] = self.enzymeName
+        self.log(f'Enzyme: {self.enzymeName}')
+        self.seqLength = int(form['seqLength'])
+        self.jobParams['Substrate Length'] = self.seqLength
+        self.log(f'Substrate Length: {self.seqLength}')
+        self.jobID = f'{self.enzymeName}_{self.seqLength}'
 
         ## Placeholder for files
         self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
@@ -697,8 +702,8 @@ class WebApp:
 
 
     def translate(self, data, fileName, datasetType, queueLog, forwardRead):
-        queueLog.put('================================= Translate DNA '
-                 '=================================')
+        queueLog.put('================================ Translate DNA '
+                     '===============================')
         data = list(data)
         substrates = {}
         totalSubsExtracted = 0
@@ -1046,8 +1051,8 @@ class WebApp:
 
 
     def calculateRF(self):
-        self.log('================================ Calculate: RF '
-                 '===============================')
+        self.log('=============================== Calculate: RF '
+                 '================================')
         self.log(f'Dataset: {self.datasetTag}\n')
         self.rfExp = pd.DataFrame(
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
@@ -1087,8 +1092,8 @@ class WebApp:
 
     def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
                             posFilter=False, relFilter=False, releasedIteration=False):
-        self.log('========================== Calculate: Enrichment Score '
-                 '==========================')
+        self.log('======================== Calculate: Enrichment Score '
+                 '=========================')
         self.log(f'Enrichment Scores:\n'
                  f'     log₂(RF Experimental / RF Background)\n')
 
@@ -1144,8 +1149,8 @@ class WebApp:
                 stacks.loc[pos, '-Stack'] = totalNeg
             self.log(f'Stack Heights:\n{stacks}\n\n')
 
-        self.log('====================== Calculate: Scaled Enrichment Score '
-              '=======================')
+        self.log('===================== Calculate: Scaled Enrichment Score '
+                 '=====================')
         if releasedCounts:
             self.log(f'Scale Enrichment Scores: Released Counts\n'
                   f'     Enrichment Scores * ΔS\n')
@@ -1242,11 +1247,6 @@ class WebApp:
 
     def plotEnrichmentScores(self, dataType, releasedCounts=False,
                              posFilter=False, relFilter=False):
-        print('============================ Plot: Enrichment Score '
-              '=============================')
-        print(f'Dataset: {self.datasetTag}\n'
-              f'Unique Substrates: {self.countExpUnique:,}')
-
         # Select: Dataset
         scaleData = False
         if 'scaled' in dataType.lower():
@@ -1268,16 +1268,6 @@ class WebApp:
             datasetType = self.datasetTagMotif # <----- Do we need this -----
         else:
             title = f'{self.enzymeName}'
-        print(f'\nTitle: {title}\n')
-
-        if self.motifFilter:
-            print(f'Figure Number: '
-                  f'{self.saveFigureIteration}')
-        if posFilter:
-            if relFilter:
-                print(f'Releasing Filter: {posFilter}')
-            else:
-                print(f'Applying Filter: {posFilter}')
 
 
         # Create heatmap
@@ -1500,17 +1490,6 @@ class WebApp:
             plt.close(fig)
 
             return figName
-
-            # Save the figure
-            if self.saveFigures:
-                datasetType = 'Logo'
-                if limitYAxis:
-                    datasetType += ' yMin'
-                if not isinstance(relIteration, bool):
-                    datasetType += f' {relIteration}'
-                self.saveFigure(
-                    fig=fig, figType=datasetType, seqLen=len(data.columns),
-                    combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
 
         # Plot figure
         plotLogo() # Full y-axis
