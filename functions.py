@@ -382,8 +382,8 @@ class WebApp:
                 self.fileBg.append(value)
 
         ## Placeholder for files
-        self.fileExp = ['data/variantsExp.fastq'] # , 'data/variantsExp2.fastq'
-        self.fileBg = ['data/variantsBg.fasta'] # , 'data/variantsBg2.fasta'
+        self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
+        self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
         print(f'File Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'

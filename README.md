@@ -31,6 +31,16 @@ You can start up the website with:
   - Click on the link to go to the website, or enter the address in a browser.
 
 
+# Testing The Program:
+
+Processing DNA:
+
+- To test the program a trial dataset is available in the folder:
+
+      data/validation/
+
+
+
 # Troubleshooting:
 
 Unterminated processes can result in the website not starting correctly.
