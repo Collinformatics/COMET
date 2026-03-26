@@ -218,6 +218,21 @@ function clickButton() {
 }
 
 
+function addFigure(container, label, filename) {
+    const p = document.createElement('p');
+    p.className = 'p2';
+    p.textContent = label;
+    container.appendChild(p);
+
+    const img = document.createElement('img');
+    img.src = `/data/figures/${filename}`;
+    img.style.maxWidth = '80vw';
+    img.style.height = 'auto';
+    container.appendChild(img);
+    container.appendChild(document.createElement('br'));
+    container.appendChild(document.createElement('br'));
+}
+
 // Get figures
 function getFigures() {
     const container = document.getElementById("figures-container");
@@ -232,117 +247,41 @@ function getFigures() {
             credentials: 'same-origin'
         })
         .then(res => res.json())
+        // Verify if one figure is ready
         .then(data => {
-            if (data.exp_counts || data.bg_counts) {
+            if (data.eMap || data.eMapSc || data.exp_counts || data.bg_counts || data.eLogo || data.wLogo || data.words) {
                 clearInterval(interval); // Stop polling
                 container.innerHTML = ''; // Clear loading message
 
 
+                if (data.eMap) {
+                    addFigure(container, "Enrichment Map", data.eMap);
+                }
+                if (data.eMapSc) {
+                    addFigure(container, "Scaled Enrichment Map", data.eMapSc);
+                }
+                if (data.eLogo) {
+                    addFigure(container, "Enrichment Logo", data.eLogo);
+                }
+                if (data.wLogo) {
+                    addFigure(container, "WebLogo", data.wLogo);
+                }
+                if (data.words) {
+                    addFigure(container, "Word Cloud", data.words);
+                }
+                if (data.barCounts) {
+                    addFigure(container, "Substrate Counts", data.barCounts);
+                }
+                if (data.barRF) {
+                    addFigure(container, "Substrate Frequency", data.barRF);
+                }
                 if (data.exp_counts) {
-                    // Figure label
-                    const label = document.createElement('p');
-
-                    label.className = 'p2';
-                    label.textContent = "Experimental Counts";
-                    container.appendChild(label);
-
-                    // Add figure
-                    const img = document.createElement('img');
-                    img.src = `/data/figures/${data.exp_counts}`;
-                    img.style.maxWidth = '80vw';
-                    img.style.height = 'auto';
-                    container.appendChild(img);
-                    container.appendChild(document.createElement('br'));
-                    container.appendChild(document.createElement('br'));
+                    addFigure(container, "Experimental Counts", data.exp_counts);
                 }
-
                 if (data.bg_counts) {
-                    // Figure label
-                    const label = document.createElement('p');
-                    label.className = 'p2';
-                    label.textContent = "Background Counts";
-                    container.appendChild(label);
-
-                    // Add figure
-                    const img = document.createElement('img');
-                    img.src = `/data/figures/${data.bg_counts}`;
-                    img.style.maxWidth = '80vw';
-                    img.style.height = 'auto';
-                    container.appendChild(img);
-                    container.appendChild(document.createElement('br'));
-                    container.appendChild(document.createElement('br'));
+                    addFigure(container, "Background Counts", data.bg_counts);
                 }
-           }
-
-            if (data.eMap) {
-                clearInterval(interval); // Stop polling
-                container.innerHTML = ''; // Clear loading message
-
-                // Figure label
-                const label = document.createElement('p');
-
-                label.className = 'p2';
-                label.textContent = "Enrichment Map";
-                container.appendChild(label);
-
-                // Add figure
-                const img = document.createElement('img');
-                img.src = `/data/figures/${data.eMap}`;
-                img.style.maxWidth = '80vw';
-                img.style.height = 'auto';
-                container.appendChild(img);
-                container.appendChild(document.createElement('br'));
-                container.appendChild(document.createElement('br'));
             }
-
-            if (data.eMapSc) {
-                clearInterval(interval); // Stop polling
-                container.innerHTML = ''; // Clear loading message
-
-                // Figure label
-                const label = document.createElement('p');
-
-                label.className = 'p2';
-                label.textContent = "Enrichment Map";
-                container.appendChild(label);
-
-                // Add figure
-                const img = document.createElement('img');
-                img.src = `/data/figures/${data.eMapSc}`;
-                img.style.maxWidth = '80vw';
-                img.style.height = 'auto';
-                container.appendChild(img);
-                container.appendChild(document.createElement('br'));
-                container.appendChild(document.createElement('br'));
-            }
-
-            if (data.eLogo) {
-                clearInterval(interval); // Stop polling
-                container.innerHTML = ''; // Clear loading message
-
-                // Figure label
-                const label = document.createElement('p');
-
-                label.className = 'p2';
-                label.textContent = "Enrichment Logo";
-                container.appendChild(label);
-
-                // Add figure
-                const img = document.createElement('img');
-                img.src = `/data/figures/${data.exp_counts}`;
-                img.style.maxWidth = '80vw';
-                img.style.height = 'auto';
-                container.appendChild(img);
-                container.appendChild(document.createElement('br'));
-                container.appendChild(document.createElement('br'));
-            }
-
-            
-            /* self.figures = {
-                'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
-                'words': False, 'barCounts': False, 'barRF': False,
-                'exp_counts': False, 'bg_counts': False
-            } */
         });
     }, 1000); // poll every 1 second
 }

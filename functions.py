@@ -100,7 +100,6 @@ class WebApp:
         self.datasetTagMotif = None
         self.motifFilter = None
         self.saveFigureIteration = None
-        self.title = ''
         self.titleCombined = ''
         self.titleReleased = ''
         self.titleWeblogo = ''
@@ -957,186 +956,6 @@ class WebApp:
 
 
 
-    def calculateRF(self):
-        self.log('================================ Calculate: RF '
-                 '===============================')
-        self.log(f'Dataset: {self.datasetTag}\n')
-        self.rfExp = pd.DataFrame(
-            0.0, index=self.countsExp.index, columns=self.countsExp.columns
-        )
-        for pos in self.countsExp.columns:
-            self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
-        self.log(f'RF Experimental:\n{self.rfExp}\n')
-
-        self.rfBg = pd.DataFrame(
-            0.0, index=self.countsBg.index, columns=self.countsBg.columns
-        )
-        for pos in self.countsBg.columns:
-            self.rfBg.loc[:, pos] = self.countsBg[pos] / sum(self.countsBg[pos])
-        self.log(f'RF Background:\n{self.rfBg}\n\n')
-
-
-
-    def calculateEntropy(self):
-        self.log('============================= Calculate: Entropy '
-                 '=============================')
-        self.log(f'Dataset: {self.datasetTag}\n')
-
-        self.entropy = pd.DataFrame(0.0, index=self.rfExp.columns, columns=['ΔS'])
-        self.entropyMax = np.log2(len(self.rfExp.index))
-        for indexColumn in self.rfExp.columns:
-            S = 0
-            for indexRow, probRatio in self.rfExp.iterrows():
-                prob = probRatio[indexColumn]
-                if prob == 0:
-                    continue
-                else:
-                    S += -prob * np.log2(prob)
-            self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
-        self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}\n\n')
-
-
-
-    def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
-                            posFilter=False, relFilter=False, releasedIteration=False):
-        self.log('========================== Calculate: Enrichment Score '
-                 '==========================')
-        self.log(f'Enrichment Scores:\n'
-                 f'     log₂(RF Experimental / RF Background)\n')
-
-        # Calculate: Enrichment scores
-        matrix = pd.DataFrame(0.0, index=self.rfExp.index,
-                              columns=self.rfExp.columns)
-        if len(self.rfBg.columns) == 1: ##
-            # Eval: ES
-            for pos in self.rfExp.columns:
-                for AA in self.rfExp.index:
-                    rf = self.rfBg.loc[AA, self.rfBg.columns[0]]
-                    if rf == 0:
-                        rf = 1
-                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
-        else:
-            if len(self.rfBg.columns) != len(self.rfExp.columns):
-                self.log(f'ERROR: The number of columns in the Initial Sort '
-                      f'({len(self.rfBg.columns)}) needs to equal to the '
-                      f'number of columns in the Final Sort '
-                      f'({len(self.rfExp.columns)})\n'
-                      f'     Initial: {self.rfBg.columns}\n'
-                      f'       Final: {self.rfExp.columns}\n\n')
-                sys.exit(1)
-
-            # Eval: ES
-            for pos in self.rfExp.columns:
-                for AA in self.rfExp.index:
-                    rf = self.rfBg.loc[AA, pos]
-                    if rf == 0:
-                        rf = 1
-                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
-        if releasedCounts:
-            self.log(f'Enrichment Score: Released Counts\n'
-                  f'{matrix.round(self.roundVal)}\n\n')
-            self.log(f'Prob Initial:\n{self.rfBg}\n\n'
-                  f'RF Expl:\n{self.rfExp}\n\n')
-        else:
-            self.log(f'Enrichment Score: {self.datasetTag}\n'
-                  f'{matrix.round(self.roundVal)}\n\n')
-
-        self.log('====================== Calculate: Scaled Enrichment Score '
-              '=======================')
-        if releasedCounts:
-            self.log(f'Scale Enrichment Scores: Released Counts\n'
-                  f'     Enrichment Scores * ΔS\n')
-        else:
-            self.log(f'Scale Enrichment Scores:\n'
-                  f'     Enrichment Scores * ΔS\n')
-
-
-        # Calculate: Letter heights
-        heights = pd.DataFrame(0, index=matrix.index,
-                               columns=matrix.columns, dtype=float)
-        for indexColumn in heights.columns:
-            heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
-                                           self.entropy.loc[indexColumn, 'ΔS'])
-
-        # Record values
-        if releasedCounts:
-            self.eMapReleased = matrix.copy()
-            self.eMapReleasedScaled = heights.copy()
-        else:
-            self.eMap = matrix.copy()
-            self.eMapScaled = heights.copy()
-
-        # Calculate: Max positive
-        columnTotals = []
-        for pos in heights.columns:
-            totalPos = 0
-            for value in heights.loc[:, pos]:
-                if value > 0:
-                    totalPos += value
-            columnTotals.append(totalPos)
-        yMax = max(columnTotals)
-
-        # Adjust values
-        for column in heights.columns:
-            if heights.loc[:, column].isna().any():
-                nValues = heights[column].notna().sum()
-                if nValues > 0:
-                    self.log(f'{len(heights[column]) - nValues} NaN values at: {column}')
-                heights.loc[heights[column].notna(), column] = yMax / nValues
-                heights.loc[:, column] = heights.loc[:, column].fillna(0)
-        heights = heights.replace([np.inf, -np.inf], 0)
-        self.heights = heights
-        self.log(f'\nResidue Heights: {self.datasetTag}\n'
-              f'{self.heights}\n')
-
-        # Evaluate stack heights
-        stacks = pd.DataFrame(0.0, index=heights.columns,
-                               columns=['+Stack', '-Stack'])
-        for pos in self.heights.columns:
-            totalPos = 0
-            totalNeg = 0
-            for value in self.heights.loc[:, pos]:
-                if value > 0:
-                    totalPos += value
-                if value < 0:
-                    totalNeg += value
-            stacks.loc[pos, '+Stack'] = totalPos
-            stacks.loc[pos, '-Stack'] = totalNeg
-        self.log(f'Stack Heights:\n{stacks}\n\n')
-
-
-        # Plot: Enrichment Map
-        x = {
-            'eMap': False, 'elogo': False, 'eMapSc': False, 'wLogo': False,
-            'words': False, 'barCounts': False, 'barRF': False,
-            'exp_counts': False, 'bg_counts': False
-        }
-        self.figures['eMap'] = (
-            self.plotEnrichmentScores(
-                dataType='Enrichment', releasedCounts=releasedCounts,
-                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
-            )
-        )
-
-        self.figures['eMapSc'] = (
-            self.plotEnrichmentScores(
-                dataType='Scaled Enrichment', releasedCounts=releasedCounts,
-                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
-            )
-        )
-
-        # # Plot: Enrichment Logo
-        # self.plotEnrichmentLogo(releasedCounts=releasedCounts,
-        #                         combinedMotifs=combinedMotifs,
-        #                         posFilter=posFilter,
-        #                         relFilter=relFilter)
-        #
-        # # Calculate & Plot: Weblogo
-        # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
-        #                       combinedMotifs=combinedMotifs)
-
-
-
     def plotCounts(self, countedData, totalCounts, datasetType):
         # Remove commas from string values and convert to float
         # countedData = countedData.applymap(lambda x:
@@ -1223,10 +1042,209 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentScores(self, dataType, combinedMotifs=False,
-                             releasedCounts=False, posFilter=False, relFilter=False):
+
+    def calculateRF(self):
+        self.log('================================ Calculate: RF '
+                 '===============================')
+        self.log(f'Dataset: {self.datasetTag}\n')
+        self.rfExp = pd.DataFrame(
+            0.0, index=self.countsExp.index, columns=self.countsExp.columns
+        )
+        for pos in self.countsExp.columns:
+            self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
+        self.log(f'RF Experimental:\n{self.rfExp}\n')
+
+        self.rfBg = pd.DataFrame(
+            0.0, index=self.countsBg.index, columns=self.countsBg.columns
+        )
+        for pos in self.countsBg.columns:
+            self.rfBg.loc[:, pos] = self.countsBg[pos] / sum(self.countsBg[pos])
+        self.log(f'RF Background:\n{self.rfBg}\n\n')
+
+
+
+    def calculateEntropy(self):
+        self.log('============================= Calculate: Entropy '
+                 '=============================')
+        self.log(f'Dataset: {self.datasetTag}\n')
+
+        self.entropy = pd.DataFrame(0.0, index=self.rfExp.columns, columns=['ΔS'])
+        self.entropyMax = np.log2(len(self.rfExp.index))
+        for indexColumn in self.rfExp.columns:
+            S = 0
+            for indexRow, probRatio in self.rfExp.iterrows():
+                prob = probRatio[indexColumn]
+                if prob == 0:
+                    continue
+                else:
+                    S += -prob * np.log2(prob)
+            self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
+        self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}\n\n')
+
+
+
+    def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
+                            posFilter=False, relFilter=False, releasedIteration=False):
+        self.log('========================== Calculate: Enrichment Score '
+                 '==========================')
+        self.log(f'Enrichment Scores:\n'
+                 f'     log₂(RF Experimental / RF Background)\n')
+
+        # Calculate: Enrichment scores
+        matrix = pd.DataFrame(0.0, index=self.rfExp.index,
+                              columns=self.rfExp.columns)
+        if len(self.rfBg.columns) == 1: ##
+            # Eval: ES
+            for pos in self.rfExp.columns:
+                for AA in self.rfExp.index:
+                    rf = self.rfBg.loc[AA, self.rfBg.columns[0]]
+                    if rf == 0:
+                        rf = 1
+                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
+        else:
+            if len(self.rfBg.columns) != len(self.rfExp.columns):
+                self.log(f'ERROR: The number of columns in the Initial Sort '
+                      f'({len(self.rfBg.columns)}) needs to equal to the '
+                      f'number of columns in the Final Sort '
+                      f'({len(self.rfExp.columns)})\n'
+                      f'     Initial: {self.rfBg.columns}\n'
+                      f'       Final: {self.rfExp.columns}\n\n')
+                sys.exit(1)
+
+            # Eval: ES
+            for pos in self.rfExp.columns:
+                for AA in self.rfExp.index:
+                    rf = self.rfBg.loc[AA, pos]
+                    if rf == 0:
+                        rf = 1
+                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
+        if releasedCounts:
+            self.log(f'Enrichment Score: Released Counts\n'
+                  f'{matrix.round(self.roundVal)}\n')
+            self.log(f'RF Experimental:\n{self.rfExp}\n\n'
+                     f'RF Background:\n{self.rfBg}\n')
+        else:
+            self.log(f'Enrichment Score: {self.datasetTag}\n'
+                  f'{matrix.round(self.roundVal)}\n')
+
+            # Evaluate stack heights
+            stacks = pd.DataFrame(0.0, index=matrix.columns,
+                                  columns=['+Stack', '-Stack'])
+            for pos in matrix.columns:
+                totalPos = 0
+                totalNeg = 0
+                for value in matrix.loc[:, pos]:
+                    if value > 0:
+                        totalPos += value
+                    if value < 0:
+                        totalNeg += value
+                stacks.loc[pos, '+Stack'] = totalPos
+                stacks.loc[pos, '-Stack'] = totalNeg
+            self.log(f'Stack Heights:\n{stacks}\n\n')
+
+        self.log('====================== Calculate: Scaled Enrichment Score '
+              '=======================')
+        if releasedCounts:
+            self.log(f'Scale Enrichment Scores: Released Counts\n'
+                  f'     Enrichment Scores * ΔS\n')
+        else:
+            self.log(f'Scale Enrichment Scores:\n'
+                  f'     Enrichment Scores * ΔS\n')
+
+
+        # Calculate: Letter heights
+        heights = pd.DataFrame(0, index=matrix.index,
+                               columns=matrix.columns, dtype=float)
+        for indexColumn in heights.columns:
+            heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
+                                           self.entropy.loc[indexColumn, 'ΔS'])
+
+        # Record values
+        if releasedCounts:
+            self.eMapReleased = matrix.copy()
+            self.eMapReleasedScaled = heights.copy()
+        else:
+            self.eMap = matrix.copy()
+            self.eMapScaled = heights.copy()
+
+        # Calculate: Max positive
+        columnTotals = []
+        for pos in heights.columns:
+            totalPos = 0
+            for value in heights.loc[:, pos]:
+                if value > 0:
+                    totalPos += value
+            columnTotals.append(totalPos)
+        yMax = max(columnTotals)
+
+        # Adjust values
+        for column in heights.columns:
+            if heights.loc[:, column].isna().any():
+                nValues = heights[column].notna().sum()
+                if nValues > 0:
+                    self.log(f'{len(heights[column]) - nValues} NaN values at: {column}')
+                heights.loc[heights[column].notna(), column] = yMax / nValues
+                heights.loc[:, column] = heights.loc[:, column].fillna(0)
+        heights = heights.replace([np.inf, -np.inf], 0)
+        self.heights = heights
+        self.log(f'\nResidue Heights: {self.datasetTag}\n'
+                 f'{self.heights}\n')
+
+        # Evaluate stack heights
+        stacks = pd.DataFrame(0.0, index=heights.columns,
+                               columns=['+Stack', '-Stack'])
+        for pos in self.heights.columns:
+            totalPos = 0
+            totalNeg = 0
+            for value in self.heights.loc[:, pos]:
+                if value > 0:
+                    totalPos += value
+                if value < 0:
+                    totalNeg += value
+            stacks.loc[pos, '+Stack'] = totalPos
+            stacks.loc[pos, '-Stack'] = totalNeg
+        self.log(f'Stack Heights:\n{stacks}\n\n')
+
+
+        # Plot: Enrichment Map
+        x = {
+            'eMap': False, 'elogo': False, 'eMapSc': False, 'wLogo': False,
+            'words': False, 'barCounts': False, 'barRF': False,
+            'exp_counts': False, 'bg_counts': False
+        }
+        self.figures['eMap'] = (
+            self.plotEnrichmentScores(
+                dataType='Enrichment', releasedCounts=releasedCounts,
+                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
+            )
+        )
+
+        self.figures['eMapSc'] = (
+            self.plotEnrichmentScores(
+                dataType='Scaled Enrichment', releasedCounts=releasedCounts,
+                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
+            )
+        )
+
+        # # Plot: Enrichment Logo
+        # self.plotEnrichmentLogo(releasedCounts=releasedCounts,
+        #                         combinedMotifs=combinedMotifs,
+        #                         posFilter=posFilter,
+        #                         relFilter=relFilter)
+        #
+        # # Calculate & Plot: Weblogo
+        # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
+        #                       combinedMotifs=combinedMotifs)
+
+
+
+    def plotEnrichmentScores(self, dataType, releasedCounts=False,
+                             posFilter=False, relFilter=False):
         print('============================ Plot: Enrichment Score '
               '=============================')
+        print(f'Dataset: {self.datasetTag}\n'
+              f'Unique Substrates: {self.countExpUnique:,}')
+
         # Select: Dataset
         scaleData = False
         if 'scaled' in dataType.lower():
@@ -1244,27 +1262,12 @@ class WebApp:
         # Define: Figure title
         datasetType = self.datasetTag
         if releasedCounts:
-            title = self.titleReleased
-            datasetType = self.datasetTagMotif # <----- Do we need this -----
-        # elif combinedMotifs and len(self.motifIndexExtracted) > 1:
-        #     print(f'A\n')
-        #     title = self.titleCombined
-        elif combinedMotifs:
-            print(f'B\n')
-            title = self.titleCombined
+            title = f'{self.enzymeName}'
             datasetType = self.datasetTagMotif # <----- Do we need this -----
         else:
-            title = self.title
-        # if ' - ' in title:
-        #     title = title.replace(' - ', '\n')
-        if len(self.datasetTag.replace('[', ''
-            ).replace(']', ''
-            ).replace( '-', ''
-            )) > 40:
-            title = title.replace('Frames ', 'Frames\n')
+            title = f'{self.enzymeName}'
+        print(f'\nTitle: {title}\n')
 
-        print(f'Dataset: {self.datasetTag}\n'
-              f'Unique Substrates: {self.countExpUnique:,}')
         if self.motifFilter:
             print(f'Figure Number: '
                   f'{self.saveFigureIteration}')
@@ -1313,12 +1316,6 @@ class WebApp:
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        # if self.figEMSquares:
-        #     figBorders = [0.852, 0.075, 0, 0.895]
-        # else:
-        #     figBorders = [0.852, 0.075, 0.117, 1]  # Top, bottom, left, right
-        # plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-        #                     left=figBorders[2], right=figBorders[3])
         fig.tight_layout()
 
         # Set the thickness of the figure border
