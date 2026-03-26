@@ -200,21 +200,6 @@ class WebApp:
 
 
 
-    def encodeFig(self, fig):
-        # Save to a memory buffer instead of disk
-        buffer = io.BytesIO()
-        plt.savefig(
-            buffer, format='png', bbox_inches='tight', dpi=self.figureResolution
-        )
-        buffer.seek(0)
-
-        # Encode as base64 for embedding in HTML
-        figBase64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-        return figBase64
-
-
-
     @staticmethod
     def getKey(app):  # required for CSRF
         app.config['SECRET_KEY'] = secrets.token_hex(nbytes=32)
@@ -232,6 +217,24 @@ class WebApp:
     def pressButton(self, message):
         print(f'Received data: {message}')
         return {'key': 'Returned data'}
+
+
+
+    def encodeFig(self, fig):
+        # Save to a memory buffer instead of disk
+        buffer = io.BytesIO()
+        plt.savefig(
+            buffer, format='png', bbox_inches='tight', dpi=self.figureResolution
+        )
+        buffer.seek(0)
+
+        # Encode as base64 for embedding in HTML
+        figBase64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        plt.close(fig)  # or fig.clear() to release memory
+        buffer.close()
+
+        return figBase64
 
 
 
@@ -291,13 +294,13 @@ class WebApp:
                 print(f'Tag: {tagFix}')
             self.datasetTag = tagFix
         self.jobParams['Dataset Tag'] = self.datasetTag
-        self.log(f'Dataset Filter: {self.datasetTag}\n\n')
+        self.log(f'Dataset Filter: {self.datasetTag}')
 
         # Initialize: Save tags
         self.saveTagExp = {
-            'subsRaw': f'{self.enzymeName} - Subs Exp - '
+            'subsRaw': f'{self.enzymeName} - Subs Exp - {self.datasetTag} - '
                     f'MinCounts {self.minCounts} - {self.seqLength} AA',
-            'countsRaw': f'{self.enzymeName} - AA Counts Exp - '
+            'countsRaw': f'{self.enzymeName} - AA Counts Exp - {self.datasetTag} - '
                       f'MinCounts {self.minCounts} - {self.seqLength} AA',
             'subs': f'{self.enzymeName} - Subs Exp - {self.datasetTag} - '
                     f'MinCounts {self.minCounts} - {self.seqLength} AA',
@@ -305,9 +308,9 @@ class WebApp:
                       f'MinCounts {self.minCounts} - {self.seqLength} AA'
         }
         self.saveTagBg = {
-            'subsRaw': f'{self.enzymeName} - Subs Bg - '
+            'subsRaw': f'{self.enzymeName} - Subs Bg - {self.datasetTag} - '
                    f'MinCounts {self.minCounts} - {self.seqLength} AA',
-            'countsRaw': f'{self.enzymeName} - AA Counts Bg - '
+            'countsRaw': f'{self.enzymeName} - AA Counts Bg - {self.datasetTag} - '
                       f'MinCounts {self.minCounts} - {self.seqLength} AA',
             'subs': f'{self.enzymeName} - Subs Bg - {self.datasetTag} - '
                     f'MinCounts {self.minCounts} - {self.seqLength} AA',

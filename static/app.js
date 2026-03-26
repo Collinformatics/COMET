@@ -253,6 +253,20 @@ function getFigures() {
                 clearInterval(interval); // Stop polling
                 container.innerHTML = ''; // Clear loading message
 
+                /* Download  */
+                /*<div class="button-wrapper">
+                    <button class="btn" onclick="buttonProcessDNA()">Evaluate</button>
+                </div>*/
+                const buttonWrapper = document.createElement('div');
+                buttonWrapper.className = 'button-wrapper';
+
+                const button = document.createElement('button');
+                button.className = 'btn';
+                button.textContent = 'Download';
+                button.onclick = buttonProcessDNA;
+
+                buttonWrapper.appendChild(button);
+                container.appendChild(buttonWrapper);
 
                 if (data.eMap) {
                     addFigure(container, "Enrichment Map", data.eMap);

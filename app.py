@@ -77,9 +77,9 @@ def evalDNA():
 #     return render_template('results.html', parameters=webapp.jobParams)
 
 
-@app.route('/data/figures/<filename>')
+@app.route(f'/data/{webapp.enzymeName}/figures/<filename>')
 def getFigure(filename):
-    return send_from_directory('data/figures', filename)
+    return send_from_directory(f'data/{webapp.enzymeName}/figures', filename)
 
 
 @app.route('/checkFigures')
