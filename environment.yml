@@ -4,9 +4,11 @@ channels:
   - conda-forge
 dependencies:
   - python
+  - biopython
   - flask
   - flask-wtf
-  - biopython
+  - logomaker
   - matplotlib
   - pandas
   - seaborn
+  - wordcloud

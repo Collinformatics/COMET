@@ -1,12 +1,12 @@
 import base64
-import math
-
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
 import gzip
 import hashlib
 import io
+# import logomaker
+import math
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
@@ -21,6 +21,7 @@ import sys
 import threading
 import time
 import warnings
+# from wordcloud import WordCloud
 
 
 defaultResidues = (
@@ -120,6 +121,7 @@ class WebApp:
         self.colorsAA = self.residueColors()
         self.residues = defaultResidues
         self.AA = [residue[2] for residue in self.residues]
+        self.bigAAonTop = False
 
         # # Params:
         # self. = False
@@ -1215,23 +1217,23 @@ class WebApp:
         self.figures['eMap'] = (
             self.plotEnrichmentScores(
                 dataType='Enrichment', releasedCounts=releasedCounts,
-                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
+                posFilter=posFilter, relFilter=relFilter
             )
         )
-
         self.figures['eMapSc'] = (
             self.plotEnrichmentScores(
                 dataType='Scaled Enrichment', releasedCounts=releasedCounts,
-                combinedMotifs=combinedMotifs, posFilter=posFilter, relFilter=relFilter
+                posFilter=posFilter, relFilter=relFilter
             )
         )
+        # Plot: Enrichment Logo
+        # self.figures['eLogo'] = (
+        #     self.plotEnrichmentLogo(
+        #         releasedCounts=releasedCounts,
+        #         posFilter=posFilter, relFilter=relFilter
+        #     )
+        # )
 
-        # # Plot: Enrichment Logo
-        # self.plotEnrichmentLogo(releasedCounts=releasedCounts,
-        #                         combinedMotifs=combinedMotifs,
-        #                         posFilter=posFilter,
-        #                         relFilter=relFilter)
-        #
         # # Calculate & Plot: Weblogo
         # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
         #                       combinedMotifs=combinedMotifs)
@@ -1348,8 +1350,6 @@ class WebApp:
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
 
-        ##
-
         # File path
         if scaleData:
             figName = f'eMap - {self.enzymeName} - {datasetType}.png'
@@ -1367,3 +1367,161 @@ class WebApp:
         plt.close(fig)
 
         return figName
+
+
+
+    def plotEnrichmentLogo(self, combinedMotifs=False, releasedCounts=False,
+                           posFilter=False, relFilter=False, relIteration=False):
+        print('============================= Plot: Enrichment Logo '
+              '=============================')
+        # Define: Figure title
+        datasetType = self.datasetTag
+        if releasedCounts or combinedMotifs or len(self.motifIndexExtracted) > 1:
+            title = self.titleReleased
+            datasetType = self.datasetTagMotif
+        else:
+            title = self.title
+            datasetType = self.datasetTagMotif
+        if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
+            title = title.replace('Register ', 'Register\n')
+
+        # Print: data
+        print(f'Dataset: {self.datasetTag}\n'
+              f'Unique Substrates: {self.countExpUnique:,}')
+        if self.motifFilter:
+            print(f'Figure Number: '
+                  f'{self.saveFigureIteration}')
+        if posFilter:
+            if relFilter:
+                print(f'Releasing Filter: {posFilter}')
+            else:
+                print(f'Applying Filter: {posFilter}')
+        print(f'\nResidue heights:\n'
+              f'{self.heights}\n')
+
+        # Set local parameters
+        if self.bigAAonTop:
+            stackOrder = 'big_on_top'
+        else:
+            stackOrder = 'small_on_top'
+
+        # Calculate: Max and min
+        columnTotals = [[], []]
+        for indexColumn in self.heights.columns:
+            totalPos = 0
+            totalNeg = 0
+            for value in self.heights.loc[:, indexColumn]:
+                if value > 0:
+                    totalPos += value
+                elif value < 0:
+                    totalNeg += value
+            columnTotals[0].append(totalPos)
+            columnTotals[1].append(totalNeg)
+        yMax = max(columnTotals[0])
+        yMin = min(columnTotals[1])
+        print(f'y Max: {np.round(yMax, 4)}\n'
+              f'y Min: {np.round(yMin, 4)}\n')
+
+        # Rename columns for logomaker script
+        data = self.heights.copy()
+        data.columns = range(len(data.columns))
+
+
+        def plotLogo(limitYAxis=False):
+            # Plot the sequence motif
+            fig, ax = plt.subplots(figsize=self.figSize)
+            motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
+                                   width=0.95, stack_order=stackOrder)
+            motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+            fig.tight_layout()
+
+            # Set tick parameters
+            ax.tick_params(axis='both', which='major', length=self.tickLength,
+                           labelsize=self.labelSizeTicks)
+
+            # Set borders
+            motif.style_spines(visible=False)
+            motif.style_spines(spines=['left', 'bottom'], visible=True)
+            for spine in motif.ax.spines.values():
+                spine.set_linewidth(self.lineThickness)
+
+            # Set x-ticks
+            motif.ax.set_xticks([pos for pos in range(len(self.heights.columns))])
+            motif.ax.set_xticklabels(self.heights.columns, fontsize=self.labelSizeTicks,
+                                     rotation=0, ha='center')
+
+            # Set y-ticks
+            yTicks = [yMin, 0, yMax]
+            yTickLabels = [f'{tick:.2f}' if tick != 0 else f'{int(tick)}'
+                           for tick in yTicks]
+            motif.ax.set_yticks(yTicks)
+            motif.ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
+            motif.ax.set_ylim(yMin, yMax)
+
+            # Set tick width
+            for tick in motif.ax.xaxis.get_major_ticks():
+                tick.tick1line.set_markeredgewidth(self.lineThickness)
+            for tick in motif.ax.yaxis.get_major_ticks():
+                tick.tick1line.set_markeredgewidth(self.lineThickness)
+
+            # Label the axes
+            motif.ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+            motif.ax.set_ylabel('Scaled Enrichment', fontsize=self.labelSizeAxis)
+
+            # Set horizontal line
+            motif.ax.axhline(y=0, color='black', linestyle='-',
+                             linewidth=self.lineThickness)
+
+            # Evaluate dataset for fixed residues
+            spacer = np.diff(motif.ax.get_xticks())  # Find the space between each tick
+            spacer = spacer[0] / 2
+
+            # Use the spacer to set a gray background to fixed residues
+            for index, position in enumerate(self.xAxisLabels):
+                if position in self.fixedPos:
+                    # Plot gray boxes on each side of the xtick
+                    motif.ax.axvspan(index - spacer, index + spacer,
+                                     facecolor='darkgrey', alpha=0.2)
+
+            # File path
+            if limitYAxis:
+                figName = f'eLogo yMin - {self.enzymeName} - {datasetType}.png'
+            else:
+                figName = f'eLogo - {self.enzymeName} - {datasetType}.png'
+            path = os.path.join(self.pathFigs, figName)
+            print(f'Saving Fig: {datasetType}\n     {path}\n')
+
+            # Encode the figure
+            figBase64 = self.encodeFig(fig)
+            with open(path, "wb") as file:
+                file.write(base64.b64decode(figBase64))
+
+            # Close the figure to free memory
+            plt.close(fig)
+
+            return figName
+
+            # Save the figure
+            if self.saveFigures:
+                datasetType = 'Logo'
+                if limitYAxis:
+                    datasetType += ' yMin'
+                if not isinstance(relIteration, bool):
+                    datasetType += f' {relIteration}'
+                self.saveFigure(
+                    fig=fig, figType=datasetType, seqLen=len(data.columns),
+                    combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
+
+        # Plot figure
+        plotLogo() # Full y-axis
+
+        # # Adjust yMin to fit the largest negative AA
+        # yMin = 0
+        # for col in self.heights.columns:
+        #     for row in self.heights.index:
+        #         if self.heights.loc[row, col] < yMin:
+        #             yMin = self.heights.loc[row, col]
+        # print(f'Adjusting Y Min:\n'
+        #       f'y Max: {np.round(yMax, 4)}\n'
+        #       f'y Min: {np.round(yMin, 4)}\n\n')
+        # plotLogo(limitYAxis=True) # Limited y-axis
