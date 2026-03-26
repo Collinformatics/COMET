@@ -361,7 +361,7 @@ class WebApp:
                         os.unlink(file_path)  # delete file or link
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)  # delete subdirectory
-                time.sleep(5)
+                # time.sleep(5)
                 os.makedirs(self.pathFigs, exist_ok=True)
 
         print('Job Parameters:')

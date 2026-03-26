@@ -116,7 +116,7 @@ function buttonProcessDNA() {
     const selectedFixPositions = [];
 
     // Redirect
-//    window.location.href = '/results';
+    window.location.href = '/results';
 
     // Process the input form
     for (const [key, value] of formData.entries()) {
@@ -254,17 +254,12 @@ function getFigures() {
                 container.innerHTML = ''; // Clear loading message
 
                 /* Download  */
-                /*<div class="button-wrapper">
-                    <button class="btn" onclick="buttonProcessDNA()">Evaluate</button>
-                </div>*/
                 const buttonWrapper = document.createElement('div');
                 buttonWrapper.className = 'button-wrapper';
-
                 const button = document.createElement('button');
                 button.className = 'btn';
                 button.textContent = 'Download';
-                button.onclick = buttonProcessDNA;
-
+                button.onclick = download();
                 buttonWrapper.appendChild(button);
                 container.appendChild(buttonWrapper);
 
@@ -298,4 +293,18 @@ function getFigures() {
             }
         });
     }, 1000); // poll every 1 second
+}
+
+function download() {
+    fetch('/download')
+        .then(res => res.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'filename.ext';  // Set desired filename
+            a.click();
+            URL.revokeObjectURL(url);
+        })
+        .catch(err => console.error('Download failed:', err));
 }

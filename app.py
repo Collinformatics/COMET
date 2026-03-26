@@ -1,7 +1,8 @@
-from flask import (Flask, jsonify, redirect, render_template, request,
-                   send_from_directory, url_for)
+from flask import (Flask, jsonify, render_template, request,
+                   send_file, send_from_directory)
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from functions import WebApp
+import os
 import sys
 
 
@@ -77,9 +78,9 @@ def evalDNA():
 #     return render_template('results.html', parameters=webapp.jobParams)
 
 
-@app.route(f'/data/{webapp.enzymeName}/figures/<filename>')
+@app.route(f'/{webapp.pathFigs}/<filename>')
 def getFigure(filename):
-    return send_from_directory(f'data/{webapp.enzymeName}/figures', filename)
+    return send_from_directory(os.path.join(webapp.pathFigs, filename))
 
 
 @app.route('/checkFigures')
@@ -94,6 +95,12 @@ def results():
     return render_template('results.html',
                            figures=webapp.figures,
                            parameters=webapp.jobParams)
+
+
+@app.route('/download')
+def download():
+    file_path = os.path.join('data' , webapp.enzymeName)
+    return send_file(file_path, as_attachment=True)
 
 
 @app.route('/')
