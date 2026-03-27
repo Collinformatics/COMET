@@ -2,8 +2,10 @@ from flask import (Flask, jsonify, render_template, request,
                    send_file, send_from_directory)
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from functions import WebApp
+import io
 import os
 import sys
+import zipfile
 
 
 # Set up the app
@@ -61,22 +63,19 @@ def evalDNA():
     # Process the data
     form = parseForm()
     webapp.evalDNA(form)
-    print('Done')
+    print('Job Done: Eval DNA')
     webapp.done = True
     return render_template('results.html',
                            parameters=webapp.jobParams)
 
 
-# @app.route('/evalFormDNA', methods=['POST'])
-# def evalDNA():
-#     # Parse the form
-#     form = parseForm()
-#
-#     # Kick off background job
-#     threading.Thread(target=webapp.evalDNA, args=(form,)).start()
-#
-#     # Immediately return "job started" page
-#     return render_template('results.html', parameters=webapp.jobParams)
+@app.route('/fixAA', methods=['POST'])
+def fixAA():
+    # Parse the form
+    form = parseForm()
+    print('Job Done: Fix AA')
+    return render_template('results.html',
+                           parameters=webapp.jobParams)
 
 
 @app.route('/')
@@ -126,8 +125,24 @@ def checkFigures():
 
 @app.route('/download')
 def download():
-    file_path = os.path.join('data' , webapp.enzymeName)
-    return send_file(file_path, as_attachment=True)
+    print(f'Downloading file: {webapp.pathData}')
+    dir = webapp.pathData
+    memory_file = io.BytesIO()
+
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, dir)
+                zf.write(file_path, arcname)
+
+    memory_file.seek(0)
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f'{webapp.enzymeName}.zip'
+    )
 
 
 # Run the app

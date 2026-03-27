@@ -728,8 +728,12 @@ class WebApp:
         for datapoint in data:
             if 'phred_quality' in datapoint.letter_annotations:
                 useQS = True
+                useQS = True
             break
-        queueLog.put(f'  Eval QS: {useQS}\n\n')
+        queueLog.put(f'  Eval QS: {useQS}')
+        if useQS:
+            queueLog.put(f'Min Phred: {self.minPhred}')
+        queueLog.put('\n')
 
         # Inspect the datasetType parameter
         if (datasetType != self.datasetTypes['Exp']

@@ -253,11 +253,6 @@ function getFigures() {
                 clearInterval(interval); // Stop polling
                 container.innerHTML = ''; // Clear loading message
 
-                const path = 'path'
-                //const path = `data/${document.getElementById("enzymeName").value}/figures`;
-                //console.log('enz:', document.getElementById("enzymeName").value)
-                //console.log('path:', path)
-
                 /* Download  */
                 const buttonWrapper = document.createElement('div');
                 buttonWrapper.className = 'button-wrapper';
@@ -300,16 +295,29 @@ function getFigures() {
     }, 1000); // poll every 1 second
 }
 
-function download() {
-    fetch('/download')
-        .then(res => res.blob())
-        .then(blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'filename.ext';  // Set desired filename
-            a.click();
-            URL.revokeObjectURL(url);
-        })
-        .catch(err => console.error('Download failed:', err));
+async function download() {
+    const response = await fetch('/download');
+    const blob = await response.blob();
+    const enzymeInput = document.getElementById("enzymeName");
+    const dirName = enzymeInput ? enzymeInput.value + '.zip' : 'comet.zip';
+    console.log(enzymeInput, dirName);
+
+    try {
+        // Show "Save As" dialog (Chromium only)
+        const handle = await window.showSaveFilePicker({
+            suggestedName: dirName,
+            types: [{ description: 'ZIP file', accept: { 'application/zip': ['.zip'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+    } catch (err) {
+        // Fallback: trigger normal download if API not supported
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = dirName;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
