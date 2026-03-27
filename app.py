@@ -111,7 +111,7 @@ def results():
                            parameters=webapp.jobParams)
 
 
-@app.route(f'/{webapp.pathFigs}/<filename>')
+@app.route(f'/<filename>')
 def getFigure(filename):
     return send_from_directory(webapp.pathFigs, filename)
 

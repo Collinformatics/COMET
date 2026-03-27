@@ -107,6 +107,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Define button function
 function buttonProcessDNA() {
+    // Disable to prevent double click
+    const button = document.querySelector('button[onclick="buttonProcessDNA()"]');
+    button.disabled = true;
+    button.textContent = 'Processing';
+
     // const csrfToken = document.querySelector('input[name="csrf_token"]').value;
     const form = document.getElementById("formDNA");
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
@@ -114,9 +119,6 @@ function buttonProcessDNA() {
     formData.delete('csrf_token');
     const json = {}; // Dont send files as a JSON
     const selectedFixPositions = [];
-
-    // Redirect
-    window.location.href = '/results';
 
     // Process the input form
     for (const [key, value] of formData.entries()) {
@@ -153,7 +155,6 @@ function buttonProcessDNA() {
     // Log the form
     console.log('Input Form:', json);
 
-
     // POST the raw FormData to Flask
     fetch('/evalFormDNA', {
         method: 'POST',
@@ -162,8 +163,8 @@ function buttonProcessDNA() {
     })
     .then(response => {
         if (response.ok) {
-            // Go to the results page after successful processing
-            window.location.assign('/results')
+            // Redirect
+            window.location.href = '/results';
         } else {
             console.log('Error processing DNA.');
             alert("Error processing DNA.");
@@ -225,7 +226,7 @@ function addFigure(container, label, filename) {
     container.appendChild(p);
 
     const img = document.createElement('img');
-    img.src = `/data/figures/${filename}`;
+    img.src = filename // dir; /* ## */
     img.style.maxWidth = '80vw';
     img.style.height = 'auto';
     container.appendChild(img);
@@ -237,7 +238,6 @@ function addFigure(container, label, filename) {
 function getFigures() {
     const container = document.getElementById("figures-container");
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
 
     const interval = setInterval(() => {
         // new Flask route returning JSON with filenames
@@ -253,13 +253,18 @@ function getFigures() {
                 clearInterval(interval); // Stop polling
                 container.innerHTML = ''; // Clear loading message
 
+                const path = 'path'
+                //const path = `data/${document.getElementById("enzymeName").value}/figures`;
+                //console.log('enz:', document.getElementById("enzymeName").value)
+                //console.log('path:', path)
+
                 /* Download  */
                 const buttonWrapper = document.createElement('div');
                 buttonWrapper.className = 'button-wrapper';
                 const button = document.createElement('button');
                 button.className = 'btn';
                 button.textContent = 'Download';
-                button.onclick = download();
+                button.onclick = download;
                 buttonWrapper.appendChild(button);
                 container.appendChild(buttonWrapper);
 
