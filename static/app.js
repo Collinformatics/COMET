@@ -1,6 +1,6 @@
 // Fix AA
 function updateFixedAA() {
-    const seqLength = parseInt(document.getElementById('seqLength').value);
+    const seqLength = parseInt(document.getElementById('seqLength'));
     const container = document.getElementById('fixedAAContainer');
     const aminoAcids = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I",
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
@@ -11,7 +11,7 @@ function updateFixedAA() {
     container.style.gap = '12px'; // spacing between each checkbox
     container.paddingLeft = '5px';
 
-    for (let i = 1; i <= seqLength; i++) {
+    for (let i = 1; i <= seqLength.value; i++) {
         const wrapper = document.createElement('div');
         wrapper.style.display = 'flex';
         wrapper.style.flexDirection = 'column';
@@ -296,28 +296,36 @@ function getFigures() {
 }
 
 async function download() {
-    const response = await fetch('/download');
-    const blob = await response.blob();
     const enzymeInput = document.getElementById("enzymeName");
     const dirName = enzymeInput ? enzymeInput.value + '.zip' : 'comet.zip';
-    console.log(enzymeInput, dirName);
 
-    try {
-        // Show "Save As" dialog (Chromium only)
-        const handle = await window.showSaveFilePicker({
-            suggestedName: dirName,
-            types: [{ description: 'ZIP file', accept: { 'application/zip': ['.zip'] } }]
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-    } catch (err) {
-        // Fallback: trigger normal download if API not supported
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = dirName;
-        a.click();
-        URL.revokeObjectURL(url);
+    const response = await fetch('/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: dirName })
+    });
+
+    const blob = await response.blob();
+
+
+    // Extract filename from Content-Disposition header
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = dirName;
+    if (disposition) {
+        console.log('Dis: True');
+        const match = disposition.match(/filename[^;=\n]*=([^;\n]*)/);
+        if (match && match[1]) {
+            filename = match[1].trim().replace(/['"]/g, '');
+        }
+    } else {
+        console.log('Dis: False');
     }
+    console.log('Dir Name:', filename);
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
 }

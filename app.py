@@ -123,7 +123,7 @@ def checkFigures():
         return jsonify({}) # No figures yet
 
 
-@app.route('/download')
+@app.route('/download', methods=['POST'])
 def download():
     print(f'Downloading file: {webapp.pathData}')
     dir = webapp.pathData
