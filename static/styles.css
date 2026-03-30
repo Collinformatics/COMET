@@ -25,11 +25,12 @@
     --buttonHighlight: #643603;
     --buttonRad: 8px;
 
-    --padSize: 5px;
-    --paddingBox: 20px;
-    --labelMargin: 10px;
     --gap: 5px;
-
+    --padSize: 2px;
+    --paddingBox: 20px;
+    --marginLabel: 10px;
+    --marginBottom: 5px;
+    
     --dropdownWidth: 160px;
 }
 
@@ -54,39 +55,27 @@ p {
     align-self: flex-start;
     margin: 10px;
     padding: var(--padSize);
-}
-
-.p2 {
+}.p2 {
     color: var(--orange);
     font-size: calc(var(--textSize) + 4px);
     text-align: left;
     margin: 0px;
-}
-
-/* Job Parameters */
-.p3 {
+}.p3 { /* Job Parameters */
     color: var(--white);
     text-align: left;
     margin: 0 0 0 0; /* optional to remove default padding */
     padding-left: 30px;
     list-style-position: inside;
-}
-.param-value {
+}.param-value {
     color: var(--orangeBurnt);  /* Orange color */
     font-weight: bold; /* Optional */
-}
-
-/* Labels */
-.pL {
+}.pL { /* Labels */
     color: var(--orange);
     font-size: calc(var(--textSize) + 4px);
     text-align: center;
     width: fit-content;
     margin: 0 auto;  /* ⬅ centers the element itself */
-}
-
-/* Equations */
-.pE {
+}.pE { /* Equations */
     color: var(--textColor);
     font-size: var(--textSize);
     text-align: center;       /* center inline content */
@@ -97,15 +86,15 @@ p {
 
 .box {
     background-color: var(--grey);
-    margin: 20px;
+    margin: var(--marginLabel);
+    margin-bottom: var(--marginBottom);
     padding: var(--padSize);
     display: flex;
     flex-direction: column;
     align-items: center;      /* Center vertically */
     padding: var(--padSize);
+    overflow-wrap: anywhere; /* Keep text in the box */
 }
-
-
 
 /* Header */
 .container-header {
@@ -118,6 +107,7 @@ p {
     padding-right: 10px;
     padding-left: 10px;
 }
+
 .buttonHeader {
     background-color: var(--grey);
     color: var(--orange);
@@ -130,17 +120,14 @@ p {
     margin: 0px;
     white-space: nowrap; /* ⬅ prevents label from wrapping */
     padding: 10px;
-}
-.buttonHeader:hover {
+}.buttonHeader:hover {
     background-color: var(--grey);
     color: var(--white);
-}
-.button-group {
+}.button-group {
     display: flex;
     justify-content: flex-start;
     flex: 1;
 }
-
 
 /* Dropdown */
 .dropdown {
@@ -148,13 +135,11 @@ p {
     position: relative;
     display: inline-block;
     border-radius: 0px;
-}
-.dropdown-wrapper {
+}.dropdown-wrapper {
     margin-left: auto;
     display: flex;
     align-items: center;
-}
-.dropbtn {
+}.dropbtn {
     background-color: var(--grey);
     color: var(--white);
     right: 0; /* Keeps it on-screen */
@@ -170,8 +155,7 @@ p {
     display: flex;
     align-items: center; /* Vertically centers contents */
     justify-content: center;
-}
-.dropdown-content {
+}.dropdown-content {
     background-color: var(--grey);
     color: var(--white);
     width: var(--dropdownWidth);
@@ -182,8 +166,7 @@ p {
     z-index: 1;
     flex-direction: column;
     border-radius: 0px;
-}
-.dropdown-content a {
+}.dropdown-content a {
     color: var(--orange);
     padding: 10px 5px;
     text-decoration: none;
@@ -191,15 +174,12 @@ p {
     font-size: calc(var(--buttonFontSize) - 2px);
     border-radius: 0px;
     border: 1px solid var(--orange);
-}
-.dropdown-content a:hover {
+}.dropdown-content a:hover {
     background-color: var(--black);
     color: var(--orange);
-}
-.dropdown:hover .dropdown-content {
+}.dropdown:hover .dropdown-content {
     display: block;
-}
-.dropdown:hover .dropbtn {
+}.dropdown:hover .dropbtn {
     background-color: var(--grey);
     color: var(--white);
 }
@@ -213,13 +193,11 @@ p {
     flex-direction: column;
     align-items: center;      /* Center vertically */
     padding: var(--padSize);
-}
-.figure-img {
+}.figure-img {
     max-width: 80vw;
     width: 100%;
     height: auto;
 }
-
 
 /* Button */
 button {
@@ -237,8 +215,7 @@ button {
 }
 button:hover {
     background-color: var(--white);
-}
-.button-wrapper {
+}.button-wrapper {
     display: flex;
     justify-content: center;  /* Horizontally center button */
     align-items: center;      /* Vertically center button (if parent allows) */
@@ -246,49 +223,38 @@ button:hover {
     margin-bottom: 10px;
 }
 
-
 /* Forms */
 .form-group {
     display: flex;
     flex-direction: column;   /* Stack label and input */
     align-items: flex-start;  /* Align to the left */
-    margin-left: 30px;        /* Indent */
-    margin-bottom: 15px;      /* Add space between sections */
+    margin-left: var(--marginLabel);    /* Indent */
+    margin-bottom: var(--marginBottom); /* Add space between sections */
     gap: var(--gap);
     min-width: 100px;
-}
-
-.form-group label {
+}.form-group label {
     color: var(--orange);
     align-items: center; /* Vertically center all children */
     font-weight: bold;
-}
-.form-group .label-sub {
+}.form-group .label-sub {
     color: var(--white);
     font-weight: normal;
     align-items: center;
-}
-
-
-.input-form {
+}.input-form {
     width: 100%;
     min-width: 200px;
 
-}
-
-.form-button {
+}.form-button {
     display: flex;
     justify-content: center; /* horizontally center */
     width: 100%;
     margin: calc(var(--padSize) * 4) 0px calc(var(--padSize) * 2) 0px;
-}
-
-.form-wrapper {
+}.form-wrapper {
     width: 100%;
     display: flex;
     align-items: center; /* Vertically center all children */
     justify-content: flex-start; /* Align form to the left */
-    margin-left: var(--labelMargin);
+    margin-left: var(--marginLabel);
     margin-right: 10px;
     padding-bottom: 3px;
     gap: var(--gap);
@@ -309,10 +275,9 @@ input[type="url"] {
 }
 
 #fixedAAContainer .form-wrapper {
-    margin-bottom: 5px;
+    margin-bottom: var(--marginBottom);
     gap: 5px;
-}
-.aa-selector {
+}.aa-selector {
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -324,9 +289,7 @@ input[type="url"] {
     margin: 5px;
     position: relative;
     z-index: 1;
-}
-
-.aa-dropdown {
+}.aa-dropdown {
     position: absolute;
     background-color: white;
     border: 1px solid #ccc;
@@ -338,9 +301,7 @@ input[type="url"] {
     flex-wrap: wrap;
     width: 200px;
     z-index: 10;
-}
-
-.aa-option {
+}.aa-option {
     width: 40px;
     text-align: center;
     margin: 3px;
@@ -349,31 +310,22 @@ input[type="url"] {
     background-color: var(--lightGray, #F2F2F2);
     border-radius: 4px;
     font-weight: bold;
-}
-
-.aa-option:hover {
+}.aa-option:hover {
     background-color: var(--orange);
     color: white;
-}
-
-.hidden {
+}.hidden {
     display: none;
-}
-
-.form-wrapper-check {
+}.form-wrapper-check {
     align-items: flex-start;
     display: flex;
     gap: 5px;
     margin-left: 5px;
     margin-bottom: 10px;
-}
-
-.form-wrapper-check label {
+}.form-wrapper-check label {
     color: var(--white);
     cursor: pointer;
     user-select: none;
 }
-
 
 /* button */
 .btn {
@@ -391,8 +343,7 @@ input[type="url"] {
     justify-content: center;
     text-align: center;
     border-radius: var(--buttonRad);
-}
-.btn::after {
+}.btn::after {
     content: "";
     z-index: -1;
     position: absolute;
@@ -403,9 +354,7 @@ input[type="url"] {
     left: 0;
     top: 0;
     border-radius: var(--buttonRad);
-}
-/* glow */
-.btn::before {
+}.btn::before { /* glow */
     content: "";
     /*background: linear-gradient(
         45deg,
@@ -430,21 +379,15 @@ input[type="url"] {
     opacity: 0;
 }
 
+/* hover */
 @keyframes glowing {
     0% {background-position: 0 0;}
     50% {background-position: 400% 0;}
     100% {background-position: 0 0;}
-}
-
-/* hover */
-.btn:hover::before {
+}.btn:hover::before {
     opacity: 1;
-}
-
-.btn:active:after {
+}.btn:active:after {
     background: transparent;
-}
-
-.btn:active {
+}.btn:active {
     color: var(--black);
 }

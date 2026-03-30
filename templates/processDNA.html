@@ -94,18 +94,22 @@
 
                 <!-- Sequence Length -->
                 <div class="form-group">
-                  <label for="seqLength">Sequence Length:</label>
-                  <div class="form-wrapper">
-                    <input type="number" id="seqLength" name="seqLength"
+                    <label for="seqLength">Sequence Length:</label>
+                    <div class="form-wrapper">
+                        <input type="number" id="seqLength" name="seqLength"
                            value="8" min="1" onchange="updateFixedAA()" style="width: 50px;"
-                           required>
-                  </div>
+                         required>
+                    </div>
                 </div>
 
                 <!-- Fix AA and Position -->
                 <div class="form-group">
                   <label>Fix Residues (Optional):</label>
-                  <div id="fixedAAContainer"></div>
+                  <div id="fixAAContainer"></div>
+                </div>
+                <div class="form-group">
+                  <label>Exclude Residues:</label>
+                  <div id="exclAAContainer"></div>
                 </div>
 
                 <!-- Minimum Phred Score -->

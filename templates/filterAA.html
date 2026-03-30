@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <!-- Body Buttons -->
+        <!-- Application -->
         <div class="box">
             <h1>Filter Amino Acids</h1>
             <p>
@@ -37,9 +37,70 @@
                 You can filter the data by locking one or more amino acids at a given
                 position in the sequence.
             </p>
-            <div class="form-group">
-                <button class="btn" onclick="clickButton()">Click Me</button>
-            </div>
+            <p></p>
+
+            <!-- Forms -->
+            <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <!-- Enzyme name -->
+                <div class="form-group">
+                    <label for="enzymeName">Enzyme Name:</label>
+                    <div class="form-wrapper">
+                        <input type="text" id="enzymeName"
+                               name="enzymeName" required value="Name">
+                    </div>
+                </div>
+
+                <!-- Experimental data -->
+                <div class="form-group">
+                    <label>Experimental Data:</label>
+                    <div class="form-wrapper">
+                        <label class="label-sub" for="fileExp">Forward Read:</label>
+                        <input type="file" id="fileExp" name="fileExp"
+                               accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                               value="data/variantsExp.fastq"
+                               multiple>
+                    </div>
+                </div>
+
+                <!-- Background data -->
+                <div class="form-group">
+                    <label>Background Data:</label>
+                    <div class="form-wrapper">
+                        <label class="label-sub" for="fileBg">Forward Read:</label>
+                        <input type="file" id="fileBg" name="fileBg"
+                               accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                               value="data/variantsBg.fastq"
+                               multiple>
+                    </div>
+                </div>
+
+                <!-- Sequence Length -->
+                <div class="form-group">
+                    <label for="seqLength">Sequence Length:</label>
+                    <div class="form-wrapper">
+                        <input type="number" id="seqLength" name="seqLength"
+                           value="8" min="1" onchange="updateFixedAA()" style="width: 50px;"
+                         required>
+                    </div>
+                </div>
+
+                <!-- Fix AA and Position -->
+                <div class="form-group">
+                  <label>Fix Residues:</label>
+                  <div id="fixAAContainer"></div>
+                </div>
+                <div class="form-group">
+                  <label>Exclude Residues:</label>
+                  <div id="exclAAContainer"></div>
+                </div>
+            </form>
+
+        <!-- Execute -->
+        <div class="button-wrapper">
+            <button class="btn" onclick="buttonFilterSubs()">Evaluate</button>
         </div>
+    </div>
     </body>
 </html>

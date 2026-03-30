@@ -52,53 +52,27 @@ def run():
     return jsonify(data)
 
 
-@app.route('/jobSummary')
-def jobSummary():
-    print('Job Summary')
-    return render_template('results.html',
-                           parameters=webapp.jobParams())
-
-
-@app.route('/evalFormDNA', methods=['POST'])
-def evalDNA():
-    # Process the data
-    webapp.evalDNA(parseForm())
-    print('Job Done: Eval DNA')
-    webapp.done = True
-    return render_template('results.html',
-                           parameters=webapp.jobParams)
-
-
-@app.route('/fixAA', methods=['POST'])
-def fixAA():
-    # Parse the form
-    webapp.fixAA(parseForm())
-    print('Job Done: Fix AA')
-    return render_template('results.html',
-                           parameters=webapp.jobParams)
-
-
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('processDNA.html',
+    return render_template('filterAA.html',
                            csrf_token=generate_csrf())
 
 
 @app.route('/processDNA')
-def processDNA():
+def pProcessDNA():
     return render_template('processDNA.html',
                            csrf_token=generate_csrf())
 
 
-@app.route('/filterAminoAcids')
-def filterAA():
+@app.route('/filterAA')
+def pFilterAA():
     return render_template('filterAA.html',
                            csrf_token=generate_csrf())
 
 
 @app.route('/filterMotif')
-def filterMotif():
+def pFilterMotif():
     return render_template('filterMotif.html',
                            csrf_token=generate_csrf())
 
@@ -147,6 +121,36 @@ def download():
         as_attachment=True,
         download_name=f'{webapp.enzymeName}-{tag}'
     )
+
+
+@app.route('/jobSummary')
+def jobSummary():
+    print('Job Summary')
+    return render_template('results.html',
+                           parameters=webapp.jobParams())
+
+
+@app.route('/evalFormDNA', methods=['POST'])
+def evalDNA():
+    # Process the data
+    webapp.evalDNA(parseForm())
+    print('Job Done: Eval DNA')
+    webapp.done = True
+    return render_template('results.html', parameters=webapp.jobParams)
+
+
+@app.route('/evalFormFilterAA', methods=['POST'])
+def filterSubs():
+    # Parse the form
+    webapp.evalSubs(parseForm())
+    print('Job Done: Fix AA')
+    return render_template('results.html', parameters=webapp.jobParams)
+
+@app.route('/evalFormFilterMotif', methods=['POST'])
+def filterMotif():
+    webapp.evalSubs(parseForm(), filterMotifs=True)
+    print('Job Done: Fix Motif')
+    return render_template('results.html', parameters=webapp.jobParams)
 
 
 # Run the app

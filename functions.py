@@ -332,7 +332,7 @@ class WebApp:
 
 
 
-    def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
+    def jobInit(self, form, evalDNA=False, filterAA=False, filterMotif=False):
         # Directories
         self.pathDir = os.path.join('data', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
@@ -378,9 +378,11 @@ class WebApp:
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
 
-        ## Placeholder for files
+        # Placeholder for files
         self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
         self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
+        self.fileExp = ['data/Name/data/Name - Subs Exp - Unfiltered - MinCounts 1 - 8 AA']
+        self.fileBg = ['data/Name/data/Name - Subs Bg - Unfiltered - MinCounts 1 - 8 AA']
         print(f'\nFile Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'
@@ -395,9 +397,11 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-        elif fixAA:
-            print('Fix AA')
-        elif fixMotif:
+        elif filterAA:
+            print('Fix AA') ##
+            self.log('Job: Filter Substrates')
+
+        elif filterMotif:
             print('Fix Motif')
         else:
             print('ERROR: What Script Is Running')
@@ -405,7 +409,7 @@ class WebApp:
         self.getFilter(form)
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
-        self.log(f'Job ID: {self.jobParams['jobID']}')
+        # self.log(f'Job ID: {self.jobParams['jobID']}')
 
 
 
@@ -552,108 +556,6 @@ class WebApp:
         # Count AAs
         self.countAA(substrates=substrates, countMatrix=countMatrix,
                      datasetType=datasetType, filteredAA=filteredAA)
-
-
-
-    def evalDNA(self, form):
-        self.jobInit(form, evalDNA=True)
-
-        # Load the data
-        threads = []
-        queuesExp = []
-        queuesExpLog = []
-        queuesBg = []
-        queuesBgLog = []
-        if self.fileExp:
-            for file in self.fileExp:
-                queueExp = queue.Queue()
-                queueLog = queue.Queue()
-                queuesExp.append(queueExp)
-                queuesExpLog.append(queueLog)
-                thread = threading.Thread(
-                    target=self.loadDNA,
-                    args=(file, self.datasetTypes['Exp'], queueExp, queueLog, True,))
-                thread.start()
-                threads.append(thread)
-        if self.fileBg:
-            for file in self.fileBg:
-                queueBg = queue.Queue()
-                queueLog = queue.Queue()
-                queuesBg.append(queueBg)
-                queuesBgLog.append(queueLog)
-                thread = threading.Thread(
-                    target=self.loadDNA,
-                    args=(file, self.datasetTypes['Bg'], queueBg, queueLog, True,))
-                thread.start()
-                threads.append(thread)
-
-        # Wait for all threads to finish
-        for thread in threads:
-            thread.join()
-
-        # Log the output
-        if queuesExpLog:
-            for log in queuesExpLog:
-                self.logInQueue(log)
-        if queuesBgLog:
-            for log in queuesBgLog:
-                self.logInQueue(log)
-
-        # Get results from queue
-        if self.fileExp:
-            for queueData in queuesExp:
-                substrates = queueData.get()
-                for substrate, count in substrates.items():
-                    if substrate in self.subsExp.keys():
-                        self.subsExp[substrate] += count
-                    else:
-                        self.subsExp[substrate] = count
-        if self.fileBg:
-            for queueData in queuesBg:
-                substrates = queueData.get()
-                for substrate, count in substrates.items():
-                    if substrate in self.subsBg.keys():
-                        self.subsBg[substrate] += count
-                    else:
-                        self.subsBg[substrate] = count
-
-        # Make figures
-        self.figures = {
-            'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
-            'words': False, 'barCounts': False, 'barRF': False,
-            'exp_counts': False, 'bg_counts': False
-        }
-        if self.subsExp:
-            # Sort substrates and count AA
-            self.processSubs(substrates=self.subsExp,
-                             datasetType=self.datasetTypes['Exp'],
-                             filteredAA=False)
-
-            # Plot counts
-            self.figures['exp_counts'] = (
-                self.plotCounts(
-                    countedData=self.countsExp, totalCounts=self.countExpTotal,
-                    datasetType=self.datasetTypes['Exp']
-                )
-            )
-        if self.subsBg:
-            # Sort substrates and count AA
-            self.processSubs(substrates=self.subsBg,
-                             datasetType=self.datasetTypes['Bg'],
-                             filteredAA=False)
-
-            # Plot counts
-            self.figures['bg_counts'] = (
-                self.plotCounts(
-                    countedData=self.countsBg, totalCounts=self.countBgTotal,
-                    datasetType=self.datasetTypes['Bg']
-                )
-            )
-
-        if self.subsExp and self.subsBg:
-            self.calculateRF()
-            self.calculateEntropy()
-            self.calculateEnrichment()
 
 
 
@@ -877,8 +779,146 @@ class WebApp:
 
 
 
-    def fixAA(self, form):
-        print('fixAA')
+    def evalDNA(self, form):
+        self.jobInit(form, evalDNA=True)
+
+        # Load the data
+        threads = []
+        queuesExp = []
+        queuesExpLog = []
+        queuesBg = []
+        queuesBgLog = []
+        if self.fileExp:
+            for file in self.fileExp:
+                queueExp = queue.Queue()
+                queueLog = queue.Queue()
+                queuesExp.append(queueExp)
+                queuesExpLog.append(queueLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Exp'], queueExp, queueLog, True,))
+                thread.start()
+                threads.append(thread)
+        if self.fileBg:
+            for file in self.fileBg:
+                queueBg = queue.Queue()
+                queueLog = queue.Queue()
+                queuesBg.append(queueBg)
+                queuesBgLog.append(queueLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Bg'], queueBg, queueLog, True,))
+                thread.start()
+                threads.append(thread)
+
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
+
+        # Log the output
+        if queuesExpLog:
+            for log in queuesExpLog:
+                self.logInQueue(log)
+        if queuesBgLog:
+            for log in queuesBgLog:
+                self.logInQueue(log)
+
+        # Get results from queue
+        if self.fileExp:
+            for queueData in queuesExp:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in self.subsExp.keys():
+                        self.subsExp[substrate] += count
+                    else:
+                        self.subsExp[substrate] = count
+        if self.fileBg:
+            for queueData in queuesBg:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in self.subsBg.keys():
+                        self.subsBg[substrate] += count
+                    else:
+                        self.subsBg[substrate] = count
+
+        # Make figures
+        self.figures = {
+            'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
+            'words': False, 'barCounts': False, 'barRF': False,
+            'exp_counts': False, 'bg_counts': False
+        }
+        if self.subsExp:
+            # Sort substrates and count AA
+            self.processSubs(substrates=self.subsExp,
+                             datasetType=self.datasetTypes['Exp'],
+                             filteredAA=False)
+
+            # Plot counts
+            self.figures['exp_counts'] = (
+                self.plotCounts(
+                    countedData=self.countsExp, totalCounts=self.countExpTotal,
+                    datasetType=self.datasetTypes['Exp']
+                )
+            )
+        if self.subsBg:
+            # Sort substrates and count AA
+            self.processSubs(substrates=self.subsBg,
+                             datasetType=self.datasetTypes['Bg'],
+                             filteredAA=False)
+
+            # Plot counts
+            self.figures['bg_counts'] = (
+                self.plotCounts(
+                    countedData=self.countsBg, totalCounts=self.countBgTotal,
+                    datasetType=self.datasetTypes['Bg']
+                )
+            )
+
+        if self.subsExp and self.subsBg:
+            self.calculateRF()
+            self.calculateEntropy()
+            self.calculateEnrichment()
+
+
+
+    def evalSubs(self, form, filterMotifs=False):
+        if filterMotifs:
+            print('fixAA')
+            self.jobInit(form, filterMotif=True)
+        else:
+            print('fixAA')  ##
+            self.jobInit(form, filterAA=True)
+
+        return
+
+        # Load the data
+        threads = []
+        queues = []
+        queuesLog = []
+        for file in self.fileExp:
+            queueExp = queue.Queue()
+            queueLog = queue.Queue()
+            queues.append(queueExp)
+            queuesLog.append(queueLog)
+            thread = threading.Thread(
+                target=self.loadDNA,
+                args=(file, self.datasetTypes['Exp'], queueExp, queueLog, True,))
+            thread.start()
+            threads.append(thread)
+
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
+
+        # Log the output
+        for log in queuesLog:
+            self.logInQueue(log)
+
+
+
+    def evalMotifs(self, form):
+        print('\nFiltering Motif:')
+        self.jobInit(form, filterMotif=True)
 
 
 
@@ -925,7 +965,7 @@ class WebApp:
             totalCounts.loc[pos, 'Sum'] = counts
         self.log(f'Counts:\n{countMatrix}\n\n{totalCounts}\n')
 
-        # File path ##
+        # File path
         saveTag = None
         if filteredAA:
             if self.datasetTag is None:
@@ -1107,7 +1147,7 @@ class WebApp:
         # Calculate: Enrichment scores
         matrix = pd.DataFrame(0.0, index=self.rfExp.index,
                               columns=self.rfExp.columns)
-        if len(self.rfBg.columns) == 1: ##
+        if len(self.rfBg.columns) == 1:
             # Eval: ES
             for pos in self.rfExp.columns:
                 for AA in self.rfExp.index:

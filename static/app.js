@@ -1,74 +1,68 @@
-// Fix AA
-function updateFixedAA() {
+// Filter options
+function createAAContainer(containerId) {
+    const container = document.getElementById(containerId);
+    const seqLength = parseInt(document.getElementById('seqLength').value);
     const aminoAcids = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I",
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
-    const container = document.getElementById('fixedAAContainer');
-    const seqLength = parseInt(document.getElementById('seqLength').value);
 
     container.innerHTML = '';
     container.style.display = 'flex';
-    container.style.flexWrap = 'wrap'; // Wrap to next line if needed
-    container.style.gap = '12px'; // spacing between each checkbox
-    container.paddingLeft = '5px';
+    container.style.flexWrap = 'wrap';
+    container.style.gap = '12px';
 
     for (let i = 1; i <= seqLength; i++) {
         const wrapper = document.createElement('div');
-        wrapper.style.display = 'flex';
-        wrapper.style.flexDirection = 'column';
         wrapper.style.flex = '0 0 60px';
 
         const label = document.createElement('label');
-        label.style.display = 'flex';
-        label.style.alignItems = 'center';
-        label.style.color = '#FFF'; // '#FA8128'
-        label.style.flex = '0 0 30px';
+        label.style.color = '#FFF';
+        label.appendChild(document.createTextNode(`R${i}`));
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.name = `filterPos`;
         checkbox.value = `R${i}`;
 
-        const text = document.createTextNode(`R${i}`);
-        label.appendChild(checkbox);
-        label.appendChild(text);
-        wrapper.appendChild(label); // Append label to wrapper
+        label.prepend(checkbox);
+        wrapper.appendChild(label);
 
         const aaGroup = document.createElement('div');
         aaGroup.style.display = 'none';
         aaGroup.style.flexWrap = 'wrap';
-        aaGroup.style.gap = '0px';
         aaGroup.style.marginLeft = '10px';
-        aaGroup.style.marginTop = '0px';
 
         aminoAcids.forEach(aa => {
             const aaLabel = document.createElement('label');
-            aaLabel.style.display = 'flex';
-            aaLabel.style.alignItems = 'center';
             aaLabel.style.color = 'white';
             aaLabel.style.fontSize = '12px';
 
             const aaCheckbox = document.createElement('input');
             aaCheckbox.type = 'checkbox';
-            aaCheckbox.name = `fixR${i}`;
+            aaCheckbox.name = `${containerId === 'exclAAContainer' ? 'exclR' : 'fixR'}${i}`;
             aaCheckbox.value = aa;
 
-            const aaText = document.createTextNode(aa);
             aaLabel.appendChild(aaCheckbox);
-            aaLabel.appendChild(aaText);
+            aaLabel.appendChild(document.createTextNode(aa));
             aaGroup.appendChild(aaLabel);
         });
 
-        checkbox.addEventListener('change', function () {
+        checkbox.addEventListener('change', () => {
             aaGroup.style.display = checkbox.checked ? 'flex' : 'none';
         });
 
-        wrapper.appendChild(aaGroup);      // Append AA group to wrapper
-        container.appendChild(wrapper);    // Append full wrapper to container
+        wrapper.appendChild(aaGroup);
+        container.appendChild(wrapper);
     }
 }
+document.addEventListener('DOMContentLoaded', () => {
+    createAAContainer('fixAAContainer');
+    createAAContainer('exclAAContainer');
+});
+function updateFixedAA() {
+    createAAContainer('fixAAContainer');
+    createAAContainer('exclAAContainer');
+}
 
-document.addEventListener('DOMContentLoaded', updateFixedAA);
-document.getElementById('seqLength').addEventListener('change', updateFixedAA);
 
 
 async function processForm(formData) {
@@ -137,7 +131,7 @@ function pageProcessDNA() {
 
 
 function pageFilterAA() {
-    window.location.href = "/filterAminoAcids";
+    window.location.href = "/filterAA";
 }
 
 
@@ -176,8 +170,8 @@ async function buttonProcessDNA() {
             console.log('Redirect:')
             window.location.href = '/results';
         } else {
-            console.log('Error processing DNA.');
-            alert("Error processing DNA.");
+            console.log('ERROR: Processing DNA.');
+            alert("ERROR: Processing DNA.");
         }
     })
     .catch(error => {
@@ -192,19 +186,24 @@ async function buttonFilterSubs() {
     button.disabled = true;
     button.textContent = 'Processing';
 
-    // const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-    const form = document.getElementById("formDNA");
+
+    const form = document.getElementById("filterSubs");
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
+
+    console.log(document.getElementById("filterSubs"));
+    console.log(form.querySelector('input[name="csrf_token"]'));
+
     formData.delete('csrf_token');
     const selectedFixPositions = [];
+
 
     // Evaluate the form
     jobID = await processForm(formData);
     formData.append('jobID', jobID);
 
     // POST the raw formData to Flask
-    fetch('/evalFormDNA', {
+    fetch('/evalFormFilterAA', {
         body: formData,  // Send the actual FormData object, not a JSON
         headers: { 'X-CSRFToken': csrfToken },
         method: 'POST'
@@ -215,8 +214,8 @@ async function buttonFilterSubs() {
             console.log('Redirect:')
             window.location.href = '/results';
         } else {
-            console.log('Error processing DNA.');
-            alert("Error processing DNA.");
+            console.log("ERROR: Filtering substrates.");
+            alert("ERROR: Filtering substrates.");
         }
     })
     .catch(error => {
