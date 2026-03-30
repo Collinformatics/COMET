@@ -3,7 +3,6 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
 import gzip
-import hashlib
 import io
 # import logomaker
 import math
@@ -212,11 +211,6 @@ class WebApp:
 
 
     @staticmethod
-    def hashStr(string):
-        return hashlib.sha256(string.encode('utf-8')).hexdigest()
-
-
-    @staticmethod
     def pressButton(self, message):
         print(f'Received data: {message}')
         return {'key': 'Returned data'}
@@ -419,16 +413,11 @@ class WebApp:
             sys.exit()
 
         # Complete initialization
-        self.getFilter(form)
-        self.initDataStructures()
-        self.jobID += (f'_{self.datasetTag.replace(' ','-')}'
-                          f'_Exp-{"-".join(self.fileExp)}'
-                          f'_Bg-{"-".join(self.fileBg)}'
-                          f'_{time.ctime().replace(' ', '-')}')
-        self.jobHash = self.hashStr(self.jobID)
         # print(f'Job:\n'
         #       f'* Label: {self.jobID}\n'
         #       f'* Hash: {self.jobHash}\n')
+        self.getFilter(form)
+        self.initDataStructures()
 
 
 
@@ -934,8 +923,10 @@ class WebApp:
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
+        print('Axis:',self.xAxisLabel)
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
         for substrate, count in substrates.items():
+            print(substrate, count)
             for index, AA in enumerate(substrate):
                 countMatrix.loc[AA, self.xAxisLabel[index]] += count
         for pos in countMatrix.columns:
