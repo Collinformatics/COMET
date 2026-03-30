@@ -47,7 +47,7 @@ class WebApp:
 
         # Params: Dataset
         self.datasetTag = 'Unfiltered'
-        self.datasetTagMotif = None
+        self.datasetTagMotif = False
         self.motifFilter = None
         self.enzymeName = ''
         self.seqLength = False
@@ -84,7 +84,7 @@ class WebApp:
         self.fileBg = []
         self.seqBg = None
         self.pathDir = ''
-        self.pathSeqs = ''
+        self.pathData = ''
         self.pathFigs = ''
         self.pathLog = ''
 
@@ -335,15 +335,15 @@ class WebApp:
     def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
         # Directories
         self.pathDir = os.path.join('data', form['enzymeName'])
-        self.pathSeqs = os.path.join(self.pathDir, 'sequences')
+        self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
         self.pathLog = os.path.join(self.pathDir, 'log.txt')
         if self.pathDir is not None:
             if not os.path.exists(self.pathDir):
                 os.makedirs(self.pathDir, exist_ok=True)
-        if self.pathSeqs is not None:
-            if not os.path.exists(self.pathSeqs):
-                os.makedirs(self.pathSeqs, exist_ok=True)
+        if self.pathData is not None:
+            if not os.path.exists(self.pathData):
+                os.makedirs(self.pathData, exist_ok=True)
         if self.pathFigs is not None:
             if not os.path.exists(self.pathFigs):
                 os.makedirs(self.pathFigs, exist_ok=True)
@@ -905,7 +905,7 @@ class WebApp:
                                 msg=f'Unknown dataset type: {datasetType}')
 
         # Save the substrates
-        path = os.path.join(self.pathSeqs, saveTag)
+        path = os.path.join(self.pathData, saveTag)
         self.log(f'Saving Substrates:\n     {path}')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
@@ -948,7 +948,7 @@ class WebApp:
                                 msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
-        path = os.path.join(self.pathSeqs, saveTag)
+        path = os.path.join(self.pathData, saveTag)
         self.log(f'Saving Counts:\n     {path}')
         countMatrix.to_csv(path)
 

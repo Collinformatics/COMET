@@ -134,11 +134,18 @@ def download():
                 arcname = os.path.relpath(file_path, webapp.pathDir)
                 zf.write(file_path, arcname)
     memory_file.seek(0)
+
+    # Define file tag
+    if webapp.datasetTagMotif:
+        tag = webapp.datasetTagMotif
+    else:
+        tag = webapp.datasetTag
+
     return send_file(
         memory_file,
         mimetype='application/zip',
         as_attachment=True,
-        download_name=f'{webapp.enzymeName}'
+        download_name=f'{webapp.enzymeName}-{tag}'
     )
 
 
