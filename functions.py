@@ -85,7 +85,7 @@ class WebApp:
         self.seqExp = None
         self.fileBg = []
         self.seqBg = None
-        self.pathData = ''
+        self.pathDir = ''
         self.pathSeqs = ''
         self.pathFigs = ''
         self.pathLog = ''
@@ -336,13 +336,13 @@ class WebApp:
 
     def jobInit(self, form, evalDNA=False, fixAA=False, fixMotif=False):
         # Directories
-        self.pathData = os.path.join('data', form['enzymeName'])
-        self.pathSeqs = os.path.join(self.pathData, 'sequences')
-        self.pathFigs = os.path.join(self.pathData, 'figures')
-        self.pathLog = os.path.join(self.pathData, 'log.txt')
-        if self.pathData is not None:
-            if not os.path.exists(self.pathData):
-                os.makedirs(self.pathData, exist_ok=True)
+        self.pathDir = os.path.join('data', form['enzymeName'])
+        self.pathSeqs = os.path.join(self.pathDir, 'sequences')
+        self.pathFigs = os.path.join(self.pathDir, 'figures')
+        self.pathLog = os.path.join(self.pathDir, 'log.txt')
+        if self.pathDir is not None:
+            if not os.path.exists(self.pathDir):
+                os.makedirs(self.pathDir, exist_ok=True)
         if self.pathSeqs is not None:
             if not os.path.exists(self.pathSeqs):
                 os.makedirs(self.pathSeqs, exist_ok=True)
@@ -360,11 +360,6 @@ class WebApp:
                         shutil.rmtree(file_path)  # delete subdirectory
                 # time.sleep(5)
                 os.makedirs(self.pathFigs, exist_ok=True)
-
-        print('Job Parameters:')
-        for key, value in form.items():
-            print(f'     {key}: {value}')
-        print()
 
         # Get the files
         for key, value in form.items():
@@ -384,7 +379,7 @@ class WebApp:
         self.seqLength = int(form['seqLength'])
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
-        self.jobID = f'{self.enzymeName}_{self.seqLength}'
+        self.jobID = form['jobID']
 
         ## Placeholder for files
         self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
@@ -403,7 +398,7 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-            self.jobID += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
+            # self.jobID += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
         elif fixAA:
             print('Fix AA')
         elif fixMotif:
@@ -411,11 +406,6 @@ class WebApp:
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
-
-        # Complete initialization
-        # print(f'Job:\n'
-        #       f'* Label: {self.jobID}\n'
-        #       f'* Hash: {self.jobHash}\n')
         self.getFilter(form)
         self.initDataStructures()
 
@@ -889,6 +879,11 @@ class WebApp:
 
 
 
+    def fixAA(self, form):
+        print('fixAA')
+
+
+
     def saveSubstrates(self, substrates, datasetType, filteredAA):
         saveTag = None
         if filteredAA:
@@ -923,10 +918,8 @@ class WebApp:
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
-        print('Axis:',self.xAxisLabel)
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
         for substrate, count in substrates.items():
-            print(substrate, count)
             for index, AA in enumerate(substrate):
                 countMatrix.loc[AA, self.xAxisLabel[index]] += count
         for pos in countMatrix.columns:

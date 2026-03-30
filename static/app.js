@@ -151,16 +151,16 @@ async function processForm(formData) {
     const data = encoder.encode(jobID);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    json['jobID'] = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    jobID = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Log the form
     console.log('Input Form:', json);
-    return json;
+    return jobID;
 }
 
 
 // Define button function
-function buttonProcessDNA() {
+async function buttonProcessDNA() {
     // Disable to prevent double click
     const button = document.querySelector('button[onclick="buttonProcessDNA()"]');
     button.disabled = true;
@@ -174,7 +174,8 @@ function buttonProcessDNA() {
     const selectedFixPositions = [];
 
     // Evaluate the form
-    json = processForm(formData);
+    jobID = await processForm(formData);
+    formData.append('jobID', jobID);
 
     // POST the raw FormData to Flask
     fetch('/evalFormDNA', {

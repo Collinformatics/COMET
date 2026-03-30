@@ -72,7 +72,7 @@ def evalDNA():
 @app.route('/fixAA', methods=['POST'])
 def fixAA():
     # Parse the form
-    form = parseForm()
+    webapp.fixAA(parseForm())
     print('Job Done: Fix AA')
     return render_template('results.html',
                            parameters=webapp.jobParams)
@@ -147,5 +147,5 @@ def download():
 
 # Run the app
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False, port=9090)
+    app.run(threaded=True, debug=True, use_reloader=False, port=9090)
     # sys.exit(0)
