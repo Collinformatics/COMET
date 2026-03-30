@@ -289,7 +289,7 @@ class WebApp:
                 print(f'Tag: {tagFix}')
             self.datasetTag = tagFix
         self.jobParams['Dataset Tag'] = self.datasetTag
-        self.log(f'Dataset Filter: {self.datasetTag}')
+        self.log(f'Dataset: {self.datasetTag}')
 
         # Initialize: Save tags
         self.saveTagExp = {
@@ -398,11 +398,10 @@ class WebApp:
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
         elif filterAA:
-            print('Fix AA') ##
+            print('\nFilter Substrates') ##
             self.log('Job: Filter Substrates')
-
         elif filterMotif:
-            print('Fix Motif')
+            print('Filter Motifs')
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
@@ -779,6 +778,45 @@ class WebApp:
 
 
 
+    def loadSubstrates(self, path, bgSubs=False):
+        print(f'Loading Substrates:\n     {path}\n')
+        with open(path, 'rb') as openedFile:  # Open file
+            data = pk.load(openedFile)  # Access the data
+            dataTotalSubs = sum(data.values())
+            print(f'     Total substrates: '
+                  f'{dataTotalSubs:,}\n')
+        if bgSubs:
+            self.subsBg = data
+        else:
+            self.subsExp = data
+
+        """
+        # Open the file
+        openFn = gzip.open if path.endswith('.gz') else open  # Define open function
+        with openFn(path, 'rt') as file:  # 'rt' = read text mode
+            if '.fastq' in path or '.fq' in path:
+                data = SeqIO.parse(file, 'fastq')
+                warnings.simplefilter('ignore', BiopythonWarning)
+            elif '.fasta' in path or '.fa' in path:
+                data = SeqIO.parse(file, 'fasta')
+                warnings.simplefilter('ignore', BiopythonWarning)
+            else:
+                queueLog.put(self.logErrorFn(
+                    function='loadDNA()',
+                    msg=f'Unrecognized file\n     {path}',
+                    getStr=True))
+                translate = False
+
+            # Translate the dna
+            if translate:
+                substrates = self.translate(data, path, datasetType,
+                                            queueLog, forwardRead)
+                queueData.put(substrates) # Put the substrates in the queue
+        """
+
+
+
+
     def evalDNA(self, form):
         self.jobInit(form, evalDNA=True)
 
@@ -883,26 +921,35 @@ class WebApp:
 
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
-            print('fixAA')
+            print('\nFilter Motif')
             self.jobInit(form, filterMotif=True)
         else:
-            print('fixAA')  ##
-            self.jobInit(form, filterAA=True)
-
-        return
+            self.jobInit(form, filterAA=True) ##
 
         # Load the data
         threads = []
-        queues = []
-        queuesLog = []
+        queuesExp = []
+        queuesExpLog = []
+        queuesBg = []
+        queuesBgLog = []
         for file in self.fileExp:
             queueExp = queue.Queue()
             queueLog = queue.Queue()
-            queues.append(queueExp)
-            queuesLog.append(queueLog)
+            queuesExp.append(queueExp)
+            queuesExpLog.append(queueLog)
             thread = threading.Thread(
-                target=self.loadDNA,
+                target=self.loadSubstrates,
                 args=(file, self.datasetTypes['Exp'], queueExp, queueLog, True,))
+            thread.start()
+            threads.append(thread)
+        for file in self.fileBg:
+            queueBg = queue.Queue()
+            queueLog = queue.Queue()
+            queuesBg.append(queueBg)
+            queuesBgLog.append(queueLog)
+            thread = threading.Thread(
+                target=self.loadSubstrates,
+                args=(file, self.datasetTypes['Bg'], queueBg, queueLog, True,))
             thread.start()
             threads.append(thread)
 
@@ -911,8 +958,12 @@ class WebApp:
             thread.join()
 
         # Log the output
-        for log in queuesLog:
-            self.logInQueue(log)
+        if queuesExpLog:
+            for log in queuesExpLog:
+                self.logInQueue(log)
+        if queuesBgLog:
+            for log in queuesBgLog:
+                self.logInQueue(log)
 
 
 
