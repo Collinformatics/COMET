@@ -105,35 +105,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// Define button function
-function buttonProcessDNA() {
-    // Disable to prevent double click
-    const button = document.querySelector('button[onclick="buttonProcessDNA()"]');
-    button.disabled = true;
-    button.textContent = 'Processing';
-
-    // const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-    const form = document.getElementById("formDNA");
-    const csrfToken = form.querySelector('input[name="csrf_token"]').value;
-    const formData = new FormData(form);
-    formData.delete('csrf_token');
+async function processForm(formData) {
     const json = {}; // Dont send files as a JSON
-    const selectedFixPositions = [];
 
     // Process the input form
     for (const [key, value] of formData.entries()) {
         if (key === 'filterPos') {
             selectedFixPositions.push(value);  // e.g., ['R2']
         }
-
         if (json[key]) {
-        // When you have more that one value or a key, put the values in a list
+            // When you have more that one value or a key, put the values in a list
             if (!Array.isArray(json[key])) {
                 json[key] = [json[key]]; // Convert to array
             }
-
-            // Push another value into the list
-            json[key].push(value);
+            json[key].push(value); // Push another value into the list
         } else {
             json[key] = value;
         }
@@ -146,14 +131,50 @@ function buttonProcessDNA() {
         }
     });
 
-    // Log the form
-    console.log('Form:');
+    // Evaluate job ID
+    let jobID = '';
+    // console.log('Form:');
     for (let [key, value] of formData.entries()) {
-        console.log(key, value);
+        if (value instanceof File) {
+            if (value.name) {
+                // console.log('* File name:', value.name);
+                jobID += key + '_' + value.name + ' ';
+            }
+        } else if (value) {
+            // console.log(key, value);
+            jobID += key + '_' + value + ' ';
+        }
     }
+    const date = new Date().toUTCString();
+    jobID += date; // jobID.slice(0, -1);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(jobID);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    json['jobID'] = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Log the form
     console.log('Input Form:', json);
+    return json;
+}
+
+
+// Define button function
+function buttonProcessDNA() {
+    // Disable to prevent double click
+    const button = document.querySelector('button[onclick="buttonProcessDNA()"]');
+    button.disabled = true;
+    button.textContent = 'Processing';
+
+    // const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    const form = document.getElementById("formDNA");
+    const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+    const formData = new FormData(form);
+    formData.delete('csrf_token');
+    const selectedFixPositions = [];
+
+    // Evaluate the form
+    json = processForm(formData);
 
     // POST the raw FormData to Flask
     fetch('/evalFormDNA', {
