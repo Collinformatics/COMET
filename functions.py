@@ -44,8 +44,6 @@ class WebApp:
         # Params: Job
         self.done = False
         self.jobParams = {}
-        self.jobID = ''
-        self.jobHash = ''
 
         # Params: Dataset
         self.datasetTag = 'Unfiltered'
@@ -379,15 +377,14 @@ class WebApp:
         self.seqLength = int(form['seqLength'])
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
-        self.jobID = form['jobID']
 
         ## Placeholder for files
         self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
         self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
-        print(f'File Exp: {type(self.fileExp)}\n'
+        print(f'\nFile Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'
-              f'{self.fileBg}\n')
+              f'{self.fileBg}')
 
         # Job dependant parameters
         if evalDNA:
@@ -398,7 +395,6 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-            # self.jobID += f'{self.seq5Prime}_{self.seq3Prime}_Phred-{self.minPhred}'
         elif fixAA:
             print('Fix AA')
         elif fixMotif:
@@ -408,6 +404,8 @@ class WebApp:
             sys.exit()
         self.getFilter(form)
         self.initDataStructures()
+        self.jobParams['jobID'] = form['jobID']
+        self.log(f'Job ID: {self.jobParams['jobID']}')
 
 
 
@@ -1029,7 +1027,7 @@ class WebApp:
         # File path
         figName = f'counts - {self.enzymeName} - {datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
-        print(f'Saving Fig: {datasetType}\n     {path}\n')
+        print(f'\nSaving Fig: {datasetType}\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)

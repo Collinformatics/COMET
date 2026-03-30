@@ -1,9 +1,9 @@
 // Fix AA
 function updateFixedAA() {
-    const seqLength = parseInt(document.getElementById('seqLength'));
     const container = document.getElementById('fixedAAContainer');
     const aminoAcids = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I",
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
+    const seqLength = parseInt(document.getElementById('seqLength').value);
 
     container.innerHTML = '';
     container.style.display = 'flex';
@@ -68,40 +68,8 @@ function updateFixedAA() {
 }
 
 // Create listener to inspect html input after the form has been loaded and parsed
-document.addEventListener('DOMContentLoaded', function() {
-    updateFixedAA();
-
-    // Inspect File Upload: Experimental data
-    document.getElementById('fileExp').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const allowed = ['.fasta', '.fa', '.fasta.gz', '.fa.gz', '.fastq', '.fq', '.fastq.gz', '.fq.gz'];
-    const filename = file.name.toLowerCase();
-
-    const valid = allowed.some(ext => filename.endsWith(ext));
-    if (!valid) {
-        alert(`ERROR:\nYou can only upload files with these extensions:
-        ${allowed.join(' ')}`);
-        event.target.value = ''; // Clear file input
-    }
-    });
-
-    // Inspect File Upload: Background data
-    document.getElementById('fileBg').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const allowed = ['.fasta', '.fa', '.fasta.gz', '.fa.gz', '.fastq', '.fq', '.fastq.gz', '.fq.gz'];
-    const filename = file.name.toLowerCase();
-
-    const valid = allowed.some(ext => filename.endsWith(ext));
-    if (!valid) {
-        alert(`ERROR:\nYou can only upload files with these extensions:
-        ${allowed.join(' ')}`);
-        event.target.value = ''; // Clear file input
-    }
-    });
+document.querySelectorAll('input').forEach(input => {
+  input.addEventListener('change', yourFunction);
 });
 
 
@@ -177,15 +145,16 @@ async function buttonProcessDNA() {
     jobID = await processForm(formData);
     formData.append('jobID', jobID);
 
-    // POST the raw FormData to Flask
+    // POST the raw formData to Flask
     fetch('/evalFormDNA', {
-        method: 'POST',
+        body: formData,  // Send the actual FormData object, not a JSON
         headers: { 'X-CSRFToken': csrfToken },
-        body: formData  // Send the actual FormData object, not a JSON
+        method: 'POST'
     })
     .then(response => {
         if (response.ok) {
             // Redirect
+            console.log('Redirect:')
             window.location.href = '/results';
         } else {
             console.log('Error processing DNA.');

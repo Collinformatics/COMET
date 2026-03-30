@@ -63,7 +63,7 @@ def jobSummary():
 def evalDNA():
     # Process the data
     webapp.evalDNA(parseForm())
-    print('Job Done: Eval DNA')
+    print('\nJob Done: Eval DNA')
     webapp.done = True
     return render_template('results.html',
                            parameters=webapp.jobParams)
