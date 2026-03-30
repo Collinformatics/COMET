@@ -1027,7 +1027,7 @@ class WebApp:
         # File path
         figName = f'counts - {self.enzymeName} - {datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
-        print(f'\nSaving Fig: {datasetType}\n     {path}')
+        print(f'\nSaving Fig: Counts {datasetType}\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1329,7 +1329,7 @@ class WebApp:
         else:
             figName = f'eMap Scaled - {self.enzymeName} - {datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
-        print(f'Saving Fig: {datasetType}\n     {path}\n')
+        print(f'\nSaving Fig: EM {datasetType}\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1462,7 +1462,7 @@ class WebApp:
             else:
                 figName = f'eLogo - {self.enzymeName} - {datasetType}.png'
             path = os.path.join(self.pathFigs, figName)
-            print(f'Saving Fig: {datasetType}\n     {path}\n')
+            print(f'\nSaving Fig: eLogo {datasetType}\n     {path}')
 
             # Encode the figure
             figBase64 = self.encodeFig(fig)
