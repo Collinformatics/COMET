@@ -63,7 +63,7 @@ def jobSummary():
 def evalDNA():
     # Process the data
     webapp.evalDNA(parseForm())
-    print('\nJob Done: Eval DNA')
+    print('Job Done: Eval DNA')
     webapp.done = True
     return render_template('results.html',
                            parameters=webapp.jobParams)
@@ -125,23 +125,20 @@ def checkFigures():
 
 @app.route('/download', methods=['POST'])
 def download():
-    print(f'Downloading file: {webapp.pathData}')
-    dir = webapp.pathData
+    print(f'Downloading Directory: {webapp.pathDir}')
     memory_file = io.BytesIO()
-
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for root, dirs, files in os.walk(dir):
+        for root, dirs, files in os.walk(webapp.pathDir):
             for file in files:
                 file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, dir)
+                arcname = os.path.relpath(file_path, webapp.pathDir)
                 zf.write(file_path, arcname)
-
     memory_file.seek(0)
     return send_file(
         memory_file,
         mimetype='application/zip',
         as_attachment=True,
-        download_name=f'{webapp.enzymeName}.zip'
+        download_name=f'{webapp.enzymeName}'
     )
 
 

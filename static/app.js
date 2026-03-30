@@ -289,11 +289,12 @@ function getFigures() {
 async function download() {
     const enzymeInput = document.getElementById("enzymeName");
     const dirName = enzymeInput ? enzymeInput.value + '.zip' : 'comet.zip';
-
+    console.log('Dir Name:', dirName)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const response = await fetch('/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: dirName })
+        body: JSON.stringify({}),
+        headers: { 'X-CSRFToken': csrfToken },
+        method: 'POST'
     });
 
     const blob = await response.blob();
@@ -311,7 +312,7 @@ async function download() {
     } else {
         console.log('Dis: False');
     }
-    console.log('Dir Name:', filename);
+    console.log('File Name:', filename);
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
