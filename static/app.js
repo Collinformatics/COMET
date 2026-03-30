@@ -1,8 +1,8 @@
 // Fix AA
 function updateFixedAA() {
-    const container = document.getElementById('fixedAAContainer');
     const aminoAcids = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I",
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
+    const container = document.getElementById('fixedAAContainer');
     const seqLength = parseInt(document.getElementById('seqLength').value);
 
     container.innerHTML = '';
@@ -11,7 +11,7 @@ function updateFixedAA() {
     container.style.gap = '12px'; // spacing between each checkbox
     container.paddingLeft = '5px';
 
-    for (let i = 1; i <= seqLength.value; i++) {
+    for (let i = 1; i <= seqLength; i++) {
         const wrapper = document.createElement('div');
         wrapper.style.display = 'flex';
         wrapper.style.flexDirection = 'column';
@@ -67,10 +67,8 @@ function updateFixedAA() {
     }
 }
 
-// Create listener to inspect html input after the form has been loaded and parsed
-document.querySelectorAll('input').forEach(input => {
-  input.addEventListener('change', yourFunction);
-});
+document.addEventListener('DOMContentLoaded', updateFixedAA);
+document.getElementById('seqLength').addEventListener('change', updateFixedAA);
 
 
 async function processForm(formData) {
@@ -127,6 +125,27 @@ async function processForm(formData) {
 }
 
 
+//
+function pageHome() {
+    window.location.href = "/"
+}
+
+
+function pageProcessDNA() {
+    window.location.href = "/processDNA";
+}
+
+
+function pageFilterAA() {
+    window.location.href = "/filterAminoAcids";
+}
+
+
+function pageFilterMotif() {
+    window.location.href = "/filterMotif";
+}
+
+
 // Define button function
 async function buttonProcessDNA() {
     // Disable to prevent double click
@@ -167,25 +186,43 @@ async function buttonProcessDNA() {
     });
 }
 
+async function buttonFilterSubs() {
+    // Disable to prevent double click
+    const button = document.querySelector('button[onclick="buttonFilterSubs()"]');
+    button.disabled = true;
+    button.textContent = 'Processing';
 
-//
-function pageHome() {
-    window.location.href = "/"
-}
+    // const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    const form = document.getElementById("formDNA");
+    const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+    const formData = new FormData(form);
+    formData.delete('csrf_token');
+    const selectedFixPositions = [];
 
+    // Evaluate the form
+    jobID = await processForm(formData);
+    formData.append('jobID', jobID);
 
-function pageProcessDNA() {
-    window.location.href = "/processDNA";
-}
-
-
-function pageFilterAA() {
-    window.location.href = "/filterAminoAcids";
-}
-
-
-function pageFilterMotif() {
-    window.location.href = "/filterMotif";
+    // POST the raw formData to Flask
+    fetch('/evalFormDNA', {
+        body: formData,  // Send the actual FormData object, not a JSON
+        headers: { 'X-CSRFToken': csrfToken },
+        method: 'POST'
+    })
+    .then(response => {
+        if (response.ok) {
+            // Redirect
+            console.log('Redirect:')
+            window.location.href = '/results';
+        } else {
+            console.log('Error processing DNA.');
+            alert("Error processing DNA.");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("An error occurred.");
+    });
 }
 
 
