@@ -287,9 +287,7 @@ function getFigures() {
 }
 
 async function download() {
-    const enzymeInput = document.getElementById("enzymeName");
-    const dirName = enzymeInput ? enzymeInput.value + '.zip' : 'comet.zip';
-    console.log('Dir Name:', dirName)
+    const dirName = 'comet.zip';
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const response = await fetch('/download', {
         body: JSON.stringify({}),
@@ -299,18 +297,14 @@ async function download() {
 
     const blob = await response.blob();
 
-
     // Extract filename from Content-Disposition header
+    let filename = 'comet.zip';
     const disposition = response.headers.get('Content-Disposition');
-    let filename = dirName;
     if (disposition) {
-        console.log('Dis: True');
         const match = disposition.match(/filename[^;=\n]*=([^;\n]*)/);
         if (match && match[1]) {
             filename = match[1].trim().replace(/['"]/g, '');
         }
-    } else {
-        console.log('Dis: False');
     }
     console.log('File Name:', filename);
 
