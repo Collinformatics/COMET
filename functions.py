@@ -298,23 +298,23 @@ class WebApp:
         # Initialize: Save tags
         self.saveTagExp = {
             'subsRaw': f'{self.enzymeName} - Subs Exp - {self.datasetTag} - '
-                    f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                    f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
             'countsRaw': f'{self.enzymeName} - AA Counts Exp - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv',
             'subs': f'{self.enzymeName} - Subs Exp - {self.datasetTag} - '
-                    f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                    f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
             'counts': f'{self.enzymeName} - AA Counts Exp - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA'
+                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv'
         }
         self.saveTagBg = {
             'subsRaw': f'{self.enzymeName} - Subs Bg - {self.datasetTag} - '
-                   f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                   f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
             'countsRaw': f'{self.enzymeName} - AA Counts Bg - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv',
             'subs': f'{self.enzymeName} - Subs Bg - {self.datasetTag} - '
-                    f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                    f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
             'counts': f'{self.enzymeName} - AA Counts Bg - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA',
+                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv',
         }
         if self.fixMotif:
             for tag, path in self.saveTagExp:
@@ -386,8 +386,8 @@ class WebApp:
         # Placeholder for files
         self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
         self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
-        self.fileExp = ['data/Name/data/Name - Subs Exp - Unfiltered - MinCounts 1 - 8 AA']
-        self.fileBg = ['data/Name/data/Name - Subs Bg - Unfiltered - MinCounts 1 - 8 AA']
+        self.fileExp = ['data/Name/data/Name - Subs Exp - Unfiltered - MinCounts 1 - 8 AA.pkl']
+        self.fileBg = ['data/Name/data/Name - Subs Bg - Unfiltered - MinCounts 1 - 8 AA.pkl']
         print(f'\nFile Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'
@@ -395,7 +395,6 @@ class WebApp:
 
         # Job dependant parameters
         if evalDNA:
-
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
             self.minPhred = int(form['minPhred']) if form['minPhred'] != '' else 0
@@ -786,6 +785,7 @@ class WebApp:
 
     def evalDNA(self, form):
         self.jobInit(form, job='Process DNA', evalDNA=True)
+        x = 'data/Name/data/Name - AA Counts Exp - Unfiltered - MinCounts 1 - 8 AA'
 
         # Load the data
         threads = []
@@ -947,10 +947,6 @@ class WebApp:
                 self.logInQueue(log)
 
         # Get results from queue
-        if not queuesExp or not queuesBg:
-            exp = True if queuesExp else False
-            bg = True if queuesBg else False
-            return {'Exp': exp, 'Bg': bg}
         if queuesExp:
             for queueData in queuesExp:
                 substrates = queueData.get()
@@ -968,8 +964,9 @@ class WebApp:
                     else:
                         self.subsBg[substrate] = count
 
-        # Log substrates
-        self.log('Substrates: Experimental')
+
+        # Process substrates
+        self.log('Substrates: Experimental') ##
         if self.subsExp:
             i = 0
             for substrate, count in self.subsExp.items():
@@ -980,7 +977,7 @@ class WebApp:
             self.log()
         else:
             self.logErrorFn(
-                function='loadSubstrates()',msg='No experimental substrates were loaded')
+                function='loadSubstrates()', msg='No experimental substrates were loaded')
         if self.subsBg:
             i = 0
             self.log('Substrates: Background')
@@ -992,8 +989,12 @@ class WebApp:
             self.log()
         else:
             self.logErrorFn(
-                function='loadSubstrates()',msg='No background substrates were loaded')
-        
+                function='loadSubstrates()', msg='No background substrates were loaded')
+        if not queuesExp or not queuesBg:
+            exp = True if queuesExp else False
+            bg = True if queuesBg else False
+            return {'Exp': exp, 'Bg': bg}
+
         return None
 
 
