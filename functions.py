@@ -297,32 +297,24 @@ class WebApp:
 
         # Initialize: Save tags
         self.saveTagExp = {
-            'subsRaw': f'{self.enzymeName} - Subs Exp - {self.datasetTag} - '
-                    f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
-            'countsRaw': f'{self.enzymeName} - AA Counts Exp - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv',
-            'subs': f'{self.enzymeName} - Subs Exp - {self.datasetTag} - '
-                    f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
-            'counts': f'{self.enzymeName} - AA Counts Exp - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv'
+            'subs': f'{self.enzymeName}-Subs_Exp-{self.datasetTag}-'
+                    f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl',
+            'counts': f'{self.enzymeName}-AA_Counts_Exp-{self.datasetTag}-'
+                      f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv'
         }
         self.saveTagBg = {
-            'subsRaw': f'{self.enzymeName} - Subs Bg - {self.datasetTag} - '
-                   f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
-            'countsRaw': f'{self.enzymeName} - AA Counts Bg - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv',
-            'subs': f'{self.enzymeName} - Subs Bg - {self.datasetTag} - '
-                    f'MinCounts {self.minCounts} - {self.seqLength} AA.pkl',
-            'counts': f'{self.enzymeName} - AA Counts Bg - {self.datasetTag} - '
-                      f'MinCounts {self.minCounts} - {self.seqLength} AA.csv',
+            'subs': f'{self.enzymeName}-Subs_Bg-{self.datasetTag}-'
+                    f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl',
+            'counts': f'{self.enzymeName}-AA_Counts_Bg-{self.datasetTag}-'
+                      f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv',
         }
         if self.fixMotif:
             for tag, path in self.saveTagExp:
                 self.saveTagExp[tag] = (path.replace(f'{self.enzymeName}',
-                                                     f'{self.enzymeName} - Motif'))
+                                                     f'{self.enzymeName}-Motif'))
 
-        self.saveTagFig = (f'{self.enzymeName} - Fig - {self.datasetTag} - '
-                           f'Min Counts {self.minCounts} - {self.seqLength} AA')
+        self.saveTagFig = (f'{self.enzymeName}-Fig-{self.datasetTag}-'
+                           f'Min_Counts_{self.minCounts}-{self.seqLength}AA')
 
 
 
@@ -386,9 +378,9 @@ class WebApp:
         # Placeholder for files
         self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
         self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
-        self.fileExp = ['data/Name/data/Name - Subs Exp - Unfiltered - MinCounts 1 - 8 AA.pkl']
-        self.fileBg = ['data/Name/data/Name - Subs Bg - Unfiltered - MinCounts 1 - 8 AA.pkl']
-        print(f'\nFile Exp: {type(self.fileExp)}\n'
+        # self.fileExp = ['data/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8_AA.pkl']
+        # self.fileBg = ['data/Name/data/Name-Subs_Bg-Unfiltered-MinCounts_1-8_AA.pkl']
+        print(f'\nFile Exp: {type(self.fileExp)}\n' ##
               f'{self.fileExp}\n')
         print(f'File Bg: {type(self.fileBg)}\n'
               f'{self.fileBg}')
@@ -402,7 +394,7 @@ class WebApp:
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
         elif filterAA:
-            print('\nFilter Substrates') ##
+            print('\nFilter Substrates')
         elif filterMotif:
             print('Filter Motifs')
         else:
@@ -1015,9 +1007,9 @@ class WebApp:
                                 msg=f'Unknown dataset type: {datasetType}')
         else:
             if datasetType == self.datasetTypes['Exp']:
-                saveTag = self.saveTagExp['subsRaw']
+                saveTag = self.saveTagExp['subs']
             elif datasetType == self.datasetTypes['Bg']:
-                saveTag = self.saveTagBg['subsRaw']
+                saveTag = self.saveTagBg['subs']
             else:
                 self.logErrorFn(function='saveSubstrates()',
                                 msg=f'Unknown dataset type: {datasetType}')
@@ -1058,9 +1050,9 @@ class WebApp:
                                 msg=f'Unknown dataset type: {datasetType}')
         else:
             if datasetType == self.datasetTypes['Exp']:
-                saveTag = self.saveTagExp['countsRaw']
+                saveTag = self.saveTagExp['counts']
             elif datasetType == self.datasetTypes['Bg']:
-                saveTag = self.saveTagBg['countsRaw']
+                saveTag = self.saveTagBg['counts']
             else:
                 self.logErrorFn(function='countAA()',
                                 msg=f'Unknown dataset type: {datasetType}')
@@ -1143,7 +1135,7 @@ class WebApp:
         cbar.outline.set_edgecolor('black')
 
         # File path
-        figName = f'counts - {self.enzymeName} - {datasetType}.png'
+        figName = f'counts-{self.enzymeName}-{datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
         print(f'\nSaving Fig: Counts {datasetType}\n     {path}')
 
@@ -1443,9 +1435,9 @@ class WebApp:
 
         # File path
         if scaleData:
-            figName = f'eMap - {self.enzymeName} - {datasetType}.png'
+            figName = f'eMap-{self.enzymeName}-{datasetType}.png'
         else:
-            figName = f'eMap Scaled - {self.enzymeName} - {datasetType}.png'
+            figName = f'eMap_Scaled-{self.enzymeName}-{datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
         print(f'\nSaving Fig: EM {datasetType}\n     {path}')
 
@@ -1576,9 +1568,9 @@ class WebApp:
 
             # File path
             if limitYAxis:
-                figName = f'eLogo yMin - {self.enzymeName} - {datasetType}.png'
+                figName = f'eLogo yMin-{self.enzymeName}-{datasetType}.png'
             else:
-                figName = f'eLogo - {self.enzymeName} - {datasetType}.png'
+                figName = f'eLogo-{self.enzymeName}-{datasetType}.png'
             path = os.path.join(self.pathFigs, figName)
             print(f'\nSaving Fig: eLogo {datasetType}\n     {path}')
 
