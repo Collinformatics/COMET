@@ -142,7 +142,7 @@ def evalDNA():
 @app.route('/evalFormFilterAA', methods=['POST'])
 def filterSubs():
     # Parse the form
-    webapp.evalSubs(parseForm())
+    error = webapp.evalSubs(parseForm())
     print('Job Done: Fix AA')
     return render_template('results.html', parameters=webapp.jobParams)
 

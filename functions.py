@@ -44,11 +44,11 @@ class WebApp:
         # Params: Job
         self.done = False
         self.jobParams = {}
-
-        # Params: Dataset
         self.datasetTag = 'Unfiltered'
         self.datasetTagMotif = False
         self.motifFilter = None
+
+        # Params: Dataset
         self.enzymeName = ''
         self.seqLength = False
         self.minCounts = 1
@@ -77,7 +77,6 @@ class WebApp:
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: Files
-        self.figures = {}
         self.queueLog = queue.Queue()
         self.fileExp = []
         self.seqExp = None
@@ -122,6 +121,11 @@ class WebApp:
         self.residues = defaultResidues
         self.AA = [residue[2] for residue in self.residues]
         self.bigAAonTop = False
+        self.figures = {
+            'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
+            'words': False, 'barCounts': False, 'barRF': False,
+            'exp_counts': False, 'bg_counts': False
+        }
 
         # # Params:
         # self. = False
@@ -332,7 +336,7 @@ class WebApp:
 
 
 
-    def jobInit(self, form, evalDNA=False, filterAA=False, filterMotif=False):
+    def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
         # Directories
         self.pathDir = os.path.join('data', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
@@ -371,6 +375,7 @@ class WebApp:
                  '=================================')
 
         # Record job params
+        self.log(f'Job: {job}')
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
@@ -390,7 +395,7 @@ class WebApp:
 
         # Job dependant parameters
         if evalDNA:
-            self.log('Job: Evaluate DNA')
+
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
             self.minPhred = int(form['minPhred']) if form['minPhred'] != '' else 0
@@ -399,7 +404,6 @@ class WebApp:
                      f'Min Phred Score: {self.minPhred}')
         elif filterAA:
             print('\nFilter Substrates') ##
-            self.log('Job: Filter Substrates')
         elif filterMotif:
             print('Filter Motifs')
         else:
@@ -462,9 +466,9 @@ class WebApp:
             return (f'\n========================================='
                     f'========================================\n'
                      f'========================================='
-                     f'========================================\n\n'
-                     f'ERROR: {function}\n'
-                     f'{msg}\n\n'
+                     f'========================================\n'
+                     f'***** ERROR: {function} *****\n\n'
+                     f'{msg}\n'
                      f'========================================='
                      f'========================================\n'
                      f'========================================='
@@ -473,9 +477,9 @@ class WebApp:
             self.log(f'\n========================================='
                      f'========================================\n'
                      f'========================================='
-                     f'========================================\n\n'
-                     f'ERROR: {function}\n'
-                     f'{msg}\n\n'
+                     f'========================================\n'
+                     f'***** ERROR: {function} *****\n\n'
+                     f'{msg}\n'
                      f'========================================='
                      f'========================================\n'
                      f'========================================='
@@ -537,7 +541,7 @@ class WebApp:
             self.jobParams['Total Background Substrates'] = f'{self.countBgTotal:,}'
             self.jobParams['Unique Background Substrates'] = f'{self.countBgUnique:,}'
         else:
-            self.logErrorFn(function='sampleSize()',
+            self.logErrorFn(function='processSubs()',
                             msg=f'Unknown dataset type: {datasetType}')
 
         self.log(f'Top {self.printN:,} {datasetType} Sequences')
@@ -574,7 +578,9 @@ class WebApp:
                 queueLog.put(self.logErrorFn(
                     function='loadDNA()',
                     msg=f'Unrecognized file\n     {path}',
-                    getStr=True))
+                    getStr=True
+                    )
+                )
                 translate = False
 
             # Translate the dna
@@ -778,47 +784,8 @@ class WebApp:
 
 
 
-    def loadSubstrates(self, path, bgSubs=False):
-        print(f'Loading Substrates:\n     {path}\n')
-        with open(path, 'rb') as openedFile:  # Open file
-            data = pk.load(openedFile)  # Access the data
-            dataTotalSubs = sum(data.values())
-            print(f'     Total substrates: '
-                  f'{dataTotalSubs:,}\n')
-        if bgSubs:
-            self.subsBg = data
-        else:
-            self.subsExp = data
-
-        """
-        # Open the file
-        openFn = gzip.open if path.endswith('.gz') else open  # Define open function
-        with openFn(path, 'rt') as file:  # 'rt' = read text mode
-            if '.fastq' in path or '.fq' in path:
-                data = SeqIO.parse(file, 'fastq')
-                warnings.simplefilter('ignore', BiopythonWarning)
-            elif '.fasta' in path or '.fa' in path:
-                data = SeqIO.parse(file, 'fasta')
-                warnings.simplefilter('ignore', BiopythonWarning)
-            else:
-                queueLog.put(self.logErrorFn(
-                    function='loadDNA()',
-                    msg=f'Unrecognized file\n     {path}',
-                    getStr=True))
-                translate = False
-
-            # Translate the dna
-            if translate:
-                substrates = self.translate(data, path, datasetType,
-                                            queueLog, forwardRead)
-                queueData.put(substrates) # Put the substrates in the queue
-        """
-
-
-
-
     def evalDNA(self, form):
-        self.jobInit(form, evalDNA=True)
+        self.jobInit(form, job='Process DNA', evalDNA=True)
 
         # Load the data
         threads = []
@@ -880,11 +847,6 @@ class WebApp:
                         self.subsBg[substrate] = count
 
         # Make figures
-        self.figures = {
-            'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
-            'words': False, 'barCounts': False, 'barRF': False,
-            'exp_counts': False, 'bg_counts': False
-        }
         if self.subsExp:
             # Sort substrates and count AA
             self.processSubs(substrates=self.subsExp,
@@ -919,12 +881,28 @@ class WebApp:
 
 
 
+    def loadSubstrates(self, path, queueData, queueLog):
+        try:
+            with open(path, 'rb') as openedFile:  # Open file
+                data = pk.load(openedFile)  # Access the data
+            queueData.put(data)
+            queueLog.put(f'     {path}\n')
+        except Exception as e:
+            queueLog.put(self.logErrorFn(
+                function='loadSubstrates()',
+                msg=f'Failed to load file:\n     {path}\n     {e}',
+                getStr=True))
+
+
+
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
             print('\nFilter Motif')
-            self.jobInit(form, filterMotif=True)
+            self.jobInit(form, job='Filter Motif', filterMotif=True)
         else:
-            self.jobInit(form, filterAA=True) ##
+            self.jobInit(form, job='Filter AA', filterAA=True)
+        self.log('\n\n=============================== Load Substrates '
+                 '==============================')
 
         # Load the data
         threads = []
@@ -938,8 +916,8 @@ class WebApp:
             queuesExp.append(queueExp)
             queuesExpLog.append(queueLog)
             thread = threading.Thread(
-                target=self.loadSubstrates,
-                args=(file, self.datasetTypes['Exp'], queueExp, queueLog, True,))
+                target=self.loadSubstrates, args=(file, queueExp, queueLog)
+            )
             thread.start()
             threads.append(thread)
         for file in self.fileBg:
@@ -948,8 +926,8 @@ class WebApp:
             queuesBg.append(queueBg)
             queuesBgLog.append(queueLog)
             thread = threading.Thread(
-                target=self.loadSubstrates,
-                args=(file, self.datasetTypes['Bg'], queueBg, queueLog, True,))
+                target=self.loadSubstrates, args=(file, queueBg, queueLog)
+            )
             thread.start()
             threads.append(thread)
 
@@ -958,18 +936,66 @@ class WebApp:
             thread.join()
 
         # Log the output
+
         if queuesExpLog:
+            self.log('Loading Substrates: Experimental')
             for log in queuesExpLog:
                 self.logInQueue(log)
         if queuesBgLog:
+            self.log('Loading Substrates: Background')
             for log in queuesBgLog:
                 self.logInQueue(log)
 
+        # Get results from queue
+        if not queuesExp or not queuesBg:
+            exp = True if queuesExp else False
+            bg = True if queuesBg else False
+            return {'Exp': exp, 'Bg': bg}
+        if queuesExp:
+            for queueData in queuesExp:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in self.subsExp.keys():
+                        self.subsExp[substrate] += count
+                    else:
+                        self.subsExp[substrate] = count
+        if queuesBg:
+            for queueData in queuesBg:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in self.subsBg.keys():
+                        self.subsBg[substrate] += count
+                    else:
+                        self.subsBg[substrate] = count
 
+        # Log substrates
+        self.log('Substrates: Experimental')
+        if self.subsExp:
+            i = 0
+            for substrate, count in self.subsExp.items():
+                i += 1
+                print(f'    {substrate}, {count:,}')
+                if i >= self.printN:
+                    break
+            self.log()
+        else:
+            self.logErrorFn(
+                function='loadSubstrates()',msg='No experimental substrates were loaded')
+        if self.subsBg:
+            i = 0
+            self.log('Substrates: Background')
+            for substrate, count in self.subsBg.items():
+                i += 1
+                print(f'    {substrate}, {count:,}')
+                if i >= self.printN:
+                    break
+            self.log()
+        else:
+            self.logErrorFn(
+                function='loadSubstrates()',msg='No background substrates were loaded')
+        
+        return None
 
-    def evalMotifs(self, form):
-        print('\nFiltering Motif:')
-        self.jobInit(form, filterMotif=True)
 
 
 
