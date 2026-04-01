@@ -1,6 +1,9 @@
 // Filter options
 function createAAContainer(containerId) {
     const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
     const seqLength = parseInt(document.getElementById('seqLength').value);
     const aminoAcids = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I",
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
@@ -55,6 +58,7 @@ function createAAContainer(containerId) {
     }
 }
 document.addEventListener('DOMContentLoaded', () => {
+    // Monitor AA selection boxes for changes in seqLength
     createAAContainer('fixAAContainer');
     createAAContainer('exclAAContainer');
 });
@@ -67,6 +71,7 @@ function updateFixedAA() {
 
 async function processForm(formData) {
     const json = {}; // Dont send files as a JSON
+    const selectedFixPositions = [];
 
     // Process the input form
     for (const [key, value] of formData.entries()) {
@@ -106,7 +111,7 @@ async function processForm(formData) {
         }
     }
     const date = new Date().toUTCString();
-    jobID += date; // jobID.slice(0, -1);
+    jobID += date;
     const encoder = new TextEncoder();
     const data = encoder.encode(jobID);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -152,7 +157,6 @@ async function buttonProcessDNA() {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
-    const selectedFixPositions = [];
 
     // Evaluate the form
     jobID = await processForm(formData);
@@ -186,17 +190,11 @@ async function buttonFilterSubs() {
     button.disabled = true;
     button.textContent = 'Processing';
 
-
+    //
     const form = document.getElementById("filterSubs");
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
-
-    console.log(document.getElementById("filterSubs"));
-    console.log(form.querySelector('input[name="csrf_token"]'));
-
     formData.delete('csrf_token');
-    const selectedFixPositions = [];
-
 
     // Evaluate the form
     jobID = await processForm(formData);
@@ -319,7 +317,7 @@ function getFigures() {
                 }
             }
         });
-    }, 1000); // poll every 1 second
+    }, 5000); // ## 1000); // poll every 1 second
 }
 
 async function download() {

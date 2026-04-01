@@ -375,16 +375,6 @@ class WebApp:
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
 
-        # Placeholder for files
-        self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
-        self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
-        # self.fileExp = ['data/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8_AA.pkl']
-        # self.fileBg = ['data/Name/data/Name-Subs_Bg-Unfiltered-MinCounts_1-8_AA.pkl']
-        print(f'\nFile Exp: {type(self.fileExp)}\n' ##
-              f'{self.fileExp}\n')
-        print(f'File Bg: {type(self.fileBg)}\n'
-              f'{self.fileBg}')
-
         # Job dependant parameters
         if evalDNA:
             self.seq5Prime = form['seq5Prime']
@@ -393,8 +383,17 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
+            ## Placeholder files
+            self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
+            self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
         elif filterAA:
-            print('\nFilter Substrates')
+            ## Placeholder files
+            self.fileExp = ['data/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileBg = ['data/Name/data/Name-Subs_Bg-Unfiltered-MinCounts_1-8AA.pkl']
+            print(f'\nFile Exp: {type(self.fileExp)}\n'
+                  f'{self.fileExp}\n')
+            print(f'File Bg: {type(self.fileBg)}\n'
+                  f'{self.fileBg}')
         elif filterMotif:
             print('Filter Motifs')
         else:
@@ -927,18 +926,11 @@ class WebApp:
         for thread in threads:
             thread.join()
 
-        # Log the output
-
+        # Process input
         if queuesExpLog:
             self.log('Loading Substrates: Experimental')
             for log in queuesExpLog:
                 self.logInQueue(log)
-        if queuesBgLog:
-            self.log('Loading Substrates: Background')
-            for log in queuesBgLog:
-                self.logInQueue(log)
-
-        # Get results from queue
         if queuesExp:
             for queueData in queuesExp:
                 substrates = queueData.get()
@@ -947,6 +939,21 @@ class WebApp:
                         self.subsExp[substrate] += count
                     else:
                         self.subsExp[substrate] = count
+            self.log('Substrates: Experimental')
+            if self.subsExp:
+                i = 0
+                for substrate, count in self.subsExp.items():
+                    i += 1
+                    self.log(f'    {substrate}, {count:,}')
+                    if i >= self.printN:
+                        break
+            else:
+                self.logErrorFn(function='loadSubstrates()',
+                                msg='No experimental substrates were loaded')
+        if queuesBgLog:
+            self.log('Loading Substrates: Background')
+            for log in queuesBgLog:
+                self.logInQueue(log)
         if queuesBg:
             for queueData in queuesBg:
                 substrates = queueData.get()
@@ -955,40 +962,44 @@ class WebApp:
                         self.subsBg[substrate] += count
                     else:
                         self.subsBg[substrate] = count
-
-
-        # Process substrates
-        self.log('Substrates: Experimental') ##
-        if self.subsExp:
-            i = 0
-            for substrate, count in self.subsExp.items():
-                i += 1
-                print(f'    {substrate}, {count:,}')
-                if i >= self.printN:
-                    break
-            self.log()
-        else:
-            self.logErrorFn(
-                function='loadSubstrates()', msg='No experimental substrates were loaded')
-        if self.subsBg:
-            i = 0
-            self.log('Substrates: Background')
-            for substrate, count in self.subsBg.items():
-                i += 1
-                print(f'    {substrate}, {count:,}')
-                if i >= self.printN:
-                    break
-            self.log()
-        else:
-            self.logErrorFn(
-                function='loadSubstrates()', msg='No background substrates were loaded')
+            if self.subsBg:
+                i = 0
+                self.log('Substrates: Background')
+                for substrate, count in self.subsBg.items():
+                    i += 1
+                    self.log(f'    {substrate}, {count:,}')
+                    if i >= self.printN:
+                        break
+            else:
+                self.logErrorFn(function='loadSubstrates()',
+                                msg='No background substrates were loaded')
         if not queuesExp or not queuesBg:
             exp = True if queuesExp else False
             bg = True if queuesBg else False
             return {'Exp': exp, 'Bg': bg}
 
+        # Filter AAs
+        self.filterSubs() ##
+
         return None
 
+
+
+    def filterSubs(self):
+        self.log('\n\n============================== Filter Substrates '
+                 '=============================')
+        self.log(f'Dataset tag: {self.datasetTag}')
+        totalSubs = 0
+        for count in self.subsExp.values():
+            totalSubs += count
+        totalSubsUnique = len(self.subsExp.keys())
+        self.log(f'\nUnfiltered Substrates:\n'
+                 f'      Total: {totalSubs:,}\n'
+                 f'     Unique: {totalSubsUnique:,}')
+
+        print(f'Filter:\n'
+              f'Fix AA: {self.fixAA}\n'
+              f'Excl AA: {self.exclAA}\n')
 
 
 
