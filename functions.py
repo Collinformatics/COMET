@@ -258,11 +258,12 @@ class WebApp:
 
 
     def getDatasetTag(self):
-        tag = ''
+        datasetTag = ''
         tagFix = 'Fix '
         tagExcl = 'Excl '
         fixNPos = len(self.fixAA)
 
+        print(f'self.exclAA: {self.exclAA}')
         if self.exclAA:
             for index, (pos, AA) in enumerate(self.exclAA.items()):
                 if len(AA) > 1:
@@ -274,8 +275,8 @@ class WebApp:
                     tagExcl += f'{tag}_'
                 else:
                     tagExcl += tag
-            print(f'Exclude AA:: {tagExcl}\n')
-            tag += tagExcl
+            print(f'Exclude AA: {tagExcl}\n')
+            datasetTag += tagExcl
         if self.fixAA:
             for index, (pos, AA) in enumerate(self.fixAA.items()):
                 print(index, pos, AA)
@@ -289,8 +290,8 @@ class WebApp:
                 else:
                     tagFix += tag
             print(f'Fix AA: {tagFix}')
-            tag += tagFix
-        self.datasetTag = tag
+            datasetTag += tagFix
+        self.datasetTag = datasetTag
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset: {self.datasetTag}')
 
