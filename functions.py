@@ -258,27 +258,25 @@ class WebApp:
 
 
     def getDatasetTag(self):
+        tag = ''
         tagFix = 'Fix '
         tagExcl = 'Excl '
         fixNPos = len(self.fixAA)
 
         if self.exclAA:
-            print('Exclude AA:')
             for index, (pos, AA) in enumerate(self.exclAA.items()):
                 if len(AA) > 1:
-                    tag = f'[{','.join(AA)}]@{pos.replace('fix', '')}'
+                    tag = f'[{','.join(AA)}]@{pos.replace('excl', '')}'
                 else:
-                    tag = f'{AA}@{pos.replace('fix', '')}'
+                    tag = f'{AA}@{pos.replace('excl', '')}'
 
                 if fixNPos > 1 and index != fixNPos - 1:
                     tagExcl += f'{tag}_'
                 else:
                     tagExcl += tag
-                print(f'Tag: {tagExcl}')
-            self.datasetTag = tagExcl
-
+            print(f'Exclude AA:: {tagExcl}\n')
+            tag += tagExcl
         if self.fixAA:
-            print('Fix AA')
             for index, (pos, AA) in enumerate(self.fixAA.items()):
                 print(index, pos, AA)
                 if len(AA) > 1:
@@ -290,8 +288,9 @@ class WebApp:
                     tagFix += f'{tag}_'
                 else:
                     tagFix += tag
-                print(f'Tag: {tagFix}')
-            self.datasetTag = tagFix
+            print(f'Fix AA: {tagFix}')
+            tag += tagFix
+        self.datasetTag = tag
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset: {self.datasetTag}')
 
@@ -318,6 +317,24 @@ class WebApp:
 
 
 
+    def getFilter(self, data):
+        if 'filterPos' in data.keys():
+            self.filterPos = data['filterPos']
+            self.fixAA = {}
+            self.exclAA = {}
+
+            # Get filter params
+            for key, value in data.items():
+                if 'fix' in key:
+                    self.fixAA[key] = value
+                if 'excl' in key:
+                    self.exclAA[key] = value
+            self.fixAA = dict(sorted(self.fixAA.items()))
+            self.exclAA = dict(sorted(self.exclAA.items()))
+        self.getDatasetTag()
+
+
+
     def initDataStructures(self):
         # Initialize data structures
         self.subsExp = {}
@@ -329,6 +346,11 @@ class WebApp:
 
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
+        # print('Filter:')
+        # for key, value in form.items():
+        #     print(f'  {key}: {value}')
+        # print()
+
         # Directories
         self.pathDir = os.path.join('data', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
@@ -403,34 +425,6 @@ class WebApp:
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
         # self.log(f'Job ID: {self.jobParams['jobID']}')
-
-
-
-    def getFilter(self, data):
-        # print('Filter:')
-        # for key, value in data.items():
-        #     print(f'  {key}: {value}')
-        # print()
-
-        if 'filterPos' in data.keys():
-            self.filterPos = data['filterPos']
-            self.fixAA = {}
-            self.exclAA = {}
-
-            # Get filter params
-            print('Filter:')
-            for key, value in data.items():
-                if 'fix' in key:
-                    self.fixAA[key] = value
-                    print(f'  {key}: {value}')
-                if 'excl' in key:
-                    self.exclAA[key] = value
-                    print(f'  {key}: {value}')
-
-            # Sort filter params
-            self.fixAA = dict(sorted(self.fixAA.items()))
-            self.exclAA = dict(sorted(self.exclAA.items()))
-        self.getDatasetTag()
 
 
 
