@@ -263,7 +263,7 @@ class WebApp:
         tagExcl = 'Excl '
         fixNPos = len(self.fixAA)
 
-        print(f'self.exclAA: {self.exclAA}')
+        # Evaluate filters
         if self.exclAA:
             for index, (pos, AA) in enumerate(self.exclAA.items()):
                 if len(AA) > 1:
@@ -272,26 +272,25 @@ class WebApp:
                     tag = f'{AA}@{pos.replace('excl', '')}'
 
                 if fixNPos > 1 and index != fixNPos - 1:
-                    tagExcl += f'{tag}_'
+                    tagExcl += f'{tag} '
                 else:
                     tagExcl += tag
-            print(f'Exclude AA: {tagExcl}\n')
+            print(f'\nExclude AA: {tagExcl}')
             datasetTag += tagExcl
         if self.fixAA:
             for index, (pos, AA) in enumerate(self.fixAA.items()):
-                print(index, pos, AA)
                 if len(AA) > 1:
                     tag = f'[{','.join(AA)}]@{pos.replace('fix', '')}'
                 else:
                     tag = f'{AA}@{pos.replace('fix', '')}'
 
                 if fixNPos > 1 and index != fixNPos - 1:
-                    tagFix += f'{tag}_'
+                    tagFix += f'{tag} '
                 else:
                     tagFix += tag
-            print(f'Fix AA: {tagFix}')
-            datasetTag += tagFix
-        self.datasetTag = datasetTag
+            print(f'    Fix AA: {tagFix}')
+            datasetTag += f' {tagFix}' if datasetTag else tagFix
+        self.datasetTag = datasetTag[:-1]
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset: {self.datasetTag}')
 
@@ -989,12 +988,12 @@ class WebApp:
             totalSubs += count
         totalSubsUnique = len(self.subsExp.keys())
         self.log(f'\nUnfiltered Substrates:\n'
-                 f'      Total: {totalSubs:,}\n'
-                 f'     Unique: {totalSubsUnique:,}')
+                 f'     Total: {totalSubs:,}\n'
+                 f'    Unique: {totalSubsUnique:,}')
 
-        print(f'Filter:\n'
-              f'Fix AA: {self.fixAA}\n'
-              f'Excl AA: {self.exclAA}\n')
+        print(f'\nFilter Substrates:\n'
+              f'     Fix AA: {self.fixAA}\n'
+              f'    Excl AA: {self.exclAA}\n')
 
 
 
