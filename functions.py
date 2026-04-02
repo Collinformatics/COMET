@@ -990,6 +990,7 @@ class WebApp:
             keepSub = True
             print(f'{substrate}, {count:,}')
             for posExcl, exclAA in self.exclAA.items():
+                print('Excl')
                 if not isinstance(exclAA, list):
                     exclAA = list(exclAA)
                 idx = int(posExcl.replace('exclR', '')) - 1
@@ -998,18 +999,22 @@ class WebApp:
                     print(f'Drop: {substrate}, {substrate[idx]}@R{idx+1}')
                     keepSub = False
                     break
+            if not keepSub:
+                print('\n')
+                continue
 
-            for posFix, fixAA in self.exclAA.items():
+            for posFix, fixAA in self.fixAA.items():
+                print('Fix')
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
-                idx = int(posFix.replace('exclR', '')) - 1
+                idx = int(posFix.replace('fixR', '')) - 1
                 print(f'* Fix {fixAA}@R{idx+1}, {substrate[idx]}')
                 if substrate[idx] not in fixAA:
                     print(f'Missing: {fixAA}@R{idx+1}')
                     keepSub = False
                     break
             if keepSub:
-                print(f'Add: {substrate}, {substrate}')
+                print(f'Add: {substrate}, {count:,}')
                 subs[substrate] = count
             print('\n')
         print()
@@ -1021,6 +1026,7 @@ class WebApp:
             i += 1
             if i >= self.printN:
                 break
+        self.subsExp = subs
 
 
 
