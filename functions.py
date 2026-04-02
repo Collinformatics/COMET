@@ -267,34 +267,29 @@ class WebApp:
         if self.exclAA:
             for index, (pos, AA) in enumerate(self.exclAA.items()):
                 if len(AA) > 1:
-                    tag = f'[{','.join(AA)}]@{pos.replace('excl', '')}'
+                    tagExcl += f'[{','.join(AA)}]@{pos.replace('excl', '')} '
                 else:
-                    tag = f'{AA}@{pos.replace('excl', '')}'
-
-                if fixNPos > 1 and index != fixNPos - 1:
-                    tagExcl += f'{tag} '
-                else:
-                    tagExcl += tag
+                    tagExcl += f'{AA}@{pos.replace('excl', '')} '
+            tagExcl = tagExcl[:-1]
             print(f'\nExclude AA: {tagExcl}')
-            datasetTag += tagExcl
         if self.fixAA:
             for index, (pos, AA) in enumerate(self.fixAA.items()):
                 if len(AA) > 1:
-                    tag = f'[{','.join(AA)}]@{pos.replace('fix', '')}'
+                    tagFix += f'[{','.join(AA)}]@{pos.replace('fix', '')} '
                 else:
-                    tag = f'{AA}@{pos.replace('fix', '')}'
-
-                if fixNPos > 1 and index != fixNPos - 1:
-                    tagFix += f'{tag} '
-                else:
-                    tagFix += tag
+                    tagFix += f'{AA}@{pos.replace('fix', '')} '
+            tagFix = tagFix[:-1]
             print(f'    Fix AA: {tagFix}')
-            datasetTag += f' {tagFix}' if datasetTag else tagFix
-        self.datasetTag = datasetTag[:-1]
+        if tagExcl and tagFix:
+            self.datasetTag = f'{tagExcl} {tagFix}'
+        elif tagFix:
+            self.datasetTag = tagFix
+        elif tagExcl:
+            self.datasetTag = tagExcl
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset: {self.datasetTag}')
 
-        # Initialize: Save tags
+        # Initialize: Save tags Excl [R,N]@R4 C@R5 Fix [D,E]@R2 N@R
         self.saveTagExp = {
             'subs': f'{self.enzymeName}-Subs_Exp-{self.datasetTag}-'
                     f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl',
@@ -991,9 +986,22 @@ class WebApp:
                  f'     Total: {totalSubs:,}\n'
                  f'    Unique: {totalSubsUnique:,}')
 
-        print(f'\nFilter Substrates:\n'
-              f'     Fix AA: {self.fixAA}\n'
-              f'    Excl AA: {self.exclAA}\n')
+        print(f'\nFilter Substrates: {self.datasetTag}')
+        if self.exclAA:
+            for k, v in self.exclAA.items():
+                if not isinstance(v, list):
+                    v = list(v)
+                idx = int(k.replace('exclR', '')) - 1
+                print(f'* Remove {v}@{idx}')
+
+                if self.fixAA:
+                    for k, v in self.fixAA.items():
+                        if not isinstance(v, list):
+                            v = list(v)
+                        idx = int(k.replace('fixR', '')) - 1
+                        print(f'* Keep {v}@{idx}')
+        print()
+
 
 
 
