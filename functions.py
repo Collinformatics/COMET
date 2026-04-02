@@ -258,10 +258,8 @@ class WebApp:
 
 
     def getDatasetTag(self):
-        datasetTag = ''
         tagFix = 'Fix '
         tagExcl = 'Excl '
-        fixNPos = len(self.fixAA)
 
         # Evaluate filters
         if self.exclAA:
@@ -987,20 +985,44 @@ class WebApp:
                  f'    Unique: {totalSubsUnique:,}')
 
         print(f'\nFilter Substrates: {self.datasetTag}')
-        if self.exclAA:
-            for k, v in self.exclAA.items():
-                if not isinstance(v, list):
-                    v = list(v)
-                idx = int(k.replace('exclR', '')) - 1
-                print(f'* Remove {v}@{idx}')
+        subs = {}
+        for substrate, count in self.subsExp.items():
+            keepSub = True
+            print(f'{substrate}, {count:,}')
+            for posExcl, exclAA in self.exclAA.items():
+                if not isinstance(exclAA, list):
+                    exclAA = list(exclAA)
+                idx = int(posExcl.replace('exclR', '')) - 1
+                print(f'* Remove {exclAA}@R{idx+1}, {substrate[idx]}')
+                if substrate[idx] in exclAA:
+                    print(f'Drop: {substrate}, {substrate[idx]}@R{idx+1}')
+                    keepSub = False
+                    break
 
-                if self.fixAA:
-                    for k, v in self.fixAA.items():
-                        if not isinstance(v, list):
-                            v = list(v)
-                        idx = int(k.replace('fixR', '')) - 1
-                        print(f'* Keep {v}@{idx}')
+            for posFix, fixAA in self.exclAA.items():
+                if not isinstance(fixAA, list):
+                    fixAA = list(fixAA)
+                idx = int(posFix.replace('exclR', '')) - 1
+                print(f'* Fix {fixAA}@R{idx+1}, {substrate[idx]}')
+                if substrate[idx] not in fixAA:
+                    print(f'Missing: {fixAA}@R{idx+1}')
+                    keepSub = False
+                    break
+            if keepSub:
+                print(f'Add: {substrate}, {substrate}')
+                subs[substrate] = count
+            print('\n')
         print()
+
+        i = 0
+        print(f'Keep: {len(subs)}')
+        for substrate, count in subs.items():
+            print(f'    {substrate}, {count:,}')
+            i += 1
+            if i >= self.printN:
+                break
+
+
 
 
 
