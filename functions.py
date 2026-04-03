@@ -381,7 +381,7 @@ class WebApp:
         elif filterAA:
             ## Placeholder files
             self.fileExp = ['ds/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = ['ds/Name/data/Name-AA_Counts_Exp-Unfiltered-MinCounts_1-8AA.csv']
+            self.fileBg = ['ds/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
