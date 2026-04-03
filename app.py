@@ -144,12 +144,14 @@ def filterSubs():
     # Parse the form
     error = webapp.evalSubs(parseForm())
     print('Job Done: Fix AA')
+    webapp.done = True
     return render_template('results.html', parameters=webapp.jobParams)
 
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
     webapp.evalSubs(parseForm(), filterMotifs=True)
     print('Job Done: Fix Motif')
+    webapp.done = True
     return render_template('results.html', parameters=webapp.jobParams)
 
 

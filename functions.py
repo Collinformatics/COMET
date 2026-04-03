@@ -944,8 +944,6 @@ class WebApp:
         self.calculateEntropy()
         self.calculateEnrichment()
 
-        return None
-
 
     def filterSubs(self):
         self.log('\n\n============================== Filter Substrates '
@@ -1015,7 +1013,6 @@ class WebApp:
         # Count AAs ##
         self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
                      datasetType=self.datasetTypes['Exp'])
-
 
 
     def filterMotif(self):
