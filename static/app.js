@@ -244,17 +244,28 @@ function clickButton() {
 }
 
 
-function addFigure(container, label, filename) {
+function addFigure(container, label, fig, fig2 = null) {
     const p = document.createElement('p');
     p.className = 'p2';
     p.textContent = label;
     container.appendChild(p);
 
-    const img = document.createElement('img');
-    img.src = filename // dir; /* ## */
-    img.style.maxWidth = '80vw';
-    img.style.height = 'auto';
-    container.appendChild(img);
+    // Add figure
+    const img1 = document.createElement('img');
+    img1.src = fig;
+    img1.style.maxWidth = '80vw';
+    img1.style.height = 'auto';
+    container.appendChild(img1);
+
+    // Add the second figure
+    if (fig2) {
+        container.appendChild(document.createElement('br'));
+        const img2 = document.createElement('img');
+        img2.src = fig2;
+        img2.style.maxWidth = '80vw';
+        img2.style.height = 'auto';
+        container.appendChild(img2);
+    }
     container.appendChild(document.createElement('br'));
     container.appendChild(document.createElement('br'));
 }
@@ -288,14 +299,21 @@ function getFigures() {
                 buttonWrapper.appendChild(button);
                 container.appendChild(buttonWrapper);
 
+                if (data.entropy) {
+                    addFigure(container, "Entropy", data.entropy);
+                }
                 if (data.eMap) {
                     addFigure(container, "Enrichment Map", data.eMap);
                 }
                 if (data.eMapSc) {
                     addFigure(container, "Scaled Enrichment Map", data.eMapSc);
                 }
-                if (data.eLogo) {
-                    addFigure(container, "Enrichment Logo", data.eLogo);
+                if (data.eLogo && data.eLogoMin) {
+                    addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
+                } else {
+                    if (data.eLogo) {
+                        addFigure(container, "Enrichment Logo", data.eLogo);
+                    }
                 }
                 if (data.wLogo) {
                     addFigure(container, "WebLogo", data.wLogo);

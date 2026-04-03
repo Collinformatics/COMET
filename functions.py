@@ -9,6 +9,7 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import os.path
 import pandas as pd
@@ -125,15 +126,10 @@ class WebApp:
         self.AA = [residue[2] for residue in self.residues]
         self.bigAAonTop = False
         self.figures = {
+            'exp_counts': False, 'bg_counts': False, 'entropy': False,
             'eMap': False, 'eMapSc': False, 'eLogo': False, 'eLogoMin': False,
-            'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False,
-            'exp_counts': False, 'bg_counts': False
+            'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False
         }
-
-        # # Params:
-        # self. = False
-        # self. = False
-        # self. = False
 
         pd.options.display.float_format = '{:,.3f}'.format
 
@@ -938,7 +934,7 @@ class WebApp:
             bg = True if queuesBg else False
             return {'Exp': exp, 'Bg': bg}
         self.motifLen = len(next(iter(self.subsExp)))
-        print(f'Motif Length: {self.motifLen}')
+        print(f'\nMotif Length: {self.motifLen}')
 
         # Filter AAs
         self.filterSubs() ##
@@ -947,6 +943,8 @@ class WebApp:
         self.calculateRF()
         self.calculateEntropy()
         self.calculateEnrichment()
+
+        return None
 
 
     def filterSubs(self):
@@ -1175,7 +1173,7 @@ class WebApp:
         self.log(f'RF Background:\n{self.rfBg}')
 
 
-    def calculateEntropy(self):
+    def calculateEntropy(self, plotFig=True):
         self.log('\n\n============================= Calculate: Entropy '
                  '=============================')
         self.log(f'Filter: {self.datasetTag}\n')
@@ -1192,6 +1190,9 @@ class WebApp:
                     S += -prob * np.log2(prob)
             self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
         self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
+
+        if plotFig:
+            plotEntropy()
 
 
     def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
@@ -1333,7 +1334,91 @@ class WebApp:
         # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
         #                       combinedMotifs=combinedMotifs)
 
-        # self.figures['words'] = self.plotWordCloud(self.subsExp)
+        self.figures['words'] = self.plotWordCloud(self.subsExp)
+
+
+    def plotEntropy(self, combinedMotifs=False, releasedCounts=False):
+        # Set figure title
+        title = self.enzymeName
+
+        # Figure parameters
+        yMax = self.entropyMax + 0.2
+
+        # Map entropy values to colors using the colormap
+        colors = [(0, 'navy'),
+                  (0.3/self.entropyMax, 'navy'),
+                  (0.7/self.entropyMax, 'dodgerblue'),
+                  (0.97/self.entropyMax, 'white'),
+                  (0.98/self.entropyMax, 'white'),
+                  (1.0/self.entropyMax, 'white'),
+                  (1.65/self.entropyMax, 'red'),
+                  (3/self.entropyMax, 'firebrick'),
+                  (1, 'darkred')]
+        colorBar = LinearSegmentedColormap.from_list('custom_colormap', colors)
+
+        # Map entropy values to colors using the colormap
+        normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
+        cMap = [colorBar(normalize(value)) for value in self.entropy['ΔS'].astype(float)]
+
+        # Plotting the entropy values as a bar graph
+        fig, ax = plt.subplots(figsize=self.figSize)
+        plt.bar(self.entropy.index, self.entropy['ΔS'], color=cMap,
+                edgecolor='black', linewidth=self.lineThickness, width=0.8)
+        plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        plt.ylabel('ΔS', fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
+        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        plt.tight_layout()
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks)
+
+        # Set x-ticks
+        xTicks = np.arange(0, len(self.entropy.iloc[:, 0]), 1)
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(self.entropy.index, rotation=0, ha='center')
+        for tick in ax.xaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set y-ticks
+        yTicks = range(0, 5)
+        yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}' for tick in yTicks]
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(yTickLabels)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set the edge thickness
+        for spine in ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
+        # Set axis limits
+        ax.set_ylim(0, yMax)
+
+        # Add color bar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalize, cmap=colorBar), cax=cax)
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+        cbar.outline.set_linewidth(self.lineThickness)
+
+        # File path
+        figName = f'entropy-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        path = os.path.join(self.pathFigs, figName)
+        print(f'\nSaving Fig: EM\n     {path}')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
 
 
     def plotEnrichmentScores(self, dataType, releasedCounts=False,
@@ -1347,13 +1432,7 @@ class WebApp:
             scores = self.eMap
 
         # Define: Figure title
-        datasetType = self.datasetTag
-        if releasedCounts:
-            title = f'{self.enzymeName}'
-            datasetType = self.datasetTagMotif # <----- Do we need this -----
-        else:
-            title = f'{self.enzymeName}'
-
+        title = f'{self.enzymeName}'
 
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='EM')
@@ -1426,12 +1505,11 @@ class WebApp:
         cbar.outline.set_edgecolor('black')
 
         # File path
+        figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
         if scaleData:
-            figName = f'eMap_Scaled-{self.enzymeName}-{datasetType}.png'
-        else:
-            figName = f'eMap-{self.enzymeName}-{datasetType}.png'
+            figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
-        print(f'\nSaving Fig: EM {datasetType}\n     {path}')
+        print(f'\nSaving Fig: EM\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1524,11 +1602,11 @@ class WebApp:
             if self.datasetTag is None:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
-            figName = f'eLogo-{self.enzymeName}-{self.getSaveTag()}.png'
+            figName = f'eLogo-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
             if limitYAxis:
                 figName = figName.replace('eLogo-', 'eLogo_yMin-')
             path = os.path.join(self.pathFigs, figName)
-            self.log(f'Saving Enrichment Logo:\n     {path}')
+            self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
             # Encode the figure
             figBase64 = self.encodeFig(fig)
@@ -1583,11 +1661,7 @@ class WebApp:
         print(f'Plotting: {totalWords:,} words\n\n')
 
         # Define: Figure title
-        if predActivity:
-            title = f'{self.enzymeName}\n{predModel}'
-        else:
-            title = self.titleWords
-            title += f'\nTop {totalWords} Substrates'
+        title = self.enzymeName
 
 
         # Create word cloud
@@ -1602,7 +1676,6 @@ class WebApp:
             colormap=cmap
         ).generate_from_frequencies(substrates))
 
-
         # Display the word cloud
         fig = plt.figure(figsize=self.figSize, facecolor='white')
         plt.imshow(wordcloud, interpolation='bilinear')
@@ -1610,42 +1683,20 @@ class WebApp:
         plt.axis('off')
         fig.tight_layout()
 
+        # File path
+        if self.datasetTag is None:
+            print(f'Dont save, dataset tag: {self.datasetTag}\n')
+            sys.exit()
+        figName = f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        path = os.path.join(self.pathFigs, figName)
+        self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
-        # Save the Figure
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
 
-        # Define: Save location
-        if combinedMotifs:
-            figLabel = (f'{self.enzymeName} - Words - Substrate Profile '
-                        f'{self.datasetTagMotif} - {self.motifLen} AA - '
-                        f'Plot {totalWords} - MinCounts {self.minCounts}.png')
-        else:
-            figLabel = (f'{self.enzymeName} - Words - '
-                        f'{self.datasetTag} - {self.motifLen} AA - '
-                        f'Plot {totalWords} - MinCounts {self.minCounts}.png')
-        if self.numSamples:
-            figLabel = figLabel.replace(
-                f'Plot {totalWords}',
-                f'Select {self.numSamples} Plot {totalWords}')
-        if clusterNumPCA is not None:
-            figLabel = figLabel.replace('Words',
-                                        f'Words - PCA {clusterNumPCA}')
-        if predActivity:
-            if combinedMotifs:
-                figLabel = figLabel.replace(
-                    self.datasetTagMotif,
-                    f'{self.datasetTagMotif} - Predictions - {predModel}')
-            else:
-                figLabel = figLabel.replace(
-                    self.datasetTag,
-                    f'{self.datasetTag} - Predictions - {predModel}')
-        saveLocation = os.path.join(self.pathSaveFigs, figLabel)
+        # Close the figure to free memory
+        plt.close(fig)
 
-        # Save figure
-        if os.path.exists(saveLocation):
-            print(f'The figure was not saved\n\n'
-                  f'File was already found at path:\n'
-                  f'     {saveLocation}\n\n')
-        else:
-            print(f'Saving figure at path:\n'
-                  f'     {saveLocation}\n\n')
-            fig.savefig(saveLocation, dpi=self.figureResolution)
+        return figName
