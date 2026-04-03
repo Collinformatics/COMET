@@ -257,7 +257,7 @@ class WebApp:
         elif tagExcl != 'Excl ':
             self.datasetTag = tagExcl
         self.jobParams['Dataset Tag'] = self.datasetTag
-        self.log(f'Dataset: {self.datasetTag}')
+        self.log(f'Filter: {self.datasetTag}')
 
         # Initialize: Save tags
         self.saveTagExp = {
@@ -1168,7 +1168,7 @@ class WebApp:
     def calculateRF(self):
         self.log('\n\n=============================== Calculate: RF '
                  '================================')
-        self.log(f'Dataset: {self.datasetTag}\n')
+        self.log(f'Filter: {self.datasetTag}\n')
         self.rfExp = pd.DataFrame(
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
         )
@@ -1187,7 +1187,7 @@ class WebApp:
     def calculateEntropy(self):
         self.log('\n\n============================= Calculate: Entropy '
                  '=============================')
-        self.log(f'Dataset: {self.datasetTag}\n')
+        self.log(f'Filter: {self.datasetTag}\n')
 
         self.entropy = pd.DataFrame(0.0, index=self.rfExp.columns, columns=['ΔS'])
         self.entropyMax = np.log2(len(self.rfExp.index))
@@ -1479,7 +1479,7 @@ class WebApp:
             title = title.replace('Register ', 'Register\n')
 
         # Print: ds
-        print(f'Dataset: {self.datasetTag}\n'
+        print(f'Filter: {self.datasetTag}\n'
               f'Unique Substrates: {self.countExpUnique:,}')
         if self.motifFilter:
             print(f'Figure Number: '
