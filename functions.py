@@ -214,8 +214,8 @@ class WebApp:
 
     @staticmethod
     def pressButton(self, message):
-        print(f'Received data: {message}')
-        return {'key': 'Returned data'}
+        print(f'Received ds: {message}')
+        return {'key': 'Returned ds'}
 
 
 
@@ -278,12 +278,16 @@ class WebApp:
                     tagFix += f'{AA}@{pos.replace('fix', '')} '
             tagFix = tagFix[:-1]
             print(f'    Fix AA: {tagFix}')
-        if tagExcl and tagFix:
+        if tagExcl != 'Excl ' and tagFix != 'Fix ':
             self.datasetTag = f'{tagExcl} {tagFix}'
-        elif tagFix:
+            print(f'Tags: -{tagExcl}---{tagFix}-')
+        elif tagFix != 'Fix ':
             self.datasetTag = tagFix
-        elif tagExcl:
+            print(2)
+        elif tagExcl != 'Excl ':
             self.datasetTag = tagExcl
+            print(3)
+        print(f'Dataset tag: {self.datasetTag}')
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset: {self.datasetTag}')
 
@@ -329,7 +333,7 @@ class WebApp:
 
 
     def initDataStructures(self):
-        # Initialize data structures
+        # Initialize ds structures
         self.subsExp = {}
         self.subsBg = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
@@ -345,7 +349,7 @@ class WebApp:
         # print()
 
         # Directories
-        self.pathDir = os.path.join('data', form['enzymeName'])
+        self.pathDir = os.path.join('ds', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
         self.pathLog = os.path.join(self.pathDir, 'log.txt')
@@ -399,12 +403,12 @@ class WebApp:
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
             ## Placeholder files
-            self.fileExp = ['data/validation/variantsExp.fastq'] # , 'data/validation/variantsExp2.fastq'
-            self.fileBg = ['data/validation/variantsBg.fasta'] # , 'data/validation/variantsBg2.fasta'
+            self.fileExp = ['ds/test/variantsExp.fastq'] # , 'ds/test/variantsExp2.fastq'
+            self.fileBg = ['ds/test/variantsBg.fasta'] # , 'ds/test/variantsBg2.fasta'
         elif filterAA:
             ## Placeholder files
-            self.fileExp = ['data/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = ['data/Name/data/Name-Subs_Bg-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileExp = ['ds/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileBg = ['ds/Name/data/Name-Subs_Bg-Unfiltered-MinCounts_1-8AA.pkl']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
@@ -488,7 +492,7 @@ class WebApp:
                     self.log(f'          {substrate}: {count}')
                 self.log('')
 
-        # Sort data
+        # Sort ds
         substrates = dict(sorted(substrates.items(),
                                  key=lambda item: item[1], reverse=True))
 
@@ -528,7 +532,7 @@ class WebApp:
             self.log(f'     {sub}: {count}')
         self.log('')
 
-        # Save data
+        # Save ds
         self.saveSubstrates(substrates=substrates,
                             datasetType=datasetType,
                             filteredAA=filteredAA)
@@ -693,7 +697,7 @@ class WebApp:
                             totalSubsExtracted += 1
                         else:
                             queueLog.put('')
-        extractionEfficiency() # Evaluate data quality
+        extractionEfficiency() # Evaluate ds quality
 
 
         # Translate DNA - Full Set
@@ -755,7 +759,7 @@ class WebApp:
                             else:
                                 substrates[substrate] = 1
                             totalSubsExtracted += 1
-        extractionEfficiency(fullSet=True)  # Evaluate data quality
+        extractionEfficiency(fullSet=True)  # Evaluate ds quality
 
         return substrates
 
@@ -763,9 +767,9 @@ class WebApp:
 
     def evalDNA(self, form):
         self.jobInit(form, job='Process DNA', evalDNA=True)
-        x = 'data/Name/data/Name - AA Counts Exp - Unfiltered - MinCounts 1 - 8 AA'
+        x = 'ds/Name/ds/Name - AA Counts Exp - Unfiltered - MinCounts 1 - 8 AA'
 
-        # Load the data
+        # Load the ds
         threads = []
         queuesExp = []
         queuesExpLog = []
@@ -862,7 +866,7 @@ class WebApp:
     def loadSubstrates(self, path, queueData, queueLog):
         try:
             with open(path, 'rb') as openedFile:  # Open file
-                data = pk.load(openedFile)  # Access the data
+                data = pk.load(openedFile)  # Access the ds
             queueData.put(data)
             queueLog.put(f'     {path}\n')
         except Exception as e:
@@ -882,7 +886,7 @@ class WebApp:
         self.log('\n\n=============================== Load Substrates '
                  '==============================')
 
-        # Load the data
+        # Load the ds
         threads = []
         queuesExp = []
         queuesExpLog = []
@@ -1016,8 +1020,7 @@ class WebApp:
             if keepSub:
                 print(f'Add: {substrate}, {count:,}')
                 subs[substrate] = count
-            print('\n')
-        print()
+            print('')
 
         i = 0
         print(f'Keep: {len(subs)}')
@@ -1509,7 +1512,7 @@ class WebApp:
         if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
             title = title.replace('Register ', 'Register\n')
 
-        # Print: data
+        # Print: ds
         print(f'Dataset: {self.datasetTag}\n'
               f'Unique Substrates: {self.countExpUnique:,}')
         if self.motifFilter:

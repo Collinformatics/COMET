@@ -48,7 +48,7 @@ print(f'Generating {args.num_variants:,} variants\n\n'
       f'* Experimental: {args.mut_exp} %\n'
       f'* Background: {args.mut_bg} %\n')
 
-dir = 'data/validation/'
+dir = 'ds/test/'
 if not os.path.exists(dir):
     os.makedirs(dir, exist_ok=True)
 pathExp = os.path.join(dir, 'variantsExp.fastq')

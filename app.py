@@ -132,7 +132,7 @@ def jobSummary():
 
 @app.route('/evalFormDNA', methods=['POST'])
 def evalDNA():
-    # Process the data
+    # Process the ds
     webapp.evalDNA(parseForm())
     print('Job Done: Eval DNA')
     webapp.done = True
