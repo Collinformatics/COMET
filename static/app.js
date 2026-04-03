@@ -317,7 +317,7 @@ function getFigures() {
                 }
             }
         });
-    }, 5000); // ## 1000); // poll every 1 second
+    }, 1000); // poll every 1 second
 }
 
 async function download() {
