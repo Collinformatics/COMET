@@ -7,6 +7,11 @@
     --orange: #FA8128;
     --orangeBurnt: #BF5700;
 
+    --colorBody: var(--black);
+    --colorHeader: var(--grey);
+    --colorBox: var(--black);
+    --colorForm: var(--grey);
+
     --textColor: white;
     --textSize: 16px;
     --textSizeLabel: 20px;
@@ -35,13 +40,18 @@
 }
 
 body {
-    background-color: var(--black);
+    background-color: var(--colorBody);
     margin: 0px;
     padding: 0px;
     font-family: 'Segoe UI', sans-serif;
 }
 
 h1 {
+    color: var(--white);
+    font-size: var(--textSizeHeader);
+    text-align: center;
+}
+h2 {
     color: var(--orangeBurnt);
     font-size: var(--textSizeHeader);
     margin: 10px;
@@ -84,9 +94,26 @@ p {
     width: fit-content;       /* only take up needed space */
 }
 
+
+ft {
+    color: var(--white);
+    font-size: var(--textSize);
+    align-self: flex-start;
+    margin: 5px;
+    padding: var(--padSize);
+    border-top: 2px solid var(--orange); /* Adjust style, width, and color as needed */
+}
+hr { /* Horizontal bar */
+    display: block;
+    height: 2px;
+    border: 0;
+    border-top: 1px solid var(--orange);
+    margin: 1em 0;
+    padding: 0;
+}
+
 .box {
-    background-color: var(--grey);
-    margin: var(--marginLabel);
+    background-color: var(--colorBox);
     margin-bottom: var(--marginBottom);
     padding: var(--padSize);
     display: flex;
@@ -98,18 +125,14 @@ p {
 
 /* Header */
 .container-header {
-    background-color: var(--grey);
+    background-color: var(--black);
     width: 100%;
     height: var(--headerHeight);
     display: flex; /* make horizontal buttons */
     flex-direction: row;
     margin: 0px auto;
-    padding-right: 10px;
-    padding-left: 10px;
-}
-
-.buttonHeader {
-    background-color: var(--grey);
+}.buttonHeader {
+    background-color: var(--colorHeader);
     color: var(--orange);
     flex: none; /* makes buttons line up horizontally */
     height: var(--headerHeight);
@@ -120,68 +143,15 @@ p {
     margin: 0px;
     white-space: nowrap; /* ⬅ prevents label from wrapping */
     padding: 10px;
+    border-radius: 0px;
 }.buttonHeader:hover {
-    background-color: var(--grey);
+    background-color: var(--colorHeader);
     color: var(--white);
 }.button-group {
+    background-color: var(--colorHeader);
     display: flex;
     justify-content: flex-start;
     flex: 1;
-}
-
-/* Dropdown */
-.dropdown {
-    margin-left: auto;
-    position: relative;
-    display: inline-block;
-    border-radius: 0px;
-}.dropdown-wrapper {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-}.dropbtn {
-    background-color: var(--grey);
-    color: var(--white);
-    right: 0; /* Keeps it on-screen */
-    height: calc(var(--headerHeight) - 5px);
-    width: var(--dropdownWidth);
-    font-size: var(--buttonFontSize);
-    border-radius: 0px;
-    cursor: pointer;
-    border: none;
-    white-space: nowrap;
-    padding: 10px;
-    padding-right: 10px;
-    display: flex;
-    align-items: center; /* Vertically centers contents */
-    justify-content: center;
-}.dropdown-content {
-    background-color: var(--grey);
-    color: var(--white);
-    width: var(--dropdownWidth);
-    display: none;
-    position: absolute;
-    right: 0; /* Keeps it on-screen */
-    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-    z-index: 1;
-    flex-direction: column;
-    border-radius: 0px;
-}.dropdown-content a {
-    color: var(--orange);
-    padding: 10px 5px;
-    text-decoration: none;
-    display: block;
-    font-size: calc(var(--buttonFontSize) - 2px);
-    border-radius: 0px;
-    border: 1px solid var(--orange);
-}.dropdown-content a:hover {
-    background-color: var(--black);
-    color: var(--orange);
-}.dropdown:hover .dropdown-content {
-    display: block;
-}.dropdown:hover .dropbtn {
-    background-color: var(--grey);
-    color: var(--white);
 }
 
 /* Figures*/
@@ -232,6 +202,7 @@ button:hover {
     margin-bottom: var(--marginBottom); /* Add space between sections */
     gap: var(--gap);
     min-width: 100px;
+    padding: 10px; /* Adds space inside the element, between the text and its edge */
 }.form-group label {
     color: var(--orange);
     align-items: center; /* Vertically center all children */
@@ -241,8 +212,12 @@ button:hover {
     font-weight: normal;
     align-items: center;
 }.input-form {
-    width: 100%;
+    background-color: var(--colorForm);
+    width: 100%;color: var(--orange);
+    margin: 20px;
+    border-radius: 10px;
     min-width: 200px;
+}
 
 }.form-button {
     display: flex;

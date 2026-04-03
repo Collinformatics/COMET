@@ -1192,7 +1192,7 @@ class WebApp:
         self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
 
         if plotFig:
-            plotEntropy()
+            self.figures['entropy'] = self.plotEntropy()
 
 
     def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,

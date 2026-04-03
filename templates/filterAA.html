@@ -8,6 +8,9 @@
     </head>
     <body>
         <!-- Header -->
+        <div>
+            <h1>COmprehensive Motif Evaluation Toolkit</h1>
+        </div>
         <div class="container-header">
             <!-- Header Buttons -->
             <div class="button-group">
@@ -16,24 +19,14 @@
                 <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
                 <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
             </div>
-
-            <!-- Header Dropdown -->
-            <div class="dropdown-wrapper">
-                <div class="dropdown">
-                  <button class="dropbtn">Select Enzyme</button>
-                      <div class="dropdown-content">
-                        <a href="/addEnzyme">Add Enzyme</a>
-                        <a href="/help">Help</a>
-                      </div>
-                  </div>
-            </div>
         </div>
+
 
         <!-- Application -->
         <div class="box">
-            <h1>Filter Amino Acids</h1>
+            <h2>Filter Amino Acids</h2>
             <p>
-                This program allows you to visualise your profiling data.<br><br>
+                This program allows you to visualize your profiling data.<br><br>
                 You can filter the data by locking one or more amino acids at a given
                 position in the sequence.
             </p>
@@ -97,10 +90,15 @@
                 </div>
             </form>
 
-        <!-- Execute -->
-        <div class="button-wrapper">
-            <button class="btn" onclick="buttonFilterSubs()">Evaluate</button>
+            <!-- Execute -->
+            <div class="button-wrapper">
+                <button class="btn" onclick="buttonFilterSubs()">Evaluate</button>
+            </div>
         </div>
-    </div>
+
+        <div class=ft>
+            <hr/>
+            <button class="btn" onclick="buttonFilterSubs()">Iverson Lab</button>
+        </div>
     </body>
 </html>
