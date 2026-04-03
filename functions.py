@@ -269,7 +269,6 @@ class WebApp:
                 else:
                     tagExcl += f'{AA}@{pos.replace('excl', '')} '
             tagExcl = tagExcl[:-1]
-            print(f'\nExclude AA: {tagExcl}')
         if self.fixAA:
             for index, (pos, AA) in enumerate(self.fixAA.items()):
                 if len(AA) > 1:
@@ -277,21 +276,16 @@ class WebApp:
                 else:
                     tagFix += f'{AA}@{pos.replace('fix', '')} '
             tagFix = tagFix[:-1]
-            print(f'    Fix AA: {tagFix}')
         if tagExcl != 'Excl ' and tagFix != 'Fix ':
             self.datasetTag = f'{tagExcl} {tagFix}'
-            print(f'Tags: -{tagExcl}---{tagFix}-')
         elif tagFix != 'Fix ':
             self.datasetTag = tagFix
-            print(2)
         elif tagExcl != 'Excl ':
             self.datasetTag = tagExcl
-            print(3)
-        print(f'Dataset tag: {self.datasetTag}')
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Dataset: {self.datasetTag}')
 
-        # Initialize: Save tags Excl [R,N]@R4 C@R5 Fix [D,E]@R2 N@R
+        # Initialize: Save tags
         self.saveTagExp = {
             'subs': f'{self.enzymeName}-Subs_Exp-{self.datasetTag}-'
                     f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl',
@@ -311,6 +305,14 @@ class WebApp:
 
         self.saveTagFig = (f'{self.enzymeName}-Fig-{self.datasetTag}-'
                            f'Min_Counts_{self.minCounts}-{self.seqLength}AA')
+
+
+    def getSaveTag(self, saveTag):
+        # Evaluate filters
+        tag = self.datasetTag
+        tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
+        tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
+        return saveTag.replace(self.datasetTag, tag)
 
 
 
@@ -333,7 +335,7 @@ class WebApp:
 
 
     def initDataStructures(self):
-        # Initialize ds structures
+        # Initialize data structures
         self.subsExp = {}
         self.subsBg = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
@@ -532,14 +534,12 @@ class WebApp:
             self.log(f'     {sub}: {count}')
         self.log('')
 
-        # Save ds
-        self.saveSubstrates(substrates=substrates,
-                            datasetType=datasetType,
-                            filteredAA=filteredAA)
+        # Save data
+        self.saveSubstrates(substrates=substrates, datasetType=datasetType)
 
         # Count AAs
         self.countAA(substrates=substrates, countMatrix=countMatrix,
-                     datasetType=datasetType, filteredAA=filteredAA)
+                     datasetType=datasetType)
 
 
 
@@ -697,7 +697,7 @@ class WebApp:
                             totalSubsExtracted += 1
                         else:
                             queueLog.put('')
-        extractionEfficiency() # Evaluate ds quality
+        extractionEfficiency() # Evaluate data quality
 
 
         # Translate DNA - Full Set
@@ -759,7 +759,7 @@ class WebApp:
                             else:
                                 substrates[substrate] = 1
                             totalSubsExtracted += 1
-        extractionEfficiency(fullSet=True)  # Evaluate ds quality
+        extractionEfficiency(fullSet=True)  # Evaluate data quality
 
         return substrates
 
@@ -938,11 +938,12 @@ class WebApp:
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
                         break
+                self.log('')
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
         if queuesBgLog:
-            self.log('Loading Substrates: Background')
+            self.log('\nLoading Substrates: Background')
             for log in queuesBgLog:
                 self.logInQueue(log)
         if queuesBg:
@@ -990,6 +991,7 @@ class WebApp:
 
         print(f'\nFilter Substrates: {self.datasetTag}')
         subs = {}
+        countsTotal = 0
         for substrate, count in self.subsExp.items():
             keepSub = True
             print(f'{substrate}, {count:,}')
@@ -1020,43 +1022,47 @@ class WebApp:
             if keepSub:
                 print(f'Add: {substrate}, {count:,}')
                 subs[substrate] = count
+                countsTotal += count
             print('')
+        self.log(f'')
 
         i = 0
-        print(f'Keep: {len(subs)}')
+        self.log(f'Filtered Substrates:\n'
+                 f'     Total: {countsTotal:,}\n'
+                 f'    Unique: {len(subs):,}\n')
+        self.log('Substrates:')
         for substrate, count in subs.items():
-            print(f'    {substrate}, {count:,}')
+            self.log(f'    {substrate}, {count:,}')
             i += 1
             if i >= self.printN:
                 break
+        self.log('')
         self.subsExp = subs
 
+        # Save data
+        self.saveSubstrates(substrates=self.subsExp, datasetType=self.datasetTypes['Exp'])
+
+        # Count AAs ##
+        self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
+                     datasetType=self.datasetTypes['Exp'])
 
 
 
 
 
-    def saveSubstrates(self, substrates, datasetType, filteredAA):
+
+    def saveSubstrates(self, substrates, datasetType):
         saveTag = None
-        if filteredAA:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            if datasetType == self.datasetTypes['Exp']:
-                saveTag = self.saveTagExp['subs']
-            elif datasetType == self.datasetTypes['Bg']:
-                saveTag = self.saveTagBg['subs']
-            else:
-                self.logErrorFn(function='saveSubstrates()',
-                                msg=f'Unknown dataset type: {datasetType}')
+        if self.datasetTag is None:
+            print(f'Dont save, dataset tag: {self.datasetTag}\n')
+            sys.exit()
+        if datasetType == self.datasetTypes['Exp']:
+            saveTag = self.getSaveTag(self.saveTagExp['subs'])
+        elif datasetType == self.datasetTypes['Bg']:
+            saveTag = self.getSaveTag(self.saveTagBg['subs'])
         else:
-            if datasetType == self.datasetTypes['Exp']:
-                saveTag = self.saveTagExp['subs']
-            elif datasetType == self.datasetTypes['Bg']:
-                saveTag = self.saveTagBg['subs']
-            else:
-                self.logErrorFn(function='saveSubstrates()',
-                                msg=f'Unknown dataset type: {datasetType}')
+            self.logErrorFn(function='saveSubstrates()',
+                            msg=f'Unknown dataset type: {datasetType}')
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
@@ -1066,7 +1072,7 @@ class WebApp:
 
 
 
-    def countAA(self, substrates, countMatrix, datasetType, filteredAA):
+    def countAA(self, substrates, countMatrix, datasetType):
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
@@ -1081,25 +1087,16 @@ class WebApp:
 
         # File path
         saveTag = None
-        if filteredAA:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            if datasetType == self.datasetTypes['Exp']:
-                saveTag = self.saveTagExp['counts']
-            elif datasetType == self.datasetTypes['Bg']:
-                saveTag = self.saveTagBg['counts']
-            else:
-                self.logErrorFn(function='countAA()',
-                                msg=f'Unknown dataset type: {datasetType}')
+        if self.datasetTag is None:
+            print(f'Dont save, dataset tag: {self.datasetTag}\n')
+            sys.exit()
+        if datasetType == self.datasetTypes['Exp']:
+            saveTag = self.getSaveTag(self.saveTagExp['counts'])
+        elif datasetType == self.datasetTypes['Bg']:
+            saveTag = self.getSaveTag(self.saveTagBg['counts'])
         else:
-            if datasetType == self.datasetTypes['Exp']:
-                saveTag = self.saveTagExp['counts']
-            elif datasetType == self.datasetTypes['Bg']:
-                saveTag = self.saveTagBg['counts']
-            else:
-                self.logErrorFn(function='countAA()',
-                                msg=f'Unknown dataset type: {datasetType}')
+            self.logErrorFn(function='countAA()',
+                            msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)

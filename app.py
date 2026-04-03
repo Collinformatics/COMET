@@ -25,14 +25,14 @@ def parseForm():
 
     # Parse form
     keys = set(request.form.keys())
-    print('Data:')
+    # print('Data:')
     for key in keys:
         values = request.form.getlist(key)
         if len(values) == 1:  # Check if there are multiple values
             data[key] = values[0]
         else:
             data[key] = values  # Store as a list if multiple values exist
-        print('*', key, data[key])
+        # print('*', key, data[key])
     # Parse files
     for key, value in request.files.items():
         if value:
