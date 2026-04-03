@@ -135,7 +135,6 @@ class WebApp:
         pd.options.display.float_format = '{:,.3f}'.format
 
 
-
     @staticmethod
     def createCustomColorMap(colorType):
         colorType = colorType.lower()
@@ -173,7 +172,6 @@ class WebApp:
         return LinearSegmentedColormap.from_list('custom_colormap', colorList)
 
 
-
     @staticmethod
     def residueColors():
         color = ['darkgreen', 'firebrick', 'deepskyblue', 'pink', 'navy', 'black', 'gold']
@@ -203,7 +201,6 @@ class WebApp:
         }
 
 
-
     @staticmethod
     def getKey(app):  # required for CSRF
         app.config['SECRET_KEY'] = secrets.token_hex(nbytes=32)
@@ -211,12 +208,10 @@ class WebApp:
         #       f'Len: {len(app.config['SECRET_KEY'])}\n')
 
 
-
     @staticmethod
     def pressButton(self, message):
         print(f'Received ds: {message}')
         return {'key': 'Returned ds'}
-
 
 
     def encodeFig(self, fig):
@@ -234,27 +229,6 @@ class WebApp:
         buffer.close()
 
         return figBase64
-
-
-
-    def filterAA(self):
-        self.log()  # Clear the log
-
-        print(f'Code: filterAA()')
-        sys.exit()
-
-        return {'AA': 'VEHTVALKQNR'}
-
-
-
-    def filterMotif(self):
-        self.log()  # Clear the log
-
-        print(f'Code: filterAA()')
-        sys.exit()
-
-        return {'Motif': 'TVALK'}
-
 
 
     def getDatasetTag(self):
@@ -315,7 +289,6 @@ class WebApp:
         return saveTag.replace(self.datasetTag, tag)
 
 
-
     def getFilter(self, data):
         if 'filterPos' in data.keys():
             self.filterPos = data['filterPos']
@@ -333,7 +306,6 @@ class WebApp:
         self.getDatasetTag()
 
 
-
     def initDataStructures(self):
         # Initialize data structures
         self.subsExp = {}
@@ -341,7 +313,6 @@ class WebApp:
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
-
 
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
@@ -410,7 +381,7 @@ class WebApp:
         elif filterAA:
             ## Placeholder files
             self.fileExp = ['ds/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = ['ds/Name/data/Name-Subs_Bg-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileBg = ['ds/Name/data/Name-AA_Counts_Exp-Unfiltered-MinCounts_1-8AA.csv']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
@@ -426,7 +397,6 @@ class WebApp:
         # self.log(f'Job ID: {self.jobParams['jobID']}')
 
 
-
     def log(self, txt=None):
         if txt is None:
             with open(self.pathLog, 'w'):
@@ -436,12 +406,10 @@ class WebApp:
                 log.write(f'{txt}\n')
 
 
-
     def logInQueue(self, logQueue):
         with open(self.pathLog, 'a') as log:
             while not logQueue.empty():
                 log.write(logQueue.get() + '\n')
-
 
 
     def logErrorFn(self, function, msg, getStr=False):
@@ -468,7 +436,6 @@ class WebApp:
                      f'========================================='
                      f'========================================\n')
             sys.exit(1)
-
 
 
     def processSubs(self, substrates, datasetType, filteredAA):
@@ -542,7 +509,6 @@ class WebApp:
                      datasetType=datasetType)
 
 
-
     def loadDNA(self, path, datasetType, queueData, queueLog, forwardRead):
         translate = True
 
@@ -569,7 +535,6 @@ class WebApp:
                 substrates = self.translate(data, path, datasetType,
                                             queueLog, forwardRead)
                 queueData.put(substrates) # Put the substrates in the queue
-
 
 
     def translate(self, data, fileName, datasetType, queueLog, forwardRead):
@@ -764,10 +729,8 @@ class WebApp:
         return substrates
 
 
-
     def evalDNA(self, form):
         self.jobInit(form, job='Process DNA', evalDNA=True)
-        x = 'ds/Name/ds/Name - AA Counts Exp - Unfiltered - MinCounts 1 - 8 AA'
 
         # Load the ds
         threads = []
@@ -862,7 +825,6 @@ class WebApp:
             self.calculateEnrichment()
 
 
-
     def loadSubstrates(self, path, queueData, queueLog):
         try:
             with open(path, 'rb') as openedFile:  # Open file
@@ -876,15 +838,28 @@ class WebApp:
                 getStr=True))
 
 
+    def loadCounts(self, path, queueData, queueLog):
+        try:
+            # Load file
+            data = pd.read_csv(path, index_col=0)
+            data = data.astype(int)
+            queueData.put(data)
+            queueLog.put(f'     {path}\n')
+        except Exception as e:
+            queueLog.put(self.logErrorFn(
+                function='loadCounts()',
+                msg=f'Failed to load file:\n     {path}\n     {e}',
+                getStr=True))
+
 
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
-            print('\nFilter Motif')
+            print('\nFilter Motif') ##
             self.jobInit(form, job='Filter Motif', filterMotif=True)
         else:
             self.jobInit(form, job='Filter AA', filterAA=True)
-        self.log('\n\n=============================== Load Substrates '
-                 '==============================')
+        self.log('\n\n================================== Load Data '
+                 '=================================')
 
         # Load the ds
         threads = []
@@ -908,7 +883,7 @@ class WebApp:
             queuesBg.append(queueBg)
             queuesBgLog.append(queueLog)
             thread = threading.Thread(
-                target=self.loadSubstrates, args=(file, queueBg, queueLog)
+                target=self.loadCounts, args=(file, queueBg, queueLog)
             )
             thread.start()
             threads.append(thread)
@@ -923,14 +898,14 @@ class WebApp:
             for log in queuesExpLog:
                 self.logInQueue(log)
         if queuesExp:
-            for queueData in queuesExp:
-                substrates = queueData.get()
+            for q in queuesExp:
+                substrates = q.get()
                 for substrate, count in substrates.items():
                     if substrate in self.subsExp.keys():
                         self.subsExp[substrate] += count
                     else:
                         self.subsExp[substrate] = count
-            self.log('Substrates: Experimental')
+            self.log('Substrates:')
             if self.subsExp:
                 i = 0
                 for substrate, count in self.subsExp.items():
@@ -943,28 +918,19 @@ class WebApp:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
         if queuesBgLog:
-            self.log('\nLoading Substrates: Background')
+            self.log('\nLoading Substrate Counts: Background')
             for log in queuesBgLog:
                 self.logInQueue(log)
         if queuesBg:
-            for queueData in queuesBg:
-                substrates = queueData.get()
-                for substrate, count in substrates.items():
-                    if substrate in self.subsBg.keys():
-                        self.subsBg[substrate] += count
-                    else:
-                        self.subsBg[substrate] = count
-            if self.subsBg:
-                i = 0
-                self.log('Substrates: Background')
-                for substrate, count in self.subsBg.items():
-                    i += 1
-                    self.log(f'    {substrate}, {count:,}')
-                    if i >= self.printN:
-                        break
-            else:
-                self.logErrorFn(function='loadSubstrates()',
+            for idx, q in enumerate(queuesBg):
+                counts = q.get()
+                self.countsBg += counts
+                self.log(f'Loaded Count Set: {idx}\n{counts}\n')
+            if (self.countsBg == 0).all(axis=None):
+                print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
+                self.logErrorFn(function='loadCounts()',
                                 msg='No background substrates were loaded')
+            self.log(f'\nBackground Counts:\n{self.countsBg}')
         if not queuesExp or not queuesBg:
             exp = True if queuesExp else False
             bg = True if queuesBg else False
@@ -973,8 +939,12 @@ class WebApp:
         # Filter AAs
         self.filterSubs() ##
 
-        return None
+        # Plot figures
+        self.calculateRF()
+        self.calculateEntropy()
+        self.calculateEnrichment()
 
+        return None
 
 
     def filterSubs(self):
@@ -1048,7 +1018,13 @@ class WebApp:
 
 
 
+    def filterMotif(self):
+        self.log()  # Clear the log
 
+        print(f'Code: filterAA()')
+        sys.exit()
+
+        return {'Motif': 'TVALK'}
 
 
     def saveSubstrates(self, substrates, datasetType):
@@ -1069,7 +1045,6 @@ class WebApp:
         self.log(f'Saving Substrates:\n     {path}')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
-
 
 
     def countAA(self, substrates, countMatrix, datasetType):
@@ -1102,7 +1077,6 @@ class WebApp:
         path = os.path.join(self.pathData, saveTag)
         self.log(f'Saving Counts:\n     {path}')
         countMatrix.to_csv(path)
-
 
 
     def plotCounts(self, countedData, totalCounts, datasetType):
@@ -1191,7 +1165,6 @@ class WebApp:
         return figName
 
 
-
     def calculateRF(self):
         self.log('\n\n=============================== Calculate: RF '
                  '================================')
@@ -1211,7 +1184,6 @@ class WebApp:
         self.log(f'RF Background:\n{self.rfBg}')
 
 
-
     def calculateEntropy(self):
         self.log('\n\n============================= Calculate: Entropy '
                  '=============================')
@@ -1229,7 +1201,6 @@ class WebApp:
                     S += -prob * np.log2(prob)
             self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
         self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
-
 
 
     def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
@@ -1378,7 +1349,6 @@ class WebApp:
         #                       combinedMotifs=combinedMotifs)
 
 
-
     def plotEnrichmentScores(self, dataType, releasedCounts=False,
                              posFilter=False, relFilter=False):
         # Select: Dataset
@@ -1491,7 +1461,6 @@ class WebApp:
         plt.close(fig)
 
         return figName
-
 
 
     def plotEnrichmentLogo(self, combinedMotifs=False, releasedCounts=False,
