@@ -4,7 +4,7 @@ from Bio.Seq import Seq
 from Bio import BiopythonWarning
 import gzip
 import io
-# import logomaker
+import logomaker
 import math
 import matplotlib
 import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ import sys
 import threading
 import time
 import warnings
-# from wordcloud import WordCloud
+from wordcloud import WordCloud
 
 
 defaultResidues = (
@@ -56,6 +56,7 @@ class WebApp:
         self.roundVal = 3
         self.xAxisLabel = False
         self.entropy = None
+        self.entropyMax = None
         self.subsExp = {}
         self.countsExp = 'Initialize me'
         self.countExpTotal = 0
@@ -74,6 +75,7 @@ class WebApp:
         self.saveTagBg = {}
         self.saveTagFig = {}
         self.fixMotif = False
+        self.motifLen = 0
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: Files
@@ -98,6 +100,7 @@ class WebApp:
         self.exclAA = {}
 
         # Params: Figures
+        self.numSamples = 50
         self.figureResolution = 600
         self.saveFigureIteration = None
         self.titleCombined = ''
@@ -122,8 +125,8 @@ class WebApp:
         self.AA = [residue[2] for residue in self.residues]
         self.bigAAonTop = False
         self.figures = {
-            'eMap': False, 'eMapSc': False, 'eLogo': False, 'wLogo': False,
-            'words': False, 'barCounts': False, 'barRF': False,
+            'eMap': False, 'eMapSc': False, 'eLogo': False, 'eLogoMin': False,
+            'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False,
             'exp_counts': False, 'bg_counts': False
         }
 
@@ -142,23 +145,19 @@ class WebApp:
             useGreen = True
             if useGreen:
                 # Green
-                colors = ['#FFFFFF', '#ABFF9B', '#39FF14', '#2E9418', '#2E9418',
-                          '#005000']
+                colors = ['#FFFFFF','#ABFF9B','#39FF14','#2E9418','#2E9418','#005000']
             else:
                 # Orange
-                colors = ['white', 'white', '#FF76FA', '#FF50F9', '#FF00F2',
-                          '#CA00DF', '#BD16FF']
+                colors = ['white','white','#FF76FA','#FF50F9','#FF00F2','#CA00DF','#BD16FF']
         elif colorType == 'stdev':
-            colors = ['white', 'white', '#FF76FA', '#FF50F9', '#FF00F2', '#CA00DF',
-                      '#BD16FF']
+            colors = ['white','white','#FF76FA','#FF50F9','#FF00F2','#CA00DF','#BD16FF']
         elif colorType == 'word cloud':
             # ,'#F2A900','#2E8B57','black'
-            colors = ['#CC5500', '#CC5500', '#F79620', '#FAA338',
-                      '#00C01E', '#1D680D', '#003000', 'black']
-            # colors = ['#008631','#39E75F','#CC5500','#F79620','black']
+            colors = ['#CC5500','#CC5500','#F79620','#FAA338',
+                      '#00C01E','#1D680D','#003000','black']
         elif colorType == 'em':
-            colors = ['navy', 'royalblue', 'dodgerblue', 'lightskyblue', 'white', 'white',
-                      'lightcoral', 'red', 'firebrick', 'darkred']
+            colors = ['navy','royalblue','dodgerblue','lightskyblue','white',
+                      'white','lightcoral','red','firebrick','darkred']
         else:
             print(f'ERROR: Cannot create colormap. '
                   f'Unrecognized colorType parameter: {colorType}\n')
@@ -281,12 +280,15 @@ class WebApp:
                            f'Min_Counts_{self.minCounts}-{self.seqLength}AA')
 
 
-    def getSaveTag(self, saveTag):
+    def getSaveTag(self, saveTag=False):
         # Evaluate filters
         tag = self.datasetTag
         tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
         tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
-        return saveTag.replace(self.datasetTag, tag)
+        if saveTag:
+            return saveTag.replace(self.datasetTag, tag)
+        else:
+            return tag
 
 
     def getFilter(self, data):
@@ -935,6 +937,8 @@ class WebApp:
             exp = True if queuesExp else False
             bg = True if queuesBg else False
             return {'Exp': exp, 'Bg': bg}
+        self.motifLen = len(next(iter(self.subsExp)))
+        print(f'Motif Length: {self.motifLen}')
 
         # Filter AAs
         self.filterSubs() ##
@@ -957,41 +961,31 @@ class WebApp:
                  f'     Total: {totalSubs:,}\n'
                  f'    Unique: {totalSubsUnique:,}')
 
-        print(f'\nFilter Substrates: {self.datasetTag}')
         subs = {}
         countsTotal = 0
         for substrate, count in self.subsExp.items():
             keepSub = True
-            print(f'{substrate}, {count:,}')
             for posExcl, exclAA in self.exclAA.items():
-                print('Excl')
                 if not isinstance(exclAA, list):
                     exclAA = list(exclAA)
                 idx = int(posExcl.replace('exclR', '')) - 1
-                print(f'* Remove {exclAA}@R{idx+1}, {substrate[idx]}')
                 if substrate[idx] in exclAA:
-                    print(f'Drop: {substrate}, {substrate[idx]}@R{idx+1}')
                     keepSub = False
                     break
             if not keepSub:
-                print('\n')
                 continue
 
             for posFix, fixAA in self.fixAA.items():
-                print('Fix')
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
                 idx = int(posFix.replace('fixR', '')) - 1
                 print(f'* Fix {fixAA}@R{idx+1}, {substrate[idx]}')
                 if substrate[idx] not in fixAA:
-                    print(f'Missing: {fixAA}@R{idx+1}')
                     keepSub = False
                     break
             if keepSub:
-                print(f'Add: {substrate}, {count:,}')
                 subs[substrate] = count
                 countsTotal += count
-            print('')
         self.log(f'')
 
         i = 0
@@ -1281,12 +1275,8 @@ class WebApp:
                                            self.entropy.loc[indexColumn, 'ΔS'])
 
         # Record values
-        if releasedCounts:
-            self.eMapReleased = matrix.copy()
-            self.eMapReleasedScaled = heights.copy()
-        else:
-            self.eMap = matrix.copy()
-            self.eMapScaled = heights.copy()
+        self.eMap = matrix.copy()
+        self.eMapScaled = heights.copy()
 
         # Calculate: Max positive
         columnTotals = []
@@ -1307,18 +1297,18 @@ class WebApp:
                 heights.loc[heights[column].notna(), column] = yMax / nValues
                 heights.loc[:, column] = heights.loc[:, column].fillna(0)
         heights = heights.replace([np.inf, -np.inf], 0)
-        self.heights = heights
-        self.log(f'\nResidue Heights: {self.datasetTag}\n'
-                 f'{self.heights}\n')
+        self.eMapScaled = heights
+        self.log(f'Residue Heights: {self.datasetTag}\n'
+                 f'{self.eMapScaled}\n')
 
         # Evaluate stack heights
-        evalMatrix(self.heights)
+        evalMatrix(self.eMapScaled)
 
 
         # Plot: Enrichment Map
         x = {
-            'eMap': False, 'elogo': False, 'eMapSc': False, 'wLogo': False,
-            'words': False, 'barCounts': False, 'barRF': False,
+            'eMap': False, 'eLogo': False, 'eLogoMin': False, 'eMapSc': False,
+            'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False,
             'exp_counts': False, 'bg_counts': False
         }
         self.figures['eMap'] = (
@@ -1333,17 +1323,17 @@ class WebApp:
                 posFilter=posFilter, relFilter=relFilter
             )
         )
+        
         # Plot: Enrichment Logo
-        # self.figures['eLogo'] = (
-        #     self.plotEnrichmentLogo(
-        #         releasedCounts=releasedCounts,
-        #         posFilter=posFilter, relFilter=relFilter
-        #     )
-        # )
+        self.plotEnrichmentLogo(
+            releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
+        )
 
         # # Calculate & Plot: Weblogo
         # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
         #                       combinedMotifs=combinedMotifs)
+
+        # self.figures['words'] = self.plotWordCloud(self.subsExp)
 
 
     def plotEnrichmentScores(self, dataType, releasedCounts=False,
@@ -1352,15 +1342,9 @@ class WebApp:
         scaleData = False
         if 'scaled' in dataType.lower():
             scaleData = True
-            if releasedCounts:
-                scores = self.eMapReleasedScaled
-            else:
-                scores = self.eMapScaled
+            scores = self.eMapScaled
         else:
-            if releasedCounts:
-                scores = self.eMapReleased
-            else:
-                scores = self.eMap
+            scores = self.eMap
 
         # Define: Figure title
         datasetType = self.datasetTag
@@ -1443,9 +1427,9 @@ class WebApp:
 
         # File path
         if scaleData:
-            figName = f'eMap-{self.enzymeName}-{datasetType}.png'
-        else:
             figName = f'eMap_Scaled-{self.enzymeName}-{datasetType}.png'
+        else:
+            figName = f'eMap-{self.enzymeName}-{datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
         print(f'\nSaving Fig: EM {datasetType}\n     {path}')
 
@@ -1462,34 +1446,10 @@ class WebApp:
 
     def plotEnrichmentLogo(self, combinedMotifs=False, releasedCounts=False,
                            posFilter=False, relFilter=False, relIteration=False):
-        print('============================= Plot: Enrichment Logo '
-              '=============================')
         # Define: Figure title
-        datasetType = self.datasetTag
-        if releasedCounts or combinedMotifs or len(self.motifIndexExtracted) > 1:
-            title = self.titleReleased
-            datasetType = self.datasetTagMotif
-        else:
-            title = self.title
-            datasetType = self.datasetTagMotif
-        if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
-            title = title.replace('Register ', 'Register\n')
+        title = f'{self.enzymeName}'
 
-        # Print: ds
-        print(f'Filter: {self.datasetTag}\n'
-              f'Unique Substrates: {self.countExpUnique:,}')
-        if self.motifFilter:
-            print(f'Figure Number: '
-                  f'{self.saveFigureIteration}')
-        if posFilter:
-            if relFilter:
-                print(f'Releasing Filter: {posFilter}')
-            else:
-                print(f'Applying Filter: {posFilter}')
-        print(f'\nResidue heights:\n'
-              f'{self.heights}\n')
-
-        # Set local parameters
+        # Set parameters
         if self.bigAAonTop:
             stackOrder = 'big_on_top'
         else:
@@ -1497,10 +1457,10 @@ class WebApp:
 
         # Calculate: Max and min
         columnTotals = [[], []]
-        for indexColumn in self.heights.columns:
+        for indexColumn in self.eMapScaled.columns:
             totalPos = 0
             totalNeg = 0
-            for value in self.heights.loc[:, indexColumn]:
+            for value in self.eMapScaled.loc[:, indexColumn]:
                 if value > 0:
                     totalPos += value
                 elif value < 0:
@@ -1509,18 +1469,16 @@ class WebApp:
             columnTotals[1].append(totalNeg)
         yMax = max(columnTotals[0])
         yMin = min(columnTotals[1])
-        print(f'y Max: {np.round(yMax, 4)}\n'
-              f'y Min: {np.round(yMin, 4)}\n')
 
         # Rename columns for logomaker script
-        data = self.heights.copy()
+        data = self.eMapScaled.copy()
+        xticks = data.columns
         data.columns = range(len(data.columns))
 
-
-        def plotLogo(limitYAxis=False):
+        def plotLogo(matrix, limitYAxis=False):
             # Plot the sequence motif
             fig, ax = plt.subplots(figsize=self.figSize)
-            motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
+            motif = logomaker.Logo(matrix.transpose(), ax=ax, color_scheme=self.colorsAA,
                                    width=0.95, stack_order=stackOrder)
             motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
             fig.tight_layout()
@@ -1536,8 +1494,8 @@ class WebApp:
                 spine.set_linewidth(self.lineThickness)
 
             # Set x-ticks
-            motif.ax.set_xticks([pos for pos in range(len(self.heights.columns))])
-            motif.ax.set_xticklabels(self.heights.columns, fontsize=self.labelSizeTicks,
+            motif.ax.set_xticks([pos for pos in range(len(xticks))])
+            motif.ax.set_xticklabels(xticks, fontsize=self.labelSizeTicks,
                                      rotation=0, ha='center')
 
             # Set y-ticks
@@ -1562,24 +1520,15 @@ class WebApp:
             motif.ax.axhline(y=0, color='black', linestyle='-',
                              linewidth=self.lineThickness)
 
-            # Evaluate dataset for fixed residues
-            spacer = np.diff(motif.ax.get_xticks())  # Find the space between each tick
-            spacer = spacer[0] / 2
-
-            # Use the spacer to set a gray background to fixed residues
-            for index, position in enumerate(self.xAxisLabels):
-                if position in self.fixedPos:
-                    # Plot gray boxes on each side of the xtick
-                    motif.ax.axvspan(index - spacer, index + spacer,
-                                     facecolor='darkgrey', alpha=0.2)
-
             # File path
+            if self.datasetTag is None:
+                print(f'Dont save, dataset tag: {self.datasetTag}\n')
+                sys.exit()
+            figName = f'eLogo-{self.enzymeName}-{self.getSaveTag()}.png'
             if limitYAxis:
-                figName = f'eLogo yMin-{self.enzymeName}-{datasetType}.png'
-            else:
-                figName = f'eLogo-{self.enzymeName}-{datasetType}.png'
+                figName = figName.replace('eLogo-', 'eLogo_yMin-')
             path = os.path.join(self.pathFigs, figName)
-            print(f'\nSaving Fig: eLogo {datasetType}\n     {path}')
+            self.log(f'Saving Enrichment Logo:\n     {path}')
 
             # Encode the figure
             figBase64 = self.encodeFig(fig)
@@ -1592,15 +1541,111 @@ class WebApp:
             return figName
 
         # Plot figure
-        plotLogo() # Full y-axis
+        self.figures['eLogo'] = plotLogo(data) # Full y-axis
 
-        # # Adjust yMin to fit the largest negative AA
-        # yMin = 0
-        # for col in self.heights.columns:
-        #     for row in self.heights.index:
-        #         if self.heights.loc[row, col] < yMin:
-        #             yMin = self.heights.loc[row, col]
-        # print(f'Adjusting Y Min:\n'
-        #       f'y Max: {np.round(yMax, 4)}\n'
-        #       f'y Min: {np.round(yMin, 4)}\n\n')
-        # plotLogo(limitYAxis=True) # Limited y-axis
+        # Adjust yMin to fit the largest negative AA
+        yMin = 0
+        for col in data.columns:
+            for row in data.index:
+                if data.loc[row, col] < yMin:
+                    yMin = data.loc[row, col]
+        self.figures['eLogoMin'] = plotLogo(data, limitYAxis=True) # Limited y-axis
+
+
+    def plotWordCloud(self, substrates, clusterNumPCA=None,
+                      combinedMotifs=False, predActivity=False, predModel=False):
+        print('=============================== Plot: Word Cloud '
+              '================================')
+        if clusterNumPCA is not None:
+            print(f'Selecting PCA Population: {clusterNumPCA}')
+        else:
+            print(f'Substrates: {self.datasetTag}')
+        iteration = 0
+        for substrate, count in substrates.items():
+            print(f'     {substrate}, '
+                  f'Count: {round(count, 1):,}')
+            iteration += 1
+            if iteration == self.printN:
+                break
+        print('')
+
+        # Limit the number of words
+        print(f'Selecting: {self.numSamples} words')
+        subs = {}
+        iteration = 0
+        for substrate, count in substrates.items():
+            subs[substrate] = count
+            iteration += 1
+            if iteration >= self.numSamples:
+                break
+        substrates = subs
+        totalWords = len(substrates)
+        print(f'Plotting: {totalWords:,} words\n\n')
+
+        # Define: Figure title
+        if predActivity:
+            title = f'{self.enzymeName}\n{predModel}'
+        else:
+            title = self.titleWords
+            title += f'\nTop {totalWords} Substrates'
+
+
+        # Create word cloud
+        cmap = self.createCustomColorMap(colorType='Word Cloud')
+        wordcloud = (WordCloud(
+            width=950,
+            height=800,
+            background_color='white',
+            min_font_size=10, # Minimum font size
+            max_font_size=120, # Maximum font size
+            scale=5,  # Increase scale for larger words
+            colormap=cmap
+        ).generate_from_frequencies(substrates))
+
+
+        # Display the word cloud
+        fig = plt.figure(figsize=self.figSize, facecolor='white')
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        plt.axis('off')
+        fig.tight_layout()
+
+
+        # Save the Figure
+
+        # Define: Save location
+        if combinedMotifs:
+            figLabel = (f'{self.enzymeName} - Words - Substrate Profile '
+                        f'{self.datasetTagMotif} - {self.motifLen} AA - '
+                        f'Plot {totalWords} - MinCounts {self.minCounts}.png')
+        else:
+            figLabel = (f'{self.enzymeName} - Words - '
+                        f'{self.datasetTag} - {self.motifLen} AA - '
+                        f'Plot {totalWords} - MinCounts {self.minCounts}.png')
+        if self.numSamples:
+            figLabel = figLabel.replace(
+                f'Plot {totalWords}',
+                f'Select {self.numSamples} Plot {totalWords}')
+        if clusterNumPCA is not None:
+            figLabel = figLabel.replace('Words',
+                                        f'Words - PCA {clusterNumPCA}')
+        if predActivity:
+            if combinedMotifs:
+                figLabel = figLabel.replace(
+                    self.datasetTagMotif,
+                    f'{self.datasetTagMotif} - Predictions - {predModel}')
+            else:
+                figLabel = figLabel.replace(
+                    self.datasetTag,
+                    f'{self.datasetTag} - Predictions - {predModel}')
+        saveLocation = os.path.join(self.pathSaveFigs, figLabel)
+
+        # Save figure
+        if os.path.exists(saveLocation):
+            print(f'The figure was not saved\n\n'
+                  f'File was already found at path:\n'
+                  f'     {saveLocation}\n\n')
+        else:
+            print(f'Saving figure at path:\n'
+                  f'     {saveLocation}\n\n')
+            fig.savefig(saveLocation, dpi=self.figureResolution)
