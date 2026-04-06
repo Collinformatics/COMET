@@ -77,6 +77,11 @@ def pFilterMotif():
                            csrf_token=generate_csrf())
 
 
+@app.route('/resources')
+def resources():
+    return render_template('resources.html',)
+
+
 @app.route('/results')
 def results():
     return render_template('results.html',

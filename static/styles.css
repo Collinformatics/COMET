@@ -1,12 +1,13 @@
 :root {
-    --black: #050505;
-    --greydark: #272727FF;
-    --grey: #525252;
+    --black: #101010;
+    --greydark: #202020;
+    --grey: #323232;
     --white: #FFFFFF;
-    --green: #2ED813;
-    --greendark: #1DB202;
     --orange: #FA8128;
     --orangeburnt: #BF5700;
+    --green: #2ED813;
+    --greendark: #1DB202;
+    --pink: #FF20FF;
 
     --colorBody: var(--black);
     --colorHeader: var(--greydark);
@@ -27,7 +28,7 @@
     --borderColor: var(--orange); /* #FA8128; */
 
     --buttonHeight: 35px;
-    --buttonWidth: 90px;
+    --buttonWidth: 95px;
     --buttonFontSize: 16px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
@@ -37,8 +38,19 @@
     --paddingBox: 20px;
     --marginLabel: 10px;
     --marginBottom: 5px;
+    --marginFooter: 10px;
     
     --dropdownWidth: 160px;
+}
+
+/* hide scrollbar on all elements */
+* {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE/Edge */
+}
+
+*::-webkit-scrollbar {
+    display: none;                /* Chrome/Safari */
 }
 
 body {
@@ -57,7 +69,7 @@ h1 {
     padding: 15px;
 }
 h2 {
-    color: var(--orangeburnt);
+    color: var(--orange);
     font-size: var(--textSizeHeader);
     margin: 10px;
     padding: var(--padSize) var(--padSize) 0 var(--padSize);
@@ -120,7 +132,7 @@ p {
     margin: 0px auto;
 }.buttonHeader {
     background-color: var(--colorHeader);
-    color: var(--orange);
+    color: var(--orangeburnt);
     flex: none; /* makes buttons line up horizontally */
     height: var(--headerHeight);
     width: auto; /* Dynamically adjust the width of the button */
@@ -133,12 +145,20 @@ p {
     border-radius: 0px;
 }.buttonHeader:hover {
     background-color: var(--colorHeader);
-    color: var(--white);
+    color: var(--pink);
+}.buttonHeader:active {
+    color: var(--green);                    /* color while being clicked */
+    background-color: var(--colorHeader);
 }.button-group {
     background-color: var(--colorHeader);
     display: flex;
     justify-content: flex-start;
     flex: 1;
+}.button-group-r {
+    background-color: var(--colorHeader);
+    display: flex;
+    justify-content: flex-end;      /* pushes button to the right */
+    margin-left: auto;              /* pushes the whole group right */
 }
 
 /* Figures*/
@@ -303,49 +323,39 @@ input[type="url"] {
     cursor: pointer;
     position: relative;
     z-index: 0;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     border-radius: var(--buttonRad);
+    -webkit-mask-image: -webkit-radial-gradient(white, black); /* ← Safari clip fix */
 }.button::after {
     content: "";
     z-index: -1;
     position: absolute;
     width: 100%;
     height: 100%;
-    /*background-color: #333;*/
     background-color: transparent;
     left: 0;
     top: 0;
     border-radius: var(--buttonRad);
-}.button::before { /* glow */
+}.button::before {
     content: "";
-    /*background: linear-gradient(
-        45deg,
-        #FF0000, #FF7300, #FFFB00, #48FF00,
-        #00FFD5, #002BFF, #FF00C8, #FF0000
-    );*/
-    background: linear-gradient(
-        45deg,
-        #FF5BFF, #56ff5d, #FF5BFF
-    ); /* cyan #56F1FF, green #56ff5d, pink #FF5BFF */
+    background: linear-gradient(45deg, #FF5BFF, #56ff5d, #FF5BFF);
     position: absolute;
     top: -2px;
     left: -2px;
     background-size: 600%;
     z-index: -1;
-    width: calc(100% + 5px);
-    height:  calc(100% + 5px);
-    filter: blur(8px);
+    width: calc(100% + 8px);
+    height:  calc(100% + 8px);
+    filter: blur(12px);
     animation: glowing 20s linear infinite;
     transition: opacity .3s ease-in-out;
-    border-radius: 0; var(--buttonRad);
+    border-radius: var(--buttonRad);
     opacity: 0;
 }
-/* hover */
-@keyframes glowing {
+@keyframes glowing { /* hover */
     0% {background-position: 0 0;}
     50% {background-position: 400% 0;}
     100% {background-position: 0 0;}
@@ -361,10 +371,10 @@ input[type="url"] {
 .ft {
     color: var(--white);
     font-size: var(--buttonFontSizeFt);
-    border-top: 2px solid var(--orange);
+    border-top: 2px solid var(--orangeburnt);
+    line-height: 1.2;
     gap: 0px;
-    margin: 0px;
-    padding-top: 5px;
+    padding-top: var(--marginFooter);
     width: 100%; /* ensure it's not collapsed */
     /*display: flex;*/
     /*justify-content: space-between;*/
@@ -372,12 +382,13 @@ input[type="url"] {
 
 }.ft span {
     display: block;    /* forces span to its own line */
-    margin-left: 10px;
+    margin-left: var(--marginFooter);
     align-items: left;
 }.ft a {
     text-decoration: none;
     display: block;    /* forces a to its own line */
-    margin-left: 10px; /* matches span */
+    margin-bottom: var(--marginFooter);
+    margin-left: var(--marginFooter); /* matches span */
     align-items: left;
 }
 
@@ -385,7 +396,7 @@ input[type="url"] {
 .btn {
     background-color: var(--colorBody);
     color: var(--white);
-    height: var(--headerHeight);
+    height: auto;
     font-size: var(--buttonFontSizeFt);
     cursor: pointer;
     border: none;

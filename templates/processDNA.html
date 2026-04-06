@@ -3,8 +3,7 @@
     <head>
         <link rel="stylesheet" href="static/styles.css">
         <script src="static/app.js"></script>
-
-        <title>Enzyme Profiling</title>
+        <title>COMET</title>
     </head>
     <body>
         <!-- Header -->
@@ -20,6 +19,9 @@
                 <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
                 <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
             </div>
+            <div class="button-group-r">
+                <button class="buttonHeader" onclick="pageResources()">Resources</button>
+            </div>
         </div>
 
         <!-- Application -->
@@ -28,7 +30,7 @@
             <p>
                 This program translates DNA sequences. Uploaded files must be formatted as
                 FASTQ or FASTA.<br><br>
-                The produced datasets can be downloaded and used for subsequent analysis.
+                To use the .
             </p>
 
             <!-- Forms -->
@@ -127,16 +129,16 @@
 
                     <!-- Execute -->
                     <div class="button-wrapper">
-                        <button class="botton" onclick="buttonProcessDNA()">Evaluate</button>
+                        <button class="button" onclick="buttonProcessDNA()">Evaluate</button>
                     </div>
                 </form>
             </div>
         </div>
         <div class=ft>
+            <span>Version 1.0.0 (2026)</span>
             <a href="https://brent.iverson.cm.utexas.edu/">
                 <button class="btn">Iverson Lab</button>
             </a>
-            <span>2026</span>
         </div>
     </body>
 </html>

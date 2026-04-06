@@ -9,9 +9,7 @@ function createAAContainer(containerId) {
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
 
     container.innerHTML = '';
-    container.style.display = 'flex';
-    container.style.flexWrap = 'wrap';
-    container.style.gap = '12px';
+
 
     for (let i = 1; i <= seqLength; i++) {
         const wrapper = document.createElement('div');
@@ -144,6 +142,9 @@ function pageFilterMotif() {
     window.location.href = "/filterMotif";
 }
 
+function pageResources() {
+    window.location.href = "/resources";
+}
 
 // Define button function
 async function buttonProcessDNA() {

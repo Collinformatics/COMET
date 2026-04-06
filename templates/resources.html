@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <link rel="stylesheet" href="static/styles.css">
-        <script src="static/app.js"></script>
-        <script src="{{ url_for('static', filename='app.js') }}"></script>
-        <title>COMET</title>
-    </head>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="static/styles.css">
+    <script src="static/app.js"></script>
+    <title>Enzyme Profiling</title>
+</head>
     <body>
-        <meta name="csrf-token" content="{{ csrf_token() }}">
-
         <!-- Header -->
         <div>
             <h1>COmprehensive Motif Evaluation Toolkit</h1>
@@ -30,29 +27,23 @@
 
         <!-- Application -->
         <div class="box">
-            <h2>Results</h2>
-            <div class="box-form">
-                <div class="input-form">
-                    <p></p>
-                    <div>
-                        <p>Job Details:</p>
-                        {% for key, value in parameters.items() %}
-                            <p class="p3">
-                                * {{ key }}: <span class="param-value">{{ value }}</span>
-                            </p>
-                        {% endfor %}
-                    </div>
-                    <p></p>
+            <h2>Resources</h2>
+            <p>
+                Useful Infos:
+            </p>
+            <div class="form-group">
+                <label>Literature:</label>
+                <div class="form-wrapper">
+                    <div>Paper</div>
                 </div>
             </div>
 
-            <!-- Container where JS will insert images -->
-            <div id="figures-container" class="figures-container">
-                <p>Figures are being generated...</p>
+            <!-- Forms -->
+            <div class="box-form">
+                <form id="resources" enctype="multipart/form-data" class="input-form" method="post">
+                    <p>Words</p>
+                </form>
             </div>
-            <script>
-                document.addEventListener('DOMContentLoaded', getFigures);
-            </script>
         </div>
         <div class=ft>
             <span>Version 1.0.0 (2026)</span>
@@ -60,5 +51,5 @@
                 <button class="btn">Iverson Lab</button>
             </a>
         </div>
-    </body>
+</body>
 </html>
