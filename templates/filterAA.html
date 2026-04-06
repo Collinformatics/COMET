@@ -11,9 +11,10 @@
         <div>
             <h1>COmprehensive Motif Evaluation Toolkit</h1>
         </div>
-        <div class="container-header">
+        <div>
             <!-- Header Buttons -->
-            <div class="button-group">
+            <div class="container-header">
+                <div class="button-group">
                 <button class="buttonHeader" onclick="pageHome()">Home</button>
                 <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
                 <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
@@ -33,66 +34,67 @@
             <p></p>
 
             <!-- Forms -->
-            <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="">
+                <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                <!-- Enzyme name -->
-                <div class="form-group">
-                    <label for="enzymeName">Enzyme Name:</label>
-                    <div class="form-wrapper">
-                        <input type="text" id="enzymeName"
-                               name="enzymeName" required value="Name">
+                    <!-- Enzyme name -->
+                    <div class="form-group">
+                        <label for="enzymeName">Enzyme Name:</label>
+                        <div class="form-wrapper">
+                            <input type="text" id="enzymeName" name="enzymeName" required value="Name">
+                        </div>
                     </div>
-                </div>
 
-                <!-- Experimental ds -->
-                <div class="form-group">
-                    <label>Experimental Data:</label>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="fileExp">Substrates:</label>
-                        <input type="file" id="fileExp" name="fileExp"
-                               accept=".pkl"
-                               value="data/variantsExp.fastq"
-                               multiple>
+                    <!-- Experimental ds -->
+                    <div class="form-group">
+                        <label>Experimental Data:</label>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="fileExp">Substrates:</label>
+                            <input type="file" id="fileExp" name="fileExp"
+                                   accept=".pkl"
+                                   value="data/variantsExp.fastq"
+                                   multiple>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Background ds -->
-                <div class="form-group">
-                    <label>Background Data:</label>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="fileBg">Counts:</label>
-                        <input type="file" id="fileBg" name="fileBg"
-                               accept=".csv"
-                               value="data/variantsBg.fastq"
-                               multiple>
+                    <!-- Background ds -->
+                    <div class="form-group">
+                        <label>Background Data:</label>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="fileBg">Counts:</label>
+                            <input type="file" id="fileBg" name="fileBg"
+                                   accept=".csv"
+                                   value="data/variantsBg.fastq"
+                                   multiple>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Sequence Length -->
-                <div class="form-group">
-                    <label for="seqLength">Sequence Length:</label>
-                    <div class="form-wrapper">
-                        <input type="number" id="seqLength" name="seqLength"
-                           value="8" min="1" onchange="updateFixedAA()" style="width: 50px;"
-                         required>
+                    <!-- Sequence Length -->
+                    <div class="form-group">
+                        <label for="seqLength">Sequence Length:</label>
+                        <div class="form-wrapper">
+                            <input type="number" id="seqLength" name="seqLength"
+                               value="8" min="1" onchange="updateFixedAA()" style="width: 50px;"
+                             required>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Fix AA and Position -->
-                <div class="form-group">
-                  <label>Fix Residues:</label>
-                  <div id="fixAAContainer"></div>
-                </div>
-                <div class="form-group">
-                  <label>Exclude Residues:</label>
-                  <div id="exclAAContainer"></div>
-                </div>
-            </form>
+                    <!-- Fix AA and Position -->
+                    <div class="form-group">
+                        <label>Fix Residues:</label>
+                        <div id="fixAAContainer"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Exclude Residues:</label>
+                        <div id="exclAAContainer"></div>
+                    </div>
 
-            <!-- Execute -->
-            <div class="button-wrapper">
-                <button class="btn" onclick="buttonFilterSubs()">Evaluate</button>
+                    <!-- Execute -->
+                    <div class="button-wrapper">
+                        <button class="button" onclick="buttonFilterSubs()">Evaluate</button>
+                    </div>
+                </form>
             </div>
         </div>
 
