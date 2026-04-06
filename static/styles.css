@@ -99,30 +99,6 @@ p {
     width: fit-content;       /* only take up needed space */
 }
 
-/* Footer */
-.ft {
-    color: var(--white);
-    font-size: var(--buttonFontSizeFt);
-    display: flex;
-    border-top: 2px solid var(--orange);
-    align-items: center;
-    gap: 0px;
-    margin: 0px;
-    padding: 0px;
-    width: 100%; /* ensure it's not collapsed */
-}.ft a {
-    text-decoration: none;
-}
-
-hr { /* Horizontal bar */
-    display: block;
-    height: 2px;
-    border: 0;
-    border-top: 1px solid var(--orange);
-    margin: 1em 0;
-    padding: 0;
-}
-
 .box {
     background-color: var(--colorBox);
     margin-bottom: var(--marginBottom);
@@ -318,37 +294,12 @@ input[type="url"] {
     user-select: none;
 }
 
-/* button */
-.btn {
-    background-color: var(--colorBody);
-    color: var(--white);
-    flex: none; /* makes buttons line up horizontally */
-    height: var(--headerHeight);
-    width: auto; /* Dynamically adjust the width of the button */
-    font-size: var(--buttonFontSizeFt);
-    cursor: pointer;
-    border: none;
-    margin: 0px 0px 0px 10px;
-    white-space: nowrap; /* ⬅ prevents label from wrapping */
-    padding: 10px;
-    border-radius: 0px;
-}.btn:hover {
-    background-color: var(--colorBody);
-    color: var(--orange);
-}.btn {
-    background-color: var(--colorBody);
-    display: flex;
-    justify-content: flex-start;
-    flex: 1;
-}
-
 /* execute button */
 .button {
     color: var(--white);
-    outline: 2px solid var(--black);
+    outline: none;
     margin: 0px 0px 15px 0px;
     border: none;
-    outline: none;
     cursor: pointer;
     position: relative;
     z-index: 0;
@@ -404,4 +355,51 @@ input[type="url"] {
     background: transparent;
 }.button:active {
     color: var(--black);
+}
+
+/* Footer */
+.ft {
+    color: var(--white);
+    font-size: var(--buttonFontSizeFt);
+    border-top: 2px solid var(--orange);
+    gap: 0px;
+    margin: 0px;
+    padding-top: 5px;
+    width: 100%; /* ensure it's not collapsed */
+    /*display: flex;*/
+    /*justify-content: space-between;*/
+    /*align-items: center;*/
+
+}.ft span {
+    display: block;    /* forces span to its own line */
+    margin-left: 10px;
+    align-items: left;
+}.ft a {
+    text-decoration: none;
+    display: block;    /* forces a to its own line */
+    margin-left: 10px; /* matches span */
+    align-items: left;
+}
+
+/* footer button */
+.btn {
+    background-color: var(--colorBody);
+    color: var(--white);
+    height: var(--headerHeight);
+    font-size: var(--buttonFontSizeFt);
+    cursor: pointer;
+    border: none;
+    white-space: nowrap; /* ⬅ prevents label from wrapping */
+    display: block;     /* ← add this, removes inline spacing */
+    padding: 0px;
+    margin: 0px;
+    border-radius: 0px;
+}.btn:hover {
+    background-color: var(--colorBody);
+    color: var(--orange);
+}.btn {
+    background-color: var(--colorBody);
+    display: flex;
+    justify-content: flex-start;
+    flex: 1;
 }
