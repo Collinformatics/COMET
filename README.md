@@ -27,7 +27,7 @@ You can start up the website with:
 
     python app.py
 
-- This will generate a URL with an ip address and port, likely http://127.0.0.1:9090
+- This will generate a URL with an ip address and port, it should be http://127.0.0.1:9090
   - Click on the link to go to the website, or enter the address in a browser.
 
 
