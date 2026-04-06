@@ -17,6 +17,7 @@
     --textSize: 16px;
     --textSizeLabel: 20px;
     --textSizeHeader: 30px;
+    --buttonFontSizeFt: 13px;
 
     --headerHeight: 40px;
     --headerButtonWidth: 110px;
@@ -26,7 +27,7 @@
     --borderColor: var(--orange); /* #FA8128; */
 
     --buttonHeight: 35px;
-    --buttonWidth: 100px;
+    --buttonWidth: 90px;
     --buttonFontSize: 16px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
@@ -98,15 +99,21 @@ p {
     width: fit-content;       /* only take up needed space */
 }
 
-
-ft {
+/* Footer */
+.ft {
     color: var(--white);
-    font-size: var(--textSize);
-    align-self: flex-start;
-    margin: 5px;
-    padding: var(--padSize);
-    border-top: 2px solid var(--orange); /* Adjust style, width, and color as needed */
+    font-size: var(--buttonFontSizeFt);
+    display: flex;
+    border-top: 2px solid var(--orange);
+    align-items: center;
+    gap: 0px;
+    margin: 0px;
+    padding: 0px;
+    width: 100%; /* ensure it's not collapsed */
+}.ft a {
+    text-decoration: none;
 }
+
 hr { /* Horizontal bar */
     display: block;
     height: 2px;
@@ -160,7 +167,7 @@ hr { /* Horizontal bar */
 
 /* Figures*/
 .figures-container {
-    background-color: var(--grey);
+    background-color: var(--colorBody);
     margin: 20px;
     padding: var(--padSize);
     display: flex;
@@ -198,14 +205,18 @@ button:hover {
 }
 
 /* Forms */
+.box-form {
+    background-color: var(--colorBody);
+    width: 100%;
+    margin: 20px 20px 0px 20px; /* top right bottom left */
+}
 .form-group {
     display: flex;
     flex-direction: column;   /* Stack label and input */
     align-items: flex-start;  /* Align to the left */
-    margin-left: var(--marginLabel);    /* Indent */
-    margin-bottom: var(--marginBottom); /* Add space between sections */
+    margin: 5px 0px var(--marginBottom) var(--marginLabel);
     gap: var(--gap);
-    min-width: 100px;
+    min-width: 0px;
     padding: 10px; /* Adds space inside the element, between the text and its edge */
 }.form-group label {
     color: var(--orange);
@@ -216,9 +227,9 @@ button:hover {
     font-weight: normal;
     align-items: center;
 }.input-form {
+    color: var(--orange);
     background-color: var(--colorForm);
     outline: 2px solid var(--orange);
-    width: 100%;color: var(--orange);
     margin: 20px;
     border-radius: 10px;
     min-width: 200px;
@@ -310,20 +321,20 @@ input[type="url"] {
 /* button */
 .btn {
     background-color: var(--colorBody);
-    color: var(--orange);
+    color: var(--white);
     flex: none; /* makes buttons line up horizontally */
     height: var(--headerHeight);
     width: auto; /* Dynamically adjust the width of the button */
-    font-size: var(--buttonFontSize);
+    font-size: var(--buttonFontSizeFt);
     cursor: pointer;
     border: none;
-    margin-left: 10px;
+    margin: 0px 0px 0px 10px;
     white-space: nowrap; /* ⬅ prevents label from wrapping */
     padding: 10px;
     border-radius: 0px;
 }.btn:hover {
     background-color: var(--colorBody);
-    color: var(--white);
+    color: var(--orange);
 }.btn {
     background-color: var(--colorBody);
     display: flex;
@@ -331,11 +342,11 @@ input[type="url"] {
     flex: 1;
 }
 
-/* button */
+/* execute button */
 .button {
-    color: #FFF;
-    margin: 20px;
-    padding: 15px 0px;
+    color: var(--white);
+    outline: 2px solid var(--black);
+    margin: 0px 0px 15px 0px;
     border: none;
     outline: none;
     cursor: pointer;

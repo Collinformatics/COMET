@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <link rel="stylesheet" href="static/styles.css">
         <script src="static/app.js"></script>
@@ -31,10 +31,9 @@
                 You can filter the data by locking one or more amino acids at a given
                 position in the sequence.
             </p>
-            <p></p>
 
             <!-- Forms -->
-            <div class="">
+            <div class="box-form">
                 <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
@@ -92,15 +91,17 @@
 
                     <!-- Execute -->
                     <div class="button-wrapper">
-                        <button class="button" onclick="buttonFilterSubs()">Evaluate</button>
+                        <button class="button" onclick="buttonFilterSubs('aa')">Evaluate</button>
                     </div>
                 </form>
+
             </div>
         </div>
-
         <div class=ft>
-            <hr/>
-            <button class="btn" onclick="buttonFilterSubs()">Iverson Lab</button>
+            <a href="https://brent.iverson.cm.utexas.edu/">
+                <button class="btn">Iverson Lab</button>
+            </a>
+            <span>2026</span>
         </div>
     </body>
 </html>

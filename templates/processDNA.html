@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <link rel="stylesheet" href="static/styles.css">
         <script src="static/app.js"></script>
@@ -8,12 +8,13 @@
     </head>
     <body>
         <!-- Header -->
-        <div class="box">
+        <div>
             <h1>COmprehensive Motif Evaluation Toolkit</h1>
         </div>
-        <div class="container-header">
+        <div>
             <!-- Header Buttons -->
-            <div class="button-group">
+            <div class="container-header">
+                <div class="button-group">
                 <button class="buttonHeader" onclick="pageHome()">Home</button>
                 <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
                 <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
@@ -23,112 +24,119 @@
 
         <!-- Application -->
         <div class="box">
-            <h1>Process DNA</h1>
+            <h2>Process DNA</h2>
             <p>
                 This program translates DNA sequences. Uploaded files must be formatted as
                 FASTQ or FASTA.<br><br>
                 The produced datasets can be downloaded and used for subsequent analysis.
             </p>
-            <p></p>
 
             <!-- Forms -->
-            <form id="formDNA" enctype="multipart/form-data" class="input-form" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="box-form">
+                <form id="formDNA" enctype="multipart/form-data" class="input-form" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                <!-- Enzyme name -->
-                <div class="form-group">
-                    <label for="enzymeName">Enzyme Name:</label>
-                    <div class="form-wrapper">
-                        <input type="text" id="enzymeName"
-                               name="enzymeName" required value="Name">
+                    <!-- Enzyme name -->
+                    <div class="form-group">
+                        <label for="enzymeName">Enzyme Name:</label>
+                        <div class="form-wrapper">
+                            <input type="text" id="enzymeName"
+                                   name="enzymeName" required value="Name">
+                        </div>
                     </div>
-                </div>
 
-                <!-- Experimental ds -->
-                <div class="form-group">
-                    <label>Experimental Data:</label>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="fileExp">Forward Read:</label>
-                        <input type="file" id="fileExp" name="fileExp"
-                               accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
-                               value="data/variantsExp.fastq"
-                               multiple>
+                    <!-- Experimental ds -->
+                    <div class="form-group">
+                        <label>Experimental Data:</label>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="fileExp">Forward Read:</label>
+                            <input type="file" id="fileExp" name="fileExp"
+                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                                   value="data/variantsExp.fastq"
+                                   multiple>
+                        </div>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="fileExpRev">Reverse Read:</label>
+                            <input type="file" id="fileExpRev" name="fileExpRev"
+                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                                   multiple>
+                        </div>
                     </div>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="fileExpRev">Reverse Read:</label>
-                        <input type="file" id="fileExpRev" name="fileExpRev"
-                               accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
-                               multiple>
-                    </div>
-                </div>
 
-                <!-- Background ds -->
-                <div class="form-group">
-                    <label>Background Data:</label>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="fileBg">Forward Read:</label>
-                        <input type="file" id="fileBg" name="fileBg"
-                               accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
-                               value="data/variantsBg.fastq"
-                               multiple>
+                    <!-- Background ds -->
+                    <div class="form-group">
+                        <label>Background Data:</label>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="fileBg">Forward Read:</label>
+                            <input type="file" id="fileBg" name="fileBg"
+                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                                   value="data/variantsBg.fastq"
+                                   multiple>
+                        </div>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="fileBgRev">Reverse Read:</label>
+                            <input type="file" id="fileBgRev" name="fileBgRev"
+                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                                   multiple>
+                        </div>
                     </div>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="fileBgRev">Reverse Read:</label>
-                        <input type="file" id="fileBgRev" name="fileBgRev"
-                               accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
-                               multiple>
-                    </div>
-                </div>
 
-                <!-- Flanking sequence -->
-                <div class="form-group">
-                    <label>Flanking Sequences:</label>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="seq5Prime">5':</label>
-                        <input type="text" id="seq5Prime"
-                               name="seq5Prime" value="AAAGGCAGT">
+                    <!-- Flanking sequence -->
+                    <div class="form-group">
+                        <label>Flanking Sequences:</label>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="seq5Prime">5':</label>
+                            <input type="text" id="seq5Prime"
+                                   name="seq5Prime" value="AAAGGCAGT">
+                        </div>
+                        <div class="form-wrapper">
+                            <label class="label-sub" for="seq3Prime">3':</label>
+                            <input type="text" id="seq3Prime"
+                                   name="seq3Prime" value="GGTGGAAGT">
+                        </div>
                     </div>
-                    <div class="form-wrapper">
-                        <label class="label-sub" for="seq3Prime">3':</label>
-                        <input type="text" id="seq3Prime"
-                               name="seq3Prime" value="GGTGGAAGT">
+
+                    <!-- Sequence Length -->
+                    <div class="form-group">
+                        <label for="seqLength">Sequence Length:</label>
+                        <div class="form-wrapper">
+                            <input type="number" id="seqLength" name="seqLength"
+                               value="8" min="1" onchange="updateFixedAA()" style="width: 50px;"
+                             required>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Sequence Length -->
-                <div class="form-group">
-                    <label for="seqLength">Sequence Length:</label>
-                    <div class="form-wrapper">
-                        <input type="number" id="seqLength" name="seqLength"
-                           value="8" min="1" onchange="updateFixedAA()" style="width: 50px;"
-                         required>
+                    <!-- Fix AA and Position -->
+                    <div class="form-group">
+                        <label>Fix Residues:</label>
+                        <div id="fixAAContainer"></div>
                     </div>
-                </div>
-
-                <!-- Fix AA and Position -->
-                <div class="form-group">
-                  <label>Fix Residues (Optional):</label>
-                  <div id="fixAAContainer"></div>
-                </div>
-                <div class="form-group">
-                  <label>Exclude Residues:</label>
-                  <div id="exclAAContainer"></div>
-                </div>
-
-                <!-- Minimum Phred Score -->
-                <div class="form-group">
-                    <label for="minPhred">Minimum Phred Score:</label>
-                    <div class="form-wrapper">
-                        <input type="number" id="minPhred" name="minPhred"
-                               value="20" min="0"  max="40" style="width: 50px;">
+                    <div class="form-group">
+                        <label>Exclude Residues:</label>
+                        <div id="exclAAContainer"></div>
                     </div>
-                </div>
-            </form>
 
-            <!-- Execute -->
-            <div class="button-wrapper">
-                <button class="btn" onclick="buttonProcessDNA()">Evaluate</button>
+                    <!-- Minimum Phred Score -->
+                    <div class="form-group">
+                        <label for="minPhred">Minimum Phred Score:</label>
+                        <div class="form-wrapper">
+                            <input type="number" id="minPhred" name="minPhred"
+                                   value="20" min="0"  max="40" style="width: 50px;">
+                        </div>
+                    </div>
+
+                    <!-- Execute -->
+                    <div class="button-wrapper">
+                        <button class="botton" onclick="buttonProcessDNA()">Evaluate</button>
+                    </div>
+                </form>
             </div>
+        </div>
+        <div class=ft>
+            <a href="https://brent.iverson.cm.utexas.edu/">
+                <button class="btn">Iverson Lab</button>
+            </a>
+            <span>2026</span>
         </div>
     </body>
 </html>

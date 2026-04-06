@@ -11,12 +11,13 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <!-- Header -->
-        <div class="box">
+        <div>
             <h1>COmprehensive Motif Evaluation Toolkit</h1>
         </div>
-        <div class="container-header">
+        <div>
             <!-- Header Buttons -->
-            <div class="button-group">
+            <div class="container-header">
+                <div class="button-group">
                 <button class="buttonHeader" onclick="pageHome()">Home</button>
                 <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
                 <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
@@ -28,22 +29,34 @@
         <!-- Application -->
         <div class="box">
             <h2>Results</h2>
-            <p>Job Details:</p>
-            {% for key, value in parameters.items() %}
-                <p class="p3">
-                    * {{ key }}: <span class="param-value">{{ value }}</span>
-                </p>
-            {% endfor %}
-
+            <div class="box-form">
+                <div class="input-form">
+                    <p></p>
+                    <div>
+                        <p>Job Details:</p>
+                        {% for key, value in parameters.items() %}
+                            <p class="p3">
+                                * {{ key }}: <span class="param-value">{{ value }}</span>
+                            </p>
+                        {% endfor %}
+                    </div>
+                    <p></p>
+                </div>
+            </div>
 
             <!-- Container where JS will insert images -->
             <div id="figures-container" class="figures-container">
                 <p>Figures are being generated...</p>
             </div>
-
             <script>
                 document.addEventListener('DOMContentLoaded', getFigures);
             </script>
+        </div>
+        <div class=ft>
+            <a href="https://brent.iverson.cm.utexas.edu/">
+                <button class="btn">Iverson Lab</button>
+            </a>
+            <span>2026</span>
         </div>
     </body>
 </html>

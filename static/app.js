@@ -184,9 +184,9 @@ async function buttonProcessDNA() {
     });
 }
 
-async function buttonFilterSubs() {
+async function buttonFilterSubs(filter) {
     // Disable to prevent double click
-    const button = document.querySelector('button[onclick="buttonFilterSubs()"]');
+    const button = document.querySelector('.button');
     button.disabled = true;
     button.textContent = 'Processing';
 
@@ -200,26 +200,49 @@ async function buttonFilterSubs() {
     jobID = await processForm(formData);
     formData.append('jobID', jobID);
 
+
     // POST the raw formData to Flask
-    fetch('/evalFormFilterAA', {
-        body: formData,  // Send the actual FormData object, not a JSON
-        headers: { 'X-CSRFToken': csrfToken },
-        method: 'POST'
-    })
-    .then(response => {
-        if (response.ok) {
-            // Redirect
-            console.log('Redirect:')
-            window.location.href = '/results';
-        } else {
-            console.log("ERROR: Filtering substrates.");
-            alert("ERROR: Filtering substrates.");
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert("An error occurred.");
-    });
+    if (filter == 'aa') {
+        fetch('/evalFormFilterAA', {
+            body: formData,  // Send the actual FormData object, not a JSON
+            headers: { 'X-CSRFToken': csrfToken },
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redirect
+                console.log('Redirect:')
+                window.location.href = '/results';
+            } else {
+                console.log("ERROR: Filtering substrates.");
+                alert("ERROR: Filtering substrates.");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("An error occurred.");
+        });
+    } else {
+       fetch('/evalFormFilterMotif', {
+            body: formData,  // Send the actual FormData object, not a JSON
+            headers: { 'X-CSRFToken': csrfToken },
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redirect
+                console.log('Redirect:')
+                window.location.href = '/results';
+            } else {
+                console.log("ERROR: Filtering substrates.");
+                alert("ERROR: Filtering substrates.");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("An error occurred.");
+        });
+    }
 }
 
 
@@ -293,7 +316,7 @@ function getFigures() {
                 const buttonWrapper = document.createElement('div');
                 buttonWrapper.className = 'button-wrapper';
                 const button = document.createElement('button');
-                button.className = 'btn';
+                button.className = 'button';
                 button.textContent = 'Download';
                 button.onclick = download;
                 buttonWrapper.appendChild(button);
