@@ -125,11 +125,7 @@ class WebApp:
         self.residues = defaultResidues
         self.AA = [residue[2] for residue in self.residues]
         self.bigAAonTop = False
-        self.figures = {
-            'exp_counts': False, 'bg_counts': False, 'entropy': False,
-            'eMap': False, 'eMapSc': False, 'eLogo': False, 'eLogoMin': False,
-            'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False
-        }
+        self.figures = {}
 
         pd.options.display.float_format = '{:,.3f}'.format
 

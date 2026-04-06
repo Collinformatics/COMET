@@ -14,41 +14,41 @@
     --colorBox: var(--black);
     --colorForm: var(--grey);
 
-    --textColor: white;
-    --textSize: 16px;
+    --textColor: var(--white);
+    --textColorLabel: var(--orange);
+    --textSize: 18px;
     --textSizeLabel: 20px;
     --textSizeHeader: 30px;
-    --buttonFontSizeFt: 13px;
+    --buttonFontSize: 18px;
+    --buttonFontSizeFt: 16px;
+    --textSizeInc: 4px;
 
     --headerHeight: 40px;
     --headerButtonWidth: 110px;
 
     --borderRad: 5px;
     --borderThickness: 2px;
-    --borderColor: var(--orange); /* #FA8128; */
+    --borderColor: var(--textColorLabel); /* #FA8128; */
 
     --buttonHeight: 35px;
     --buttonWidth: 95px;
-    --buttonFontSize: 16px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
 
     --gap: 5px;
     --padSize: 2px;
-    --paddingBox: 20px;
+    --paddingBox: 10px;
+    --margin: 20px;
     --marginLabel: 10px;
-    --marginBottom: 5px;
+    --marginBottom: 2px;
     --marginFooter: 10px;
-    
-    --dropdownWidth: 160px;
 }
 
-/* hide scrollbar on all elements */
+/* hide scrollbar */
 * {
     scrollbar-width: none;        /* Firefox */
     -ms-overflow-style: none;     /* IE/Edge */
 }
-
 *::-webkit-scrollbar {
     display: none;                /* Chrome/Safari */
 }
@@ -80,15 +80,16 @@ p {
     font-size: var(--textSize);
     width: fit-content;
     align-self: flex-start;
-    margin: 10px;
+    margin: 0px var(--margin) 0px var(--margin);
     padding: var(--padSize);
 }.p2 {
     color: var(--orange);
-    font-size: calc(var(--textSize) + 4px);
+    font-size: calc(var(--textSize) + var(--textSizeInc));
     text-align: left;
     margin: 0px;
 }.p3 { /* Job Parameters */
     color: var(--white);
+    font-size: var(--textSize);
     text-align: left;
     margin: 0 0 0 0; /* optional to remove default padding */
     padding-left: 30px;
@@ -98,7 +99,7 @@ p {
     font-weight: bold; /* Optional */
 }.pL { /* Labels */
     color: var(--orange);
-    font-size: calc(var(--textSize) + 4px);
+    font-size: calc(var(--textSize) + var(--textSizeInc));
     text-align: center;
     width: fit-content;
     margin: 0 auto;  /* ⬅ centers the element itself */
@@ -204,29 +205,31 @@ button:hover {
 .box-form {
     background-color: var(--colorBody);
     width: 100%;
-    margin: 20px 20px 0px 20px; /* top right bottom left */
+    margin: 0px 10px 0px 10px; /* top right bottom left */
 }
 .form-group {
+    font-size: var(--textSize);
     display: flex;
     flex-direction: column;   /* Stack label and input */
     align-items: flex-start;  /* Align to the left */
-    margin: 5px 0px var(--marginBottom) var(--marginLabel);
-    gap: var(--gap);
+    margin: 0px 0px var(--marginBottom) var(--marginLabel);
+    gap: 0px;
     min-width: 0px;
-    padding: 10px; /* Adds space inside the element, between the text and its edge */
+    padding: 10px 0px 0px 5px; /* Adds space inside the element, between the text and its edge */
 }.form-group label {
-    color: var(--orange);
+    color: var(--textColorLabel);
     align-items: center; /* Vertically center all children */
     font-weight: bold;
+    padding-bottom: 2px;
 }.form-group .label-sub {
-    color: var(--white);
+    color: var(--textColor);
     font-weight: normal;
     align-items: center;
 }.input-form {
-    color: var(--orange);
+    color: var(--textColorLabel);
     background-color: var(--colorForm);
-    outline: 2px solid var(--orange);
-    margin: 20px;
+    outline: 2px solid var(--borderColor);
+    margin: var(--margin);
     border-radius: 10px;
     min-width: 200px;
 }
@@ -261,62 +264,9 @@ input[type="url"] {
     box-sizing: border-box;
 }
 
-#fixedAAContainer .form-wrapper {
-    margin-bottom: var(--marginBottom);
-    gap: 5px;
-}.aa-selector {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: var(--green);
-    color: var(--black);
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-    margin: 5px;
-    position: relative;
-    z-index: 1;
-}.aa-dropdown {
-    position: absolute;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    margin-top: 5px;
-    padding: 5px;
-    display: flex;
-    flex-wrap: wrap;
-    width: 200px;
-    z-index: 10;
-}.aa-option {
-    width: 40px;
-    text-align: center;
-    margin: 3px;
-    padding: 6px;
-    cursor: pointer;
-    background-color: var(--lightGray, #F2F2F2);
-    border-radius: 4px;
-    font-weight: bold;
-}.aa-option:hover {
-    background-color: var(--orange);
-    color: white;
-}.hidden {
-    display: none;
-}.form-wrapper-check {
-    align-items: flex-start;
-    display: flex;
-    gap: 5px;
-    margin-left: 5px;
-    margin-bottom: 10px;
-}.form-wrapper-check label {
-    color: var(--white);
-    cursor: pointer;
-    user-select: none;
-}
-
 /* execute button */
 .button {
-    color: var(--white);
+    color: var(--textColor);
     outline: none;
     margin: 0px 0px 15px 0px;
     border: none;
@@ -369,7 +319,7 @@ input[type="url"] {
 
 /* Footer */
 .ft {
-    color: var(--white);
+    color: var(--textColor);
     font-size: var(--buttonFontSizeFt);
     border-top: 2px solid var(--orangeburnt);
     line-height: 1.2;
@@ -395,7 +345,7 @@ input[type="url"] {
 /* footer button */
 .btn {
     background-color: var(--colorBody);
-    color: var(--white);
+    color: var(--textColor);
     height: auto;
     font-size: var(--buttonFontSizeFt);
     cursor: pointer;
