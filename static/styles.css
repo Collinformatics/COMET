@@ -38,8 +38,9 @@
     --gap: 5px;
     --padSize: 2px;
     --paddingBox: 10px;
-    --margin: 20px;
-    --marginLabel: 10px;
+    --margin: 30px;
+    --marginFormHorizontal: 15px;
+    --marginFormVertical: 20px;
     --marginBottom: 2px;
     --marginFooter: 10px;
 }
@@ -145,8 +146,8 @@ p {
     padding: 10px;
     border-radius: 0px;
 }.buttonHeader:hover {
+    color: var(--white);
     background-color: var(--colorHeader);
-    color: var(--pink);
 }.buttonHeader:active {
     color: var(--green);                    /* color while being clicked */
     background-color: var(--colorHeader);
@@ -205,14 +206,14 @@ button:hover {
 .box-form {
     background-color: var(--colorBody);
     width: 100%;
-    margin: 0px 10px 0px 10px; /* top right bottom left */
+    margin: var(--marginFormVertical) 10px var(--marginFormVertical) 10px; /* top right bottom left */
 }
 .form-group {
     font-size: var(--textSize);
     display: flex;
     flex-direction: column;   /* Stack label and input */
     align-items: flex-start;  /* Align to the left */
-    margin: 0px 0px var(--marginBottom) var(--marginLabel);
+    margin: 0px 0px var(--marginBottom) var(--marginFormHorizontal);
     gap: 0px;
     min-width: 0px;
     padding: 10px 0px 0px 5px; /* Adds space inside the element, between the text and its edge */
@@ -229,12 +230,10 @@ button:hover {
     color: var(--textColorLabel);
     background-color: var(--colorForm);
     outline: 2px solid var(--borderColor);
-    margin: var(--margin);
+    margin: 0px var(--margin) 0px var(--margin);
     border-radius: 10px;
     min-width: 200px;
-}
-
-.form-button {
+}.form-button {
     display: flex;
     justify-content: center; /* horizontally center */
     width: 100%;
@@ -244,8 +243,7 @@ button:hover {
     display: flex;
     align-items: center; /* Vertically center all children */
     justify-content: flex-start; /* Align form to the left */
-    margin-left: var(--marginLabel);
-    margin-right: 10px;
+    margin: 0px 10px 0px var(--marginFormHorizontal);
     padding-bottom: 3px;
     gap: var(--gap);
     font-weight: normal;
@@ -356,8 +354,11 @@ input[type="url"] {
     margin: 0px;
     border-radius: 0px;
 }.btn:hover {
-    background-color: var(--colorBody);
     color: var(--orange);
+    background-color: var(--colorBody);
+}.btn:active {
+    color: var(--green);                    /* color while being clicked */
+    background-color: var(--colorBody);
 }.btn {
     background-color: var(--colorBody);
     display: flex;
