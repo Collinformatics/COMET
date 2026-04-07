@@ -268,7 +268,6 @@ function clickButton() {
     });
 }
 
-
 function addFigure(container, label, fig, fig2 = null) {
     const p = document.createElement('p');
     p.className = 'p2';

@@ -31,7 +31,7 @@
     --borderThickness: 2px;
     --borderColor: var(--textColorLabel); /* #FA8128; */
 
-    --buttonHeight: 36px;
+    --buttonHeight: 38px;
     --buttonWidth: 120px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
@@ -92,13 +92,12 @@ p {
     text-align: left;
     margin: 0px;
     padding: var(--marginFormHorizontal) 0 calc(var(--marginFormHorizontal) / 2) 0;
-
     text-align: center;       /* center inline content */
     display: block;           /* ensure it's block-level */
     margin: 10px auto;        /* center the block horizontally */
     margin-bottom: 0px;
 }.p3 { /* Job Parameters */
-    color: var(--white);
+    color: var(--textColor);
     font-size: var(--textSizeResults);
     text-align: left;
     margin: 0 0 0 0; /* optional to remove default padding */
@@ -107,7 +106,7 @@ p {
     color: var(--orangeburnt);
     font-weight: bold;
 }.pL { /* Labels */
-    color: var(--orange);
+    color: var(--textColor);
     font-size: calc(var(--textSize) + var(--textSizeInc));
     text-align: center;
     width: fit-content;
