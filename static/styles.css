@@ -11,7 +11,7 @@
 
     --colorBody: var(--black);
     --colorHeader: var(--greydark);
-    --colorBox: var(--black);
+    --colorBox: var(--colorBody);
     --colorForm: var(--grey);
 
     --textColor: var(--white);
@@ -31,15 +31,15 @@
     --borderThickness: 2px;
     --borderColor: var(--textColorLabel); /* #FA8128; */
 
-    --buttonHeight: 40px;
-    --buttonWidth: 110px;
+    --buttonHeight: 36px;
+    --buttonWidth: 120px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
 
     --gap: 5px;
     --padSize: 2px;
     --padBox: 10px;
-    --padForm: 0px; /*##*/
+    --padForm: 5px; /*##*/
     --margin: 30px;
     --marginFormHorizontal: 10px;
     --marginFormVertical: 20px;
@@ -88,15 +88,20 @@ p {
 }.p2 {
     color: var(--orange);
     font-size: calc(var(--textSize) + var(--textSizeInc));
+    font-weight: bold;
     text-align: left;
     margin: 0px;
-    padding-top: 10px;
+    padding: var(--marginFormHorizontal) 0 calc(var(--marginFormHorizontal) / 2) 0;
+
+    text-align: center;       /* center inline content */
+    display: block;           /* ensure it's block-level */
+    margin: 10px auto;        /* center the block horizontally */
+    margin-bottom: 0px;
 }.p3 { /* Job Parameters */
     color: var(--white);
     font-size: var(--textSizeResults);
     text-align: left;
     margin: 0 0 0 0; /* optional to remove default padding */
-    padding-left: 30px;
     list-style-position: inside;
 }.param-value {
     color: var(--orangeburnt);
@@ -196,7 +201,6 @@ button {
 button:hover {
     background-color: var(--white);
 }.button-wrapper {
-    background-color: #00df00;
     display: flex;
     justify-content: center;  /* Horizontally center button */
     align-items: center;      /* Vertically center button (if parent allows) */
@@ -207,9 +211,9 @@ button:hover {
 .box-form {
     background-color: var(--colorBody);
     width: 100%;
+    padding-top: 0px;
     margin: var(--marginFormVertical) var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
 }.form-group {
-    background-color: #00df00;
     font-size: var(--textSize);
     display: flex;
     flex-direction: column;   /* Stack label and input */
@@ -217,16 +221,17 @@ button:hover {
     margin: 0px 0px var(--marginBottom) 0px;
     gap: 0px;
     min-width: 0px;
+    padding-bottom: var(--padForm); /* Pad each form input */
 }.form-group label {
     color: var(--textColorLabel);
     align-items: center; /* Vertically center all children */
     font-weight: bold;
-    padding-bottom: 2px;
+    padding-bottom: 1px;
 }.form-group .label-sub {
     color: var(--textColor);
     font-weight: normal;
     align-items: center;
-    padding-bottom: 0px;
+    padding-left: var(--padForm); /* Pad each form input label */
 }.input-form {
     color: var(--textColorLabel);
     background-color: var(--colorForm);
@@ -247,7 +252,6 @@ button:hover {
     gap: var(--gap);
     font-weight: normal;
     margin-left: var(--marginFormHorizontal);
-    padding-bottom: 0px;
 }.box-button {
     background-color: var(--colorForm);
     padding: var(--marginFormVertical) 0px 0px 0px;

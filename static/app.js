@@ -291,6 +291,7 @@ function addFigure(container, label, fig, fig2 = null) {
         img2.style.height = 'auto';
         container.appendChild(img2);
     }
+        const spacer = document.createElement('div');
     container.appendChild(document.createElement('br'));
     container.appendChild(document.createElement('br'));
 }
