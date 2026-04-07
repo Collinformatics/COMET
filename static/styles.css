@@ -214,7 +214,7 @@ button:hover {
     display: flex;
     flex-direction: column;   /* Stack label and input */
     align-items: flex-start;  /* Align to the left */
-    margin: 0px 0px var(--marginBottom) var(--marginFormHorizontal);
+    margin: 0px 0px var(--marginBottom) 0px;
     gap: 0px;
     min-width: 0px;
 }.form-group label {
@@ -226,7 +226,6 @@ button:hover {
     color: var(--textColor);
     font-weight: normal;
     align-items: center;
-    pad-left: 5px;
     padding-bottom: 0px;
 }.input-form {
     color: var(--textColorLabel);
