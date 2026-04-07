@@ -33,7 +33,6 @@
             <h2>Results</h2>
             <div class="box-form">
                 <div class="input-form">
-                    <p></p>
                     <div>
                         <p>Job Details:</p>
                         {% for key, value in parameters.items() %}
@@ -41,8 +40,11 @@
                                 * {{ key }}: <span class="param-value">{{ value }}</span>
                             </p>
                         {% endfor %}
+                    <div>
+                        <div class="box-button">          <!-- ← new box -->
+                            <div id="button-container"></div>
+                        </div>
                     </div>
-                    <p></p>
                 </div>
             </div>
 

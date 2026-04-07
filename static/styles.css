@@ -16,10 +16,11 @@
 
     --textColor: var(--white);
     --textColorLabel: var(--orange);
-    --textSize: 18px;
-    --textSizeLabel: 20px;
-    --textSizeHeader: 30px;
-    --buttonFontSize: 18px;
+    --textSize: 20px;
+    --textSizeLabel: 24px;
+    --textSizeHeader: 32px;
+    --textSizeResults: 18px;
+    --buttonFontSize: 20px;
     --buttonFontSizeFt: 16px;
     --textSizeInc: 4px;
 
@@ -30,8 +31,8 @@
     --borderThickness: 2px;
     --borderColor: var(--textColorLabel); /* #FA8128; */
 
-    --buttonHeight: 35px;
-    --buttonWidth: 95px;
+    --buttonHeight: 40px;
+    --buttonWidth: 110px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
 
@@ -88,16 +89,17 @@ p {
     font-size: calc(var(--textSize) + var(--textSizeInc));
     text-align: left;
     margin: 0px;
+    padding-top: 10px;
 }.p3 { /* Job Parameters */
     color: var(--white);
-    font-size: var(--textSize);
+    font-size: var(--textSizeResults);
     text-align: left;
     margin: 0 0 0 0; /* optional to remove default padding */
     padding-left: 30px;
     list-style-position: inside;
 }.param-value {
-    color: var(--orangeburnt);  /* Orange color */
-    font-weight: bold; /* Optional */
+    color: var(--orangeburnt);
+    font-weight: bold;
 }.pL { /* Labels */
     color: var(--orange);
     font-size: calc(var(--textSize) + var(--textSizeInc));
@@ -199,7 +201,6 @@ button:hover {
     justify-content: center;  /* Horizontally center button */
     align-items: center;      /* Vertically center button (if parent allows) */
     width: 100%;
-    margin-bottom: 10px;
 }
 
 /* Forms */
@@ -207,8 +208,7 @@ button:hover {
     background-color: var(--colorBody);
     width: 100%;
     margin: var(--marginFormVertical) 10px var(--marginFormVertical) 10px; /* top right bottom left */
-}
-.form-group {
+}.form-group {
     font-size: var(--textSize);
     display: flex;
     flex-direction: column;   /* Stack label and input */
@@ -229,10 +229,12 @@ button:hover {
 }.input-form {
     color: var(--textColorLabel);
     background-color: var(--colorForm);
+    /*background-color: #00de00;*/
     outline: 2px solid var(--borderColor);
     margin: 0px var(--margin) 0px var(--margin);
     border-radius: 10px;
     min-width: 200px;
+    padding: var(--paddingBox) 0px 0px 0px
 }.form-button {
     display: flex;
     justify-content: center; /* horizontally center */
@@ -247,6 +249,9 @@ button:hover {
     padding-bottom: 3px;
     gap: var(--gap);
     font-weight: normal;
+}.box-button {
+    background-color: var(--colorForm);
+    padding: var(--marginFormVertical) 0px 0px 0px;
 }
 input[type="text"],
 input[type="number"],

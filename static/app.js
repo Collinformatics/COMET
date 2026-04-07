@@ -313,7 +313,8 @@ function getFigures() {
                 clearInterval(interval); // Stop polling
                 container.innerHTML = ''; // Clear loading message
 
-                /* Download  */
+                // Append download button to the box
+                const box = document.querySelector('.box');
                 const buttonWrapper = document.createElement('div');
                 buttonWrapper.className = 'button-wrapper';
                 const button = document.createElement('button');
@@ -321,7 +322,8 @@ function getFigures() {
                 button.textContent = 'Download';
                 button.onclick = download;
                 buttonWrapper.appendChild(button);
-                container.appendChild(buttonWrapper);
+                document.getElementById('button-container').appendChild(buttonWrapper);
+                //container.appendChild(buttonWrapper);
 
                 if (data.entropy) {
                     addFigure(container, "Entropy", data.entropy);
