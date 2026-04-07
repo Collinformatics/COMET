@@ -38,9 +38,10 @@
 
     --gap: 5px;
     --padSize: 2px;
-    --paddingBox: 10px;
+    --padBox: 10px;
+    --padForm: 0px; /*##*/
     --margin: 30px;
-    --marginFormHorizontal: 15px;
+    --marginFormHorizontal: 10px;
     --marginFormVertical: 20px;
     --marginBottom: 2px;
     --marginFooter: 10px;
@@ -71,7 +72,7 @@ h1 {
     padding: 15px;
 }
 h2 {
-    color: var(--orange);
+    color: var(--white);
     font-size: var(--textSizeHeader);
     margin: 10px;
     padding: var(--padSize) var(--padSize) 0 var(--padSize);
@@ -122,7 +123,7 @@ p {
     display: flex;
     flex-direction: column;
     align-items: center;      /* Center vertically */
-    padding: var(--padSize);
+    padding: var(--padSize) var(--padSize) calc(var(--padBox) * 4) var(--padSize);
     overflow-wrap: anywhere; /* Keep text in the box */
 }
 
@@ -191,12 +192,11 @@ button {
     border-radius: var(--borderRad);
     width: var(--buttonWidth);
     height: var(--buttonHeight);
-    margin: 5px;
-    padding: var(--padSize);
 }
 button:hover {
     background-color: var(--white);
 }.button-wrapper {
+    background-color: #00df00;
     display: flex;
     justify-content: center;  /* Horizontally center button */
     align-items: center;      /* Vertically center button (if parent allows) */
@@ -207,8 +207,9 @@ button:hover {
 .box-form {
     background-color: var(--colorBody);
     width: 100%;
-    margin: var(--marginFormVertical) 10px var(--marginFormVertical) 10px; /* top right bottom left */
+    margin: var(--marginFormVertical) var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
 }.form-group {
+    background-color: #00df00;
     font-size: var(--textSize);
     display: flex;
     flex-direction: column;   /* Stack label and input */
@@ -216,7 +217,6 @@ button:hover {
     margin: 0px 0px var(--marginBottom) var(--marginFormHorizontal);
     gap: 0px;
     min-width: 0px;
-    padding: 10px 0px 0px 5px; /* Adds space inside the element, between the text and its edge */
 }.form-group label {
     color: var(--textColorLabel);
     align-items: center; /* Vertically center all children */
@@ -226,29 +226,29 @@ button:hover {
     color: var(--textColor);
     font-weight: normal;
     align-items: center;
+    pad-left: 5px;
+    padding-bottom: 0px;
 }.input-form {
     color: var(--textColorLabel);
     background-color: var(--colorForm);
-    /*background-color: #00de00;*/
     outline: 2px solid var(--borderColor);
     margin: 0px var(--margin) 0px var(--margin);
     border-radius: 10px;
     min-width: 200px;
-    padding: var(--paddingBox) 0px 0px 0px
+    padding: 20px; /* ## Pad the input form */
 }.form-button {
     display: flex;
     justify-content: center; /* horizontally center */
     width: 100%;
-    margin: calc(var(--padSize) * 4) 0px calc(var(--padSize) * 2) 0px;
 }.form-wrapper {
     width: 100%;
     display: flex;
     align-items: center; /* Vertically center all children */
     justify-content: flex-start; /* Align form to the left */
-    margin: 0px 10px 0px var(--marginFormHorizontal);
-    padding-bottom: 3px;
     gap: var(--gap);
     font-weight: normal;
+    margin-left: var(--marginFormHorizontal);
+    padding-bottom: 0px;
 }.box-button {
     background-color: var(--colorForm);
     padding: var(--marginFormVertical) 0px 0px 0px;
@@ -271,7 +271,7 @@ input[type="url"] {
 .button {
     color: var(--textColor);
     outline: none;
-    margin: 0px 0px 15px 0px;
+    margin: 0px;
     border: none;
     cursor: pointer;
     position: relative;
@@ -327,20 +327,15 @@ input[type="url"] {
     border-top: 2px solid var(--orangeburnt);
     line-height: 1.2;
     gap: 0px;
-    padding-top: var(--marginFooter);
+    padding: var(--marginFooter) 0px 0px 0px;
     width: 100%; /* ensure it's not collapsed */
-    /*display: flex;*/
-    /*justify-content: space-between;*/
-    /*align-items: center;*/
-
 }.ft span {
-    display: block;    /* forces span to its own line */
+    display: block; /* forces span to its own line */
     margin-left: var(--marginFooter);
     align-items: left;
 }.ft a {
     text-decoration: none;
-    display: block;    /* forces a to its own line */
-    margin-bottom: var(--marginFooter);
+    display: block; /* forces a to its own line */
     margin-left: var(--marginFooter); /* matches span */
     align-items: left;
 }

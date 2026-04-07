@@ -4,6 +4,7 @@ function createAAContainer(containerId) {
     if (!container) {
         return;
     }
+    container.className = 'label-sub';
     const seqLength = parseInt(document.getElementById('seqLength').value);
     const aminoAcids = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I",
                         "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"];
