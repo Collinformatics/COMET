@@ -55,7 +55,7 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('filterAA.html',
+    return render_template('filterMotif.html',
                            csrf_token=generate_csrf())
 
 
@@ -152,12 +152,17 @@ def filterSubs():
     webapp.done = True
     return render_template('results.html', parameters=webapp.jobParams)
 
+
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
     webapp.evalSubs(parseForm(), filterMotifs=True)
     print('Job Done: Fix Motif')
     webapp.done = True
-    return render_template('results.html', parameters=webapp.jobParams)
+    return render_template('setEntropy.html', parameters=webapp.jobParams)
+
+@app.route('/setEntropy', methods=['GET'])
+def filterMotifEntropy():
+    return render_template('setEntropy.html', parameters=webapp.jobParams)
 
 
 # Run the app

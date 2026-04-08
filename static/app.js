@@ -244,7 +244,6 @@ async function buttonFilterSubs(filter) {
 
 // Get figures
 function getFigures() {
-    console.log('Get Figs')
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const container = document.getElementById("figures-container");
     if (!container) return;
@@ -267,16 +266,19 @@ function getFigures() {
                 container.innerHTML = ''; // Clear loading message
 
                 // Append download button to the box
-                const box = document.querySelector('.box');
-                const buttonWrapper = document.createElement('div');
-                buttonWrapper.className = 'button-wrapper';
-                const button = document.createElement('button');
-                button.className = 'button';
-                button.textContent = 'Download';
-                button.onclick = download;
-                buttonWrapper.appendChild(button);
-                document.getElementById('button-container').appendChild(buttonWrapper);
-                //container.appendChild(buttonWrapper);
+                const containerBtn = document.getElementById("button-container");
+                if (containerBtn) {
+                    const box = document.querySelector('.box');
+                    const buttonWrapper = document.createElement('div');
+                    buttonWrapper.className = 'button-wrapper';
+                    const button = document.createElement('button');
+                    button.className = 'button';
+                    button.textContent = 'Download';
+                    button.onclick = download;
+                    buttonWrapper.appendChild(button);
+                    document.getElementById('button-container').appendChild(buttonWrapper);
+                    //container.appendChild(buttonWrapper);
+                };
 
                 if (data.entropy) {
                     addFigure(container, "Entropy", data.entropy);
@@ -329,6 +331,7 @@ function addFigure(container, label, fig, fig2 = null) {
     // Add figure
     const img1 = document.createElement('img');
     img1.src = fig;
+    //console.log('fig:', img1.src);
     img1.style.maxWidth = '80vw';
     img1.style.height = 'auto';
     container.appendChild(img1);

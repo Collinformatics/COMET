@@ -46,8 +46,8 @@ class WebApp:
         self.done = False
         self.jobParams = {}
         self.datasetTag = 'Unfiltered'
-        self.datasetTagMotif = False
-        self.motifFilter = None
+        self.datasetTagMotif = ''
+        self.motifFilter = False
 
         # Params: Dataset
         self.enzymeName = ''
@@ -381,7 +381,15 @@ class WebApp:
             print(f'File Bg: {type(self.fileBg)}\n'
                   f'{self.fileBg}')
         elif filterMotif:
-            print('Filter Motifs')
+            ## Placeholder files
+            self.fileExp = ['ds/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileBg = [
+                'ds/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
+            print(f'\nFile Exp: {type(self.fileExp)}\n'
+                  f'{self.fileExp}\n')
+            print(f'File Bg: {type(self.fileBg)}\n'
+                  f'{self.fileBg}')
+            self.motifFilter = True
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
@@ -848,7 +856,7 @@ class WebApp:
 
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
-            print('\nFilter Motif') ##
+            print('\nFilter Motif')
             self.jobInit(form, job='Filter Motif', filterMotif=True)
         else:
             self.jobInit(form, job='Filter AA', filterAA=True)
@@ -933,12 +941,16 @@ class WebApp:
         print(f'\nMotif Length: {self.motifLen}')
 
         # Filter AAs
-        self.filterSubs() ##
+        self.filterSubs()
 
         # Plot figures
         self.calculateRF()
         self.calculateEntropy()
-        self.calculateEnrichment()
+
+        if filterMotifs:
+            self.filterMotif()##
+        else:
+            self.calculateEnrichment()
 
         return None
 
@@ -1004,12 +1016,10 @@ class WebApp:
 
 
     def filterMotif(self):
-        self.log()  # Clear the log
+        print(f'Code: filterAA()') ##
 
-        print(f'Code: filterAA()')
-        sys.exit()
 
-        return {'Motif': 'TVALK'}
+
 
 
     def saveSubstrates(self, substrates, datasetType):
@@ -1404,7 +1414,7 @@ class WebApp:
         # File path
         figName = f'entropy-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
         path = os.path.join(self.pathFigs, figName)
-        print(f'\nSaving Fig: EM\n     {path}')
+        print(f'\nSaving Fig: Entropy\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
