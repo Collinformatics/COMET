@@ -315,6 +315,9 @@ class WebApp:
 
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
+        self.figures = {}
+        self.motifFilter = False
+
         # print('Filter:')
         # for key, value in form.items():
         #     print(f'  {key}: {value}')
@@ -367,7 +370,6 @@ class WebApp:
         self.log(f'Substrate Length: {self.seqLength}')
 
         # Job dependant parameters
-        self.motifFilter = False
         if evalDNA:
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
@@ -1375,11 +1377,10 @@ class WebApp:
 
         # Plotting the entropy values as a bar graph
         fig, ax = plt.subplots(figsize=self.figSize)
+        if self.motifFilter:
+            plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
         plt.bar(self.entropy.index, self.entropy['ΔS'], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
-        if self.motifFilter:
-            plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange],
-                       linestyles=['-'])
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         plt.ylabel('ΔS', fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
@@ -1424,6 +1425,8 @@ class WebApp:
 
         # File path
         figName = f'entropy-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        if self.motifFilter:
+            figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
         print(f'\nSaving Fig: Entropy\n     {path}')
 

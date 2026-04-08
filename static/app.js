@@ -169,7 +169,8 @@ async function buttonProcessDNA() {
         body: formData,  // Send the actual FormData object, not a JSON
         headers: { 'X-CSRFToken': csrfToken },
         method: 'POST'
-    }).then(response => {
+    })
+    .then(response => {
         if (response.ok) {
             // Redirect
             console.log('Redirect:')
@@ -178,7 +179,8 @@ async function buttonProcessDNA() {
             console.log('ERROR: Processing DNA.');
             alert("ERROR: Processing DNA.");
         }
-    }).catch(error => {
+    })
+    .catch(error => {
         console.error('Error:', error);
         alert("An error occurred.");
     });
@@ -207,7 +209,8 @@ async function buttonFilterSubs(filter) {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
             method: 'POST'
-        }).then(response => {
+        })
+        .then(response => {
             if (response.ok) {
                 // Redirect
                 console.log('Redirect:');
@@ -216,7 +219,8 @@ async function buttonFilterSubs(filter) {
                 console.log("ERROR: Filtering substrates.");
                 alert("ERROR: Filtering substrates.");
             }
-        }).catch(error => {
+        })
+        .catch(error => {
             console.error('Error:', error);
             alert("An error occurred.");
         });
@@ -225,7 +229,8 @@ async function buttonFilterSubs(filter) {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
             method: 'POST'
-       }).then(response => {
+       })
+       .then(response => {
             if (response.ok) {
                 // Redirect
                 console.log('Redirect:');
@@ -233,7 +238,8 @@ async function buttonFilterSubs(filter) {
             } else {
                 alert("ERROR: Filtering motif.");
                 }
-       }).catch(error => {
+       })
+       .catch(error => {
             console.error('Error:', error);
             alert("An error occurred.");
        });
@@ -252,7 +258,8 @@ function getFigures() {
             method: 'GET',
             headers: { 'X-CSRFToken': csrfToken },
             credentials: 'same-origin'
-        }).then(res => res.json())
+        })
+        .then(res => res.json())
         // Verify if one figure is ready
         .then(data => {
             console.log('checkFigures response:', data);
@@ -374,4 +381,40 @@ async function download() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+function updateMinS() {
+    const entropyValue = document.getElementById('entropy').value;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content; // ← fix
+    console.log('Sending entropy value:', entropyValue); // Debugging statement
+
+    fetch('/updateFig', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ entropy: entropyValue })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok ' + response.statusText);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Success:', data);
+            // update the entropy image src directly
+            const imgs = document.querySelectorAll('img');
+            imgs.forEach(img => {
+                if (img.src.includes('entropy')) {
+                    img.src = img.src.split('?')[0] + '?t=' + Date.now(); // ← force reload
+                }
+            });
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
 }
