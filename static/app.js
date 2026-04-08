@@ -169,8 +169,7 @@ async function buttonProcessDNA() {
         body: formData,  // Send the actual FormData object, not a JSON
         headers: { 'X-CSRFToken': csrfToken },
         method: 'POST'
-    })
-    .then(response => {
+    }).then(response => {
         if (response.ok) {
             // Redirect
             console.log('Redirect:')
@@ -179,8 +178,7 @@ async function buttonProcessDNA() {
             console.log('ERROR: Processing DNA.');
             alert("ERROR: Processing DNA.");
         }
-    })
-    .catch(error => {
+    }).catch(error => {
         console.error('Error:', error);
         alert("An error occurred.");
     });
@@ -254,8 +252,7 @@ function getFigures() {
             method: 'GET',
             headers: { 'X-CSRFToken': csrfToken },
             credentials: 'same-origin'
-        })
-        .then(res => res.json())
+        }).then(res => res.json())
         // Verify if one figure is ready
         .then(data => {
             console.log('checkFigures response:', data);

@@ -58,6 +58,7 @@ class WebApp:
         self.xAxisLabel = False
         self.entropy = None
         self.entropyMax = None
+        self.minS = 0.6
         self.subsExp = {}
         self.countsExp = 'Initialize me'
         self.countExpTotal = 0
@@ -126,6 +127,10 @@ class WebApp:
         self.AA = [residue[2] for residue in self.residues]
         self.bigAAonTop = False
         self.figures = {}
+
+        # Colors
+        self.orange = '#FA8128'
+        self.orangeBurnt = '#BF5700'
 
         pd.options.display.float_format = '{:,.3f}'.format
 
@@ -362,6 +367,7 @@ class WebApp:
         self.log(f'Substrate Length: {self.seqLength}')
 
         # Job dependant parameters
+        self.motifFilter = False
         if evalDNA:
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
@@ -1349,6 +1355,7 @@ class WebApp:
 
         # Figure parameters
         yMax = self.entropyMax + 0.2
+        xMax = len(self.entropy.iloc[:, 0])
 
         # Map entropy values to colors using the colormap
         colors = [(0, 'navy'),
@@ -1370,6 +1377,9 @@ class WebApp:
         fig, ax = plt.subplots(figsize=self.figSize)
         plt.bar(self.entropy.index, self.entropy['ΔS'], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
+        if self.motifFilter:
+            plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange],
+                       linestyles=['-'])
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         plt.ylabel('ΔS', fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
@@ -1380,7 +1390,7 @@ class WebApp:
                        labelsize=self.labelSizeTicks)
 
         # Set x-ticks
-        xTicks = np.arange(0, len(self.entropy.iloc[:, 0]), 1)
+        xTicks = np.arange(0, xMax, 1)
         ax.set_xticks(xTicks)
         ax.set_xticklabels(self.entropy.index, rotation=0, ha='center')
         for tick in ax.xaxis.get_major_ticks():
@@ -1399,6 +1409,7 @@ class WebApp:
             spine.set_linewidth(self.lineThickness)
 
         # Set axis limits
+        ax.set_xlim(-0.5, xMax-0.5)
         ax.set_ylim(0, yMax)
 
         # Add color bar
