@@ -209,18 +209,16 @@ async function buttonFilterSubs(filter) {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
             method: 'POST'
-        })
-        .then(response => {
+        }).then(response => {
             if (response.ok) {
                 // Redirect
-                console.log('Redirect:')
+                console.log('Redirect:');
                 window.location.href = '/results';
             } else {
                 console.log("ERROR: Filtering substrates.");
                 alert("ERROR: Filtering substrates.");
             }
-        })
-        .catch(error => {
+        }).catch(error => {
             console.error('Error:', error);
             alert("An error occurred.");
         });
@@ -229,79 +227,30 @@ async function buttonFilterSubs(filter) {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
             method: 'POST'
-        })
-        .then(response => {
+       }).then(response => {
             if (response.ok) {
                 // Redirect
-                console.log('Redirect:')
-                window.location.href = '/results';
+                console.log('Redirect:');
+                window.location.href = '/setEntropy';
             } else {
-                console.log("ERROR: Filtering substrates.");
-                alert("ERROR: Filtering substrates.");
-            }
-        })
-        .catch(error => {
+                alert("ERROR: Filtering motif.");
+                }
+       }).catch(error => {
             console.error('Error:', error);
             alert("An error occurred.");
-        });
+       });
     }
-}
-
-
-function clickButton() {
-    const message = 'your data';  // Pass data to app.py
-
-    // POST request to app.py
-    fetch('/run', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json' // Send JSON (Optional)
-        },
-        body: JSON.stringify({ message: message }) // Send data to app.py
-    })
-    .then(response => response.text())
-    .then(data => {
-        console.log('Server Response:\n', data);
-    })
-    .catch(error => {
-        console.error('ERROR: ', error);
-    });
-}
-
-function addFigure(container, label, fig, fig2 = null) {
-    const p = document.createElement('p');
-    p.className = 'p2';
-    p.textContent = label;
-    container.appendChild(p);
-
-    // Add figure
-    const img1 = document.createElement('img');
-    img1.src = fig;
-    img1.style.maxWidth = '80vw';
-    img1.style.height = 'auto';
-    container.appendChild(img1);
-
-    // Add the second figure
-    if (fig2) {
-        container.appendChild(document.createElement('br'));
-        const img2 = document.createElement('img');
-        img2.src = fig2;
-        img2.style.maxWidth = '80vw';
-        img2.style.height = 'auto';
-        container.appendChild(img2);
-    }
-        const spacer = document.createElement('div');
-    container.appendChild(document.createElement('br'));
-    container.appendChild(document.createElement('br'));
 }
 
 // Get figures
 function getFigures() {
-    const container = document.getElementById("figures-container");
+    console.log('Get Figs')
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const container = document.getElementById("figures-container");
+    if (!container) return;
 
     const interval = setInterval(() => {
-        // new Flask route returning JSON with filenames
+       // new Flask route returning JSON with filenames
         fetch('/checkFigures', {
             method: 'GET',
             headers: { 'X-CSRFToken': csrfToken },
@@ -310,7 +259,10 @@ function getFigures() {
         .then(res => res.json())
         // Verify if one figure is ready
         .then(data => {
-            if (data.eMap || data.eMapSc || data.exp_counts || data.bg_counts || data.eLogo || data.wLogo || data.words) {
+            console.log('checkFigures response:', data);
+            if (data.entropy || data.eMap || data.eMapSc || data.eLogo || data.eLogoMin ||
+            data.wLogo || data.words || data.barCounts || data.barRF || data.exp_counts ||
+            data.bg_counts) {
                 clearInterval(interval); // Stop polling
                 container.innerHTML = ''; // Clear loading message
 
@@ -341,6 +293,9 @@ function getFigures() {
                     if (data.eLogo) {
                         addFigure(container, "Enrichment Logo", data.eLogo);
                     }
+                    if (data.eLogoMin) {
+                        addFigure(container, "Enrichment Logo", data.eLogoMin);
+                    }
                 }
                 if (data.wLogo) {
                     addFigure(container, "WebLogo", data.wLogo);
@@ -363,6 +318,32 @@ function getFigures() {
             }
         });
     }, 1000); // poll every 1 second
+}
+
+function addFigure(container, label, fig, fig2 = null) {
+    const p = document.createElement('p');
+    p.className = 'p2';
+    p.textContent = label;
+    container.appendChild(p);
+
+    // Add figure
+    const img1 = document.createElement('img');
+    img1.src = fig;
+    img1.style.maxWidth = '80vw';
+    img1.style.height = 'auto';
+    container.appendChild(img1);
+
+    // Add a second figure
+    if (fig2) {
+        container.appendChild(document.createElement('br'));
+        const img2 = document.createElement('img');
+        img2.src = fig2;
+        img2.style.maxWidth = '80vw';
+        img2.style.height = 'auto';
+        container.appendChild(img2);
+    }
+    container.appendChild(document.createElement('br'));
+    container.appendChild(document.createElement('br'));
 }
 
 async function download() {
