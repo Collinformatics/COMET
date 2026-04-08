@@ -135,18 +135,6 @@ def jobSummary():
                            parameters=webapp.jobParams())
 
 
-@app.route('/updateFig', methods=['POST'])
-def updateFig():
-    print('Update Figures:')
-    data = request.get_json()
-    entropy = data.get('entropy')
-    if entropy is not None:
-        webapp.minS = float(entropy)
-        webapp.plotEntropy()
-        return jsonify({'status': 'success', 'entropy': webapp.figures.get('entropy')})
-    return None
-
-
 @app.route('/evalFormDNA', methods=['POST'])
 def evalDNA():
     # Process the ds
@@ -170,12 +158,33 @@ def filterMotif():
     webapp.evalSubs(parseForm(), filterMotifs=True)
     print('Job Done: Fix Motif')
     webapp.done = True
-    return render_template('setEntropy.html', parameters=webapp.jobParams, minS=webapp.minS)
+    return render_template(
+        'setEntropy.html', parameters=webapp.jobParams,
+        minS=webapp.minS, motifPos=webapp.motifPos)
+
+
+@app.route('/updateFig', methods=['POST'])
+def updateFig():
+    print('Update Figures:')
+    json = request.get_json()
+    entropy = json.get('entropy')
+    if entropy is not None:
+        webapp.minS = float(entropy)
+        webapp.selectMotifPos()
+        webapp.plotEntropy()
+    data = {
+        'status': 'success',
+        'entropy': webapp.figures.get('entropy'),
+        'motifPos': webapp.motifPos
+    }
+    return jsonify(data)
 
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
-    return render_template('setEntropy.html', parameters=webapp.jobParams, minS=webapp.minS)
+    print(f'Set Entropy:\n{webapp.motifPos}')
+    return render_template('setEntropy.html', parameters=webapp.jobParams,
+                           minS=webapp.minS, motifPos=webapp.motifPos)
 
 
 # Run the app

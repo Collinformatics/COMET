@@ -48,9 +48,16 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="motifPos">Selected Positions:</label>
+                        {% for pos, val in motifPos.items() %}
+                            <p class="p3">{{ pos }}: <span class="param-value">{{ "%.3f"|format(val) }}</span></p>
+                        {% endfor %}
+                    </div>
+
                     <!-- Execute -->
                     <div class="button-wrapper">
-                        <button class="button" onclick="buttonFilterSubs('motif')">Evaluate</button>
+                        <button class="button" onclick="buttonFilterMotif('motif')">Filter</button>
                     </div>
                 </form>
                 <!-- Container where JS will insert images -->

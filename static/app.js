@@ -118,7 +118,7 @@ async function processForm(formData) {
     jobID = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Log the form
-    console.log('Input Form:', json);
+    //console.log('Input Form:', json);
     return jobID;
 }
 
@@ -244,6 +244,10 @@ async function buttonFilterSubs(filter) {
             alert("An error occurred.");
        });
     }
+}
+
+function buttonFilterMotif() {
+    console.log('Filter Motif');
 }
 
 // Get figures
@@ -412,6 +416,14 @@ function updateMinS() {
                     img.src = img.src.split('?')[0] + '?t=' + Date.now(); // ← force reload
                 }
             });
+
+            // update motifPos list
+            const motifContainer = document.getElementById('motifPos');
+            if (motifContainer && data.motifPos) {
+                motifContainer.innerHTML = Object.entries(data.motifPos).map(([pos, val]) =>
+                    `<p class="p3">${pos}: <span class="param-value">${val.toFixed(3)}</span></p>`
+                ).join('');
+            }
         }
     })
     .catch((error) => {

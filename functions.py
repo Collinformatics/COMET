@@ -56,9 +56,10 @@ class WebApp:
         self.printN = 10
         self.roundVal = 3
         self.xAxisLabel = False
-        self.entropy = None
+        self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
         self.entropyMax = None
-        self.minS = 0.6
+        self.minS = 0.3
+        self.motifPos = pd.DataFrame()
         self.subsExp = {}
         self.countsExp = 'Initialize me'
         self.countExpTotal = 0
@@ -1024,9 +1025,18 @@ class WebApp:
 
 
     def filterMotif(self):
-        print(f'Code: filterAA()') ##
+        print(f'Filtering Motifs:') ##
+        self.selectMotifPos()
 
 
+    def selectMotifPos(self):
+        self.motifPos = {}
+        entropy = self.entropy.sort_values(by=self.entropy.columns[0], ascending=False)
+        for pos in entropy.index:
+            S = self.entropy.loc[pos, self.entropy.columns[0]]
+            if S >= self.minS:
+                self.motifPos[pos] = S
+        print(f'Motif Pos:\n{self.motifPos}')
 
 
 
@@ -1191,8 +1201,6 @@ class WebApp:
         self.log('\n\n============================= Calculate: Entropy '
                  '=============================')
         self.log(f'Filter: {self.datasetTag}\n')
-
-        self.entropy = pd.DataFrame(0.0, index=self.rfExp.columns, columns=['ΔS'])
         self.entropyMax = np.log2(len(self.rfExp.index))
         for indexColumn in self.rfExp.columns:
             S = 0
@@ -1202,7 +1210,7 @@ class WebApp:
                     continue
                 else:
                     S += -prob * np.log2(prob)
-            self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
+            self.entropy.loc[indexColumn, self.entropy.columns[0]] = self.entropyMax - S
         self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
 
         if plotFig:
@@ -1287,7 +1295,8 @@ class WebApp:
                                columns=matrix.columns, dtype=float)
         for indexColumn in heights.columns:
             heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
-                                           self.entropy.loc[indexColumn, 'ΔS'])
+                                           self.entropy.loc[indexColumn,
+                                           self.entropy.columns[0]])
 
         # Record values
         self.eMap = matrix.copy()
@@ -1373,16 +1382,16 @@ class WebApp:
 
         # Map entropy values to colors using the colormap
         normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
-        cMap = [colorBar(normalize(value)) for value in self.entropy['ΔS'].astype(float)]
+        cMap = [colorBar(normalize(value)) for value in self.entropy[self.entropy.columns[0]].astype(float)]
 
         # Plotting the entropy values as a bar graph
         fig, ax = plt.subplots(figsize=self.figSize)
         if self.motifFilter:
             plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
-        plt.bar(self.entropy.index, self.entropy['ΔS'], color=cMap,
+        plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        plt.ylabel('ΔS', fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
+        plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.tight_layout()
 
