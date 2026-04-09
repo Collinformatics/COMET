@@ -6,92 +6,95 @@
         <script src="../static/app.js"></script>
         <title>COMET</title>
     </head>
-    <!-- Header -->
-    <div>
-        <h1>COmprehensive Motif Evaluation Toolkit</h1>
-    </div>
-    <div>
-        <!-- Header Buttons -->
-        <div class="container-header">
-            <div class="button-group">
-                <button class="buttonHeader" onclick="pageHome()">Home</button>
-                <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
-                <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
-                <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
+    <body>
+        <!-- Header -->
+        <div>
+            <h1>COmprehensive Motif Evaluation Toolkit</h1>
+        </div>
+        <div>
+            <!-- Header Buttons -->
+            <div class="container-header">
+                <div class="button-group">
+                    <button class="buttonHeader" onclick="pageHome()">Home</button>
+                    <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
+                    <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
+                    <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
+                </div>
+                <div class="button-group-r">
+                    <button class="buttonHeader" onclick="pageResources()">Resources</button>
+                </div>
             </div>
-            <div class="button-group-r">
-                <button class="buttonHeader" onclick="pageResources()">Resources</button>
+
+            <!-- Application -->
+            <div class="box">
+                <h2>Filter Motif</h2>
+                <p>
+                    Specify minimum ∆S.
+                </p>
+
+                <!-- Forms -->
+                <div class="box-form">
+                    <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                        <!-- Minimum ES: Filter -->
+                        <div class="form-group">
+                            <label for="minES">Minimum ES: Filter</label>
+                            <div class="form-wrapper">
+                                <input type="number" id="minES" name="minES"
+                                       value="{{ minES }}" step="0.01" style="width: 60px;"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Minimum ES: Refine Filter -->
+                        <div class="form-group">
+                            <label for="minESRel">Minimum ES: Release Filter</label>
+                            <div class="form-wrapper">
+                                <input type="number" id="minESRel" name="minESRel"
+                                       value="{{ minESRel }}" step="0.01" style="width: 60px;"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Entropy -->
+                        <div class="form-group">
+                            <label for="entropy">Minimum ∆S:</label>
+                            <div class="form-wrapper">
+                                <input type="number" id="entropy" name="entropy"
+                                       value="{{ minS }}" min="0" max="4.32" step="0.01"
+                                       style="width: 60px;" onchange="updateMinS()"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="motifPos">
+                            <label for="motifPos">Motif Positions:</label>
+                            {% for pos, val in motifPos %}
+                            <p class="p3">{{ pos }}: ∆S=
+                                <span class="param-value">{{ "%.2f"|format(val) }}</span>
+                            </p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Execute -->
+                        <div class="button-wrapper">
+                            <button class="button" onclick="buttonFilterSubs('motif')">Filter</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- Container where JS will insert images -->
+                <div id="figures-container" class="figures-container"></div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => getFigures('entropy'));
+                </script>
+            </div>
+            <div class=ft>
+                <span>Version 1.0.0 (2026)</span>
+                <a href="https://brent.iverson.cm.utexas.edu/">
+                    <button class="btn">Iverson Lab</button>
+                </a>
             </div>
         </div>
-
-        <!-- Application -->
-        <div class="box">
-            <h2>Filter Motif</h2>
-            <p>
-                Specify minimum ∆S.
-            </p>
-
-            <!-- Forms -->
-            <div class="box-form">
-                <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-                    <!-- Entropy -->
-                    <div class="form-group">
-                        <label for="entropy">Minimum ∆S:</label>
-                        <div class="form-wrapper">
-                            <input type="number" id="entropy" name="entropy"
-                                   value="{{ minS }}" min="0" max="4.32" step="0.01"
-                                   style="width: 60px;" onchange="updateMinS()"
-                                   required>
-                        </div>
-                    </div>
-
-                    <!-- Minimum ES: Filter -->
-                    <div class="form-group">
-                        <label for="minES">Minimum ES: Filter</label>
-                        <div class="form-wrapper">
-                            <input type="number" id="minES" name="minES"
-                                   value="{{ minES }}" step="0.01" style="width: 60px;"
-                                   required>
-                        </div>
-                    </div>
-
-                    <!-- Minimum ES: Refine Filter -->
-                    <div class="form-group">
-                        <label for="minESRel">Minimum ES: Release Filter</label>
-                        <div class="form-wrapper">
-                            <input type="number" id="minESRel" name="minESRel"
-                                   value="{{ minESRel }}" step="0.01" style="width: 60px;"
-                                   required>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="motifPos">
-                        <label for="motifPos">Motif Positions:</label>
-                        {% for pos, val in motifPos %}
-                        <p class="p3">{{ pos }}: ∆S=
-                            <span class="param-value">{{ "%.2f"|format(val) }}</span>
-                        </p>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Execute -->
-                    <div class="button-wrapper">
-                        <button class="button" onclick="buttonFilterMotif('motif')">Filter</button>
-                    </div>
-                </form>
-            </div>
-            <!-- Container where JS will insert images -->
-            <div id="figures-container" class="figures-container"></div>
-            <script>
-                document.addEventListener('DOMContentLoaded', () => getFigures('entropy'));
-            </script>
-        </div>
-        <div class=ft>
-            <span>Version 1.0.0 (2026)</span>
-            <a href="https://brent.iverson.cm.utexas.edu/">
-                <button class="btn">Iverson Lab</button>
-            </a>
-        </div>
+    </body>
 </html>

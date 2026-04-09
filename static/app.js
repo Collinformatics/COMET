@@ -192,7 +192,7 @@ async function buttonFilterSubs(filter) {
     button.disabled = true;
     button.textContent = 'Processing';
 
-    //
+    // Process form
     const form = document.getElementById("filterSubs");
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
@@ -225,29 +225,26 @@ async function buttonFilterSubs(filter) {
             alert("An error occurred.");
         });
     } else {
-       fetch('/evalFormFilterMotif', {
+        console.log('Run: COMET')
+        fetch('/comet', {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
             method: 'POST'
-       })
-       .then(response => {
+        })
+        .then(response => {
             if (response.ok) {
                 // Redirect
                 console.log('Redirect:');
-                window.location.href = '/setEntropy';
+                window.location.href = '/results';
             } else {
                 alert("ERROR: Filtering motif.");
                 }
-       })
-       .catch(error => {
+        })
+        .catch(error => {
             console.error('Error:', error);
             alert("An error occurred.");
-       });
+        });
     }
-}
-
-function buttonFilterMotif() {
-    console.log('Filter Motif');
 }
 
 // Get figures

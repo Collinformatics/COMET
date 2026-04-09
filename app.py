@@ -187,6 +187,12 @@ def setEntropy():
                            parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
 
+@app.route('/comet', methods=['POST'])
+def comet():
+    webapp.filterMotifs() ##
+    return render_template('results.html', parameters=webapp.jobParams,
+                           motifPos=list(webapp.motifPos.items()))
+
 
 # Run the app
 if __name__ == '__main__':

@@ -389,6 +389,30 @@ class WebApp:
             ## Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
+
+            if self.enzymeName == 'ELN':
+                self.fileExp = [
+                    'dset/ELN/data/ELN-Subs_Exp-Excl_C@R1_C@R2_C@R3_C@R4_C@R5_C@R6_C@R7_C@R8-MinCounts_1-8AA.pkl',
+                                ]
+                self.fileBg = [
+                    'dset/ELN/data/counts_ELN-I_S1_L001',
+                    'dset/ELN/data/counts_ELN-I_S1_L002',
+                ]
+            elif self.enzymeName == 'Mpro2':
+                self.fileExp = [
+                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L001',
+                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L002',
+                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L003',
+                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L004'
+                ]
+                self.fileBg = [
+                    'dset/Mpro2/data/counts_Mpro2-I_S1_L001',
+                    'dset/Mpro2/data/counts_Mpro2-I_S1_L002',
+                    'dset/Mpro2/data/counts_Mpro2-I_S1_L003',
+                    'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
+                ]
+
+            ## Add: Min counts
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
@@ -958,10 +982,7 @@ class WebApp:
         # Plot figures
         self.calculateRF()
         self.calculateEntropy()
-
-        if filterMotifs:
-            self.filterMotifs() ##
-        else:
+        if not filterMotifs:
             self.calculateEnrichment()
 
         return None
@@ -997,7 +1018,6 @@ class WebApp:
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
                 idx = int(posFix.replace('fixR', '')) - 1
-                print(f'* Fix {fixAA}@R{idx+1}, {substrate[idx]}')
                 if substrate[idx] not in fixAA:
                     keepSub = False
                     break
@@ -1017,7 +1037,7 @@ class WebApp:
             if i >= self.printN:
                 break
         self.log('')
-        self.subsExp = subs
+        self.subsExp = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
 
         # Save data
         self.saveSubstrates(substrates=self.subsExp, datasetType=self.datasetTypes['Exp'])
@@ -1028,16 +1048,28 @@ class WebApp:
 
 
     def filterMotifs(self):
+        self.calculateEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
-        self.selectMotifPos()  ##
+        self.selectMotifPos() ##
         self.log(f'Minimum ∆S: {self.minS}\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
         self.fixAA = {}
+
         print(f'Min ES: {self.minES}, {self.minESRel}')
         for pos in self.motifPos.keys():
             print(f'Pos: {pos}')
+            if pos not in self.fixAA.keys():
+                AA = []
+                print(f'Scores:\n{self.eMap.loc[:, pos]}\n')
+                for aa in self.eMap.index:
+                    if self.eMap.loc[aa, pos] >= self.minES:
+                        AA.append(aa)
+                self.fixAA[f'fix{pos}'] = AA
+
+        print(self.fixAA)
+
 
 
 
