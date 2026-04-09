@@ -167,11 +167,11 @@ def filterMotif():
 def updateFig():
     print('Update Figures:')
     json = request.get_json()
-    entropy = json.get('entropy')
-    if entropy is not None:
-        webapp.minS = float(entropy)
-        webapp.selectMotifPos()
-        webapp.plotEntropy()
+    webapp.minS = float(json.get('entropy'))
+    webapp.minES = float(json.get('minES'))
+    webapp.minESRel = float(json.get('minESRel'))
+    webapp.selectMotifPos()
+    webapp.plotEntropy()
     data = {
         'status': 'success',
         'entropy': webapp.figures.get('entropy'),
@@ -182,8 +182,10 @@ def updateFig():
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
-    return render_template('setEntropy.html', parameters=webapp.jobParams,
-                           minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
+    return render_template('setEntropy.html', minS=webapp.minS,
+                           minES=webapp.minES, minESRel=webapp.minESRel,
+                           parameters=webapp.jobParams,
+                           motifPos=list(webapp.motifPos.items()))
 
 
 # Run the app

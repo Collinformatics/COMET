@@ -46,8 +46,6 @@ class WebApp:
         self.done = False
         self.jobParams = {}
         self.datasetTag = 'Unfiltered'
-        self.datasetTagMotif = ''
-        self.motifFilter = False
 
         # Params: Dataset
         self.enzymeName = ''
@@ -58,8 +56,6 @@ class WebApp:
         self.xAxisLabel = False
         self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
         self.entropyMax = None
-        self.minS = 0.3
-        self.motifPos = pd.DataFrame()
         self.subsExp = {}
         self.countsExp = 'Initialize me'
         self.countExpTotal = 0
@@ -77,9 +73,17 @@ class WebApp:
         self.eMapReleasedScaled = None
         self.saveTagBg = {}
         self.saveTagFig = {}
-        self.fixMotif = False
-        self.motifLen = 0
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
+
+        # Params: COMET
+        self.datasetTagMotif = ''
+        self.fixMotif = False
+        self.minS = 0.3
+        self.minES = 0
+        self.minESRel = -1
+        self.motifFilter = False
+        self.motifLen = 0
+        self.motifPos = pd.DataFrame()
 
         # Params: Files
         self.queueLog = queue.Queue()
@@ -1030,8 +1034,11 @@ class WebApp:
         self.log(f'Minimum ∆S: {self.minS}\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
+        self.fixAA = {}
+        print(f'Min ES: {self.minES}, {self.minESRel}')
         for pos in self.motifPos.keys():
-            self.log(f'  {pos}: {self.motifPos[pos]}')
+            print(f'Pos: {pos}')
+
 
 
 
