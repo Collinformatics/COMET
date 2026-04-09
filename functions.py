@@ -390,20 +390,20 @@ class WebApp:
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
 
-            if self.enzymeName == 'ELN':
+            if 'eln' in self.enzymeName.lower():
                 self.fileExp = [
-                    'dset/ELN/data/ELN-Subs_Exp-Excl_C@R1_C@R2_C@R3_C@R4_C@R5_C@R6_C@R7_C@R8-MinCounts_1-8AA.pkl',
-                                ]
+                    'dset/ELN/data/ELN-Subs_Exp-Excl_C@R1_C@R2_C@R3_C@R4_C@R5_C@R6_C@R7_C@R8-MinCounts_1-8AA.pkl'
+                ]
                 self.fileBg = [
                     'dset/ELN/data/counts_ELN-I_S1_L001',
-                    'dset/ELN/data/counts_ELN-I_S1_L002',
+                    'dset/ELN/data/counts_ELN-I_S1_L002'
                 ]
-            elif self.enzymeName == 'Mpro2':
+            elif 'mpro2' in self.enzymeName.lower():
                 self.fileExp = [
-                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L001',
-                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L002',
-                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L003',
-                    'dset/Mpro2/data/substrates_Mpro2-I_S1_L004'
+                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L001',
+                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L002',
+                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L003',
+                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L004'
                 ]
                 self.fileBg = [
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L001',
@@ -411,7 +411,7 @@ class WebApp:
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L003',
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
                 ]
-
+            print(f'Enz: {self.enzymeName}')
             ## Add: Min counts
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')

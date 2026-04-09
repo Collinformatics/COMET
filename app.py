@@ -55,7 +55,7 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('filterMotif.html',
+    return render_template('filterAA.html',
                            csrf_token=generate_csrf())
 
 
@@ -187,8 +187,11 @@ def setEntropy():
                            parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
 
+
 @app.route('/comet', methods=['POST'])
 def comet():
+    print('Start Job: COMET')
+    json = request.get_json()
     webapp.filterMotifs() ##
     return render_template('results.html', parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))

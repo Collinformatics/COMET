@@ -225,25 +225,47 @@ async function buttonFilterSubs(filter) {
             alert("An error occurred.");
         });
     } else {
-        console.log('Run: COMET')
-        fetch('/comet', {
-            body: formData,  // Send the actual FormData object, not a JSON
-            headers: { 'X-CSRFToken': csrfToken },
-            method: 'POST'
-        })
-        .then(response => {
-            if (response.ok) {
-                // Redirect
-                console.log('Redirect:');
-                window.location.href = '/results';
-            } else {
-                alert("ERROR: Filtering motif.");
-                }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert("An error occurred.");
-        });
+        if (filter == 'motif') {
+            console.log('Run: Eval Motif')
+            fetch('/evalFormFilterMotif', {
+                body: formData,  // Send the actual FormData object, not a JSON
+                headers: { 'X-CSRFToken': csrfToken },
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Redirect
+                    console.log('Redirect:');
+                    window.location.href = '/setEntropy';
+                } else {
+                    alert("ERROR: Filtering motif.");
+                    }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred.");
+            });
+        } else {
+            console.log('Run: COMET')
+            fetch('/comet', {
+                body: formData,  // Send the actual FormData object, not a JSON
+                headers: { 'X-CSRFToken': csrfToken },
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Redirect
+                    console.log('Redirect:');
+                    window.location.href = '/results';
+                } else {
+                    alert("ERROR: Filtering motif.");
+                    }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred.");
+            });
+        }
     }
 }
 
