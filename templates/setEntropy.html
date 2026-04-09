@@ -41,8 +41,8 @@
                         <label for="entropy">Minimum ∆S:</label>
                         <div class="form-wrapper">
                             <input type="number" id="entropy" name="entropy"
-                                   value="{{ minS }}" min="0" max="4.32" step="0.01" style="width: 60px;"
-                                   onchange="updateMinS()"
+                                   value="{{ minS }}" min="0" max="4.32" step="0.01"
+                                   style="width: 60px;" onchange="updateMinS()"
                                    required>
                         </div>
                     </div>
@@ -70,7 +70,9 @@
                     <div class="form-group" id="motifPos">
                         <label for="motifPos">Motif Positions:</label>
                         {% for pos, val in motifPos %}
-                        <p class="p3">{{ pos }}: ∆S=<span class="param-value">{{ "%.2f"|format(val) }}</span></p>
+                        <p class="p3">{{ pos }}: ∆S=
+                            <span class="param-value">{{ "%.2f"|format(val) }}</span>
+                        </p>
                         {% endfor %}
                     </div>
 

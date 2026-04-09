@@ -207,8 +207,8 @@ class WebApp:
 
     @staticmethod
     def pressButton(self, message):
-        print(f'Received ds: {message}')
-        return {'key': 'Returned ds'}
+        print(f'Received data: {message}')
+        return {'key': 'Returned data'}
 
 
     def encodeFig(self, fig):
@@ -325,7 +325,7 @@ class WebApp:
         # print()
 
         # Directories
-        self.pathDir = os.path.join('ds', form['enzymeName'])
+        self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
         self.pathLog = os.path.join(self.pathDir, 'log.txt')
@@ -379,21 +379,20 @@ class WebApp:
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
             ## Placeholder files
-            self.fileExp = ['ds/test/variantsExp.fastq'] # , 'ds/test/variantsExp2.fastq'
-            self.fileBg = ['ds/test/variantsBg.fasta'] # , 'ds/test/variantsBg2.fasta'
+            self.fileExp = ['dset/test/variantsExp.fastq'] # , 'dset/test/variantsExp2.fastq'
+            self.fileBg = ['dset/test/variantsBg.fasta'] # , 'dset/test/variantsBg2.fasta'
         elif filterAA:
             ## Placeholder files
-            self.fileExp = ['ds/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = ['ds/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
+            self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
                   f'{self.fileBg}')
         elif filterMotif:
             ## Placeholder files
-            self.fileExp = ['ds/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = [
-                'ds/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
+            self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
@@ -472,7 +471,7 @@ class WebApp:
                     self.log(f'          {substrate}: {count}')
                 self.log('')
 
-        # Sort ds
+        # Sort data
         substrates = dict(sorted(substrates.items(),
                                  key=lambda item: item[1], reverse=True))
 
@@ -743,7 +742,7 @@ class WebApp:
     def evalDNA(self, form):
         self.jobInit(form, job='Process DNA', evalDNA=True)
 
-        # Load the ds
+        # Load the data
         threads = []
         queuesExp = []
         queuesExpLog = []
@@ -839,7 +838,7 @@ class WebApp:
     def loadSubstrates(self, path, queueData, queueLog):
         try:
             with open(path, 'rb') as openedFile:  # Open file
-                data = pk.load(openedFile)  # Access the ds
+                data = pk.load(openedFile)  # Access the data
             queueData.put(data)
             queueLog.put(f'     {path}\n')
         except Exception as e:
@@ -872,7 +871,7 @@ class WebApp:
         self.log('\n\n================================== Load Data '
                  '=================================')
 
-        # Load the ds
+        # Load the data
         threads = []
         queuesExp = []
         queuesExpLog = []
@@ -957,7 +956,7 @@ class WebApp:
         self.calculateEntropy()
 
         if filterMotifs:
-            self.filterMotif()##
+            self.filterMotifs() ##
         else:
             self.calculateEnrichment()
 
@@ -1001,7 +1000,7 @@ class WebApp:
             if keepSub:
                 subs[substrate] = count
                 countsTotal += count
-        self.log(f'')
+        self.log('')
 
         i = 0
         self.log(f'Filtered Substrates:\n'
@@ -1024,9 +1023,16 @@ class WebApp:
                      datasetType=self.datasetTypes['Exp'])
 
 
-    def filterMotif(self):
-        print(f'Filtering Motifs:') ##
-        self.selectMotifPos()
+    def filterMotifs(self):
+        self.log('\n\n================================ Filter Motif '
+                 '================================')
+        self.selectMotifPos()  ##
+        self.log(f'Minimum ∆S: {self.minS}\nRecognition Sites:')
+        self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
+
+        for pos in self.motifPos.keys():
+            self.log(f'  {pos}: {self.motifPos[pos]}')
+
 
 
     def selectMotifPos(self):
@@ -1037,7 +1043,6 @@ class WebApp:
             if S >= self.minS:
                 self.motifPos[pos] = S
         # print(f'Motif Pos:\n{self.motifPos}')
-
 
 
     def saveSubstrates(self, substrates, datasetType):
