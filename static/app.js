@@ -342,19 +342,18 @@ function addFigure(container, label, fig, fig2 = null) {
     //console.log('fig:', img1.src);
     img1.style.maxWidth = '80vw';
     img1.style.height = 'auto';
+    img1.style.marginBottom = '20px';
     container.appendChild(img1);
 
     // Add a second figure
     if (fig2) {
-        container.appendChild(document.createElement('br'));
         const img2 = document.createElement('img');
         img2.src = fig2;
         img2.style.maxWidth = '80vw';
         img2.style.height = 'auto';
+        img2.style.marginBottom = '20px';
         container.appendChild(img2);
     }
-    container.appendChild(document.createElement('br'));
-    container.appendChild(document.createElement('br'));
 }
 
 async function download() {
@@ -409,20 +408,27 @@ function updateMinS() {
     .then(data => {
         if (data.status === 'success') {
             console.log('Success:', data);
-            // update the entropy image src directly
+
+            // update the entropy image
             const imgs = document.querySelectorAll('img');
             imgs.forEach(img => {
                 if (img.src.includes('entropy')) {
-                    img.src = img.src.split('?')[0] + '?t=' + Date.now(); // ← force reload
+                    img.src = img.src.split('?')[0] + '?t=' + Date.now();
                 }
             });
 
             // update motifPos list
             const motifContainer = document.getElementById('motifPos');
             if (motifContainer && data.motifPos) {
-                motifContainer.innerHTML = Object.entries(data.motifPos).map(([pos, val]) =>
-                    `<p class="p3">${pos}: <span class="param-value">${val.toFixed(3)}</span></p>`
-                ).join('');
+                const label = motifContainer.querySelector('label');
+                motifContainer.innerHTML = '';
+                motifContainer.appendChild(label);
+                data.motifPos.forEach(([pos, val]) => {
+                    const p = document.createElement('p');
+                    p.className = 'p3';
+                    p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
+                    motifContainer.appendChild(p);
+                });
             }
         }
     })

@@ -1033,10 +1033,10 @@ class WebApp:
         self.motifPos = {}
         entropy = self.entropy.sort_values(by=self.entropy.columns[0], ascending=False)
         for pos in entropy.index:
-            S = self.entropy.loc[pos, self.entropy.columns[0]]
+            S = round(float(self.entropy.loc[pos, self.entropy.columns[0]]), 2)
             if S >= self.minS:
                 self.motifPos[pos] = S
-        print(f'Motif Pos:\n{self.motifPos}')
+        # print(f'Motif Pos:\n{self.motifPos}')
 
 
 

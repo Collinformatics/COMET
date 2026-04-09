@@ -160,7 +160,7 @@ def filterMotif():
     webapp.done = True
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
-        minS=webapp.minS, motifPos=webapp.motifPos)
+        minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
 
 
 @app.route('/updateFig', methods=['POST'])
@@ -175,16 +175,15 @@ def updateFig():
     data = {
         'status': 'success',
         'entropy': webapp.figures.get('entropy'),
-        'motifPos': webapp.motifPos
+        'motifPos': list(webapp.motifPos.items())  # ← list of pairs
     }
     return jsonify(data)
 
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
-    print(f'Set Entropy:\n{webapp.motifPos}')
     return render_template('setEntropy.html', parameters=webapp.jobParams,
-                           minS=webapp.minS, motifPos=webapp.motifPos)
+                           minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
 
 
 # Run the app

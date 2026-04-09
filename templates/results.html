@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="static/styles.css">
-        <script src="static/app.js"></script>
-        <script src="{{ url_for('static', filename='app.js') }}"></script>
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <link rel="stylesheet" href="../static/styles.css">
+        <script src="../static/app.js"></script>
         <title>COMET</title>
     </head>
     <body>
-        <meta name="csrf-token" content="{{ csrf_token() }}">
-
         <!-- Header -->
         <div>
             <h1>COmprehensive Motif Evaluation Toolkit</h1>
@@ -40,17 +38,15 @@
                                 * {{ key }}: <span class="param-value">{{ value }}</span>
                             </p>
                         {% endfor %}
-                    <div>
-                        <div class="box-button"> <!-- ← new box -->
-                            <div id="button-container"></div>
-                        </div>
+                    </div>
+                    <div class="box-button"> <!-- ← new box -->
+                        <div id="button-container"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Container where JS will insert images -->
             <div id="figures-container" class="figures-container">
-                <p>Figures are being generated...</p>
             </div>
             <script>
                 document.addEventListener('DOMContentLoaded', getFigures);

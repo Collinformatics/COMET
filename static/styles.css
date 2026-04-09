@@ -24,14 +24,14 @@
     --buttonFontSizeFt: 16px;
     --textSizeInc: 4px;
 
-    --headerHeight: 40px;
+    --headerHeight: 42px;
     --headerButtonWidth: 110px;
 
     --borderRad: 5px;
     --borderThickness: 2px;
     --borderColor: var(--textColorLabel); /* #FA8128; */
 
-    --buttonHeight: 38px;
+    --buttonHeight: 40px;
     --buttonWidth: 120px;
     --buttonHighlight: #643603;
     --buttonRad: 8px;
@@ -58,9 +58,8 @@
 
 body {
     background-color: var(--colorBody);
-    margin: 0px;
-    padding: 0px;
     font-family: 'Segoe UI', sans-serif;
+    margin: 0px;
 }
 
 h1 {
@@ -88,15 +87,15 @@ p {
     padding: var(--padSize);
 }.p2 {
     color: var(--orange);
+
     font-size: calc(var(--textSize) + var(--textSizeInc));
     font-weight: bold;
     text-align: left;
-    margin: 0px;
-    padding: var(--marginFormHorizontal) 0 calc(var(--marginFormHorizontal) / 2) 0;
     text-align: center;       /* center inline content */
     display: block;           /* ensure it's block-level */
     margin: 10px auto;        /* center the block horizontally */
     margin-bottom: 0px;
+    padding: 0px 0px calc(var(--marginFormVertical) / 2) 0px;
 }.p3 { /* Job Parameters */
     color: var(--textColor);
     font-size: var(--textSizeResults);
@@ -123,13 +122,12 @@ p {
 
 .box {
     background-color: var(--colorBox);
-    margin-bottom: var(--marginBottom);
-    padding: var(--padSize);
     display: flex;
     flex-direction: column;
     align-items: center;      /* Center vertically */
-    padding: var(--padSize) var(--padSize) calc(var(--padBox) * 4) var(--padSize);
     overflow-wrap: anywhere; /* Keep text in the box */
+    margin-bottom: var(--marginBottom);
+    padding: var(--padSize) var(--padSize) calc(var(--padBox) * 2) var(--padSize);
 }
 
 /* Dynamically adjust input boxes */
@@ -186,12 +184,11 @@ p {
 /* Figures*/
 .figures-container {
     background-color: var(--colorBody);
-    margin: 20px;
     padding: var(--padSize);
     display: flex;
     flex-direction: column;
-    align-items: center;      /* Center vertically */
-    padding: var(--padSize);
+    align-items: center;
+    margin: 20px;
 }.figure-img {
     max-width: 80vw;
     width: 100%;
@@ -225,6 +222,7 @@ button:hover {
     width: 100%;
     padding-top: 0px;
     margin: var(--marginFormVertical) var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
+    padding: 0px 0px calc(var(--marginFormVertical) / 2) 0px;
 }.form-group {
     font-size: var(--textSize);
     display: flex;
@@ -342,8 +340,10 @@ input[type="url"] {
     border-top: 2px solid var(--orangeburnt);
     line-height: 1.2;
     gap: 0px;
-    padding: var(--marginFooter) 0px 0px 0px;
     width: 100%; /* ensure it's not collapsed */
+    margin-top: 0px;
+    margin-bottom: 60px;
+    padding: var(--marginFooter) 0px 0px 0px;
 }.ft span {
     display: block; /* forces span to its own line */
     margin-left: var(--marginFooter);
