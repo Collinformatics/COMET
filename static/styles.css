@@ -87,7 +87,6 @@ p {
     padding: var(--padSize);
 }.p2 {
     color: var(--orange);
-
     font-size: calc(var(--textSize) + var(--textSizeInc));
     font-weight: bold;
     text-align: left;
