@@ -410,8 +410,8 @@ class WebApp:
                 ]
             print(f'Enz: {self.enzymeName}')
             # Add: Min counts
-            print(f'\nFile Exp: {type(self.fileExp)}\n'
-                  f'{self.fileExp}\n')
+            print(f'File Exp: {type(self.fileExp)}\n'
+                  f'{self.fileExp}')
             print(f'File Bg: {type(self.fileBg)}\n'
                   f'{self.fileBg}')
         elif filterMotif:
@@ -1047,18 +1047,18 @@ class WebApp:
 
 
     def filterMotifs(self, form):
-        for k, v in form.items():
-            print(k, v, type(v))
-        print()
-        self.minS = float(form['minS'])
-        self.minES = float(form['minES'])
-        self.minESRel = float(form['minESRel'])
-
         self.calculateEnrichment()
+
         self.log('\n\n================================ Filter Motif '
                  '================================')
-        self.selectMotifPos() ##
-        self.log(f'Minimum ∆S: {self.minS}\nRecognition Sites:')
+        self.minS = float(form['minS'])
+        self.log(f'Minimum ∆S: {self.minS}')
+        self.minES = float(form['minES'])
+        self.log(f'Minimum ES: {self.minES}')
+        self.minESRel = float(form['minESRel'])
+        self.log(f'Minimum ES Release: {self.minESRel}')
+        self.selectMotifPos()  ##
+        self.log('Recognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
         print(f'Min ES: {self.minES}, {self.minESRel}')
@@ -1066,11 +1066,16 @@ class WebApp:
             if pos not in self.fixAA.keys():
                 AA = []
                 print(f'Scores: {pos}')
+                print(self.eMap)
                 for aa in self.eMap.index:
                     if self.eMap.loc[aa, pos] >= self.minES:
                         print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
                         AA.append(aa)
                 self.fixAA[f'fix{pos}'] = AA
+                self.getDatasetTag()
+                self.filterSubs()
+                self.calculateRF()
+                self.calculateEnrichment()
                 print('')
         print(f'Fix AA:')
         for k, v in self.fixAA.items():

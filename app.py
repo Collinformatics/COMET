@@ -164,7 +164,7 @@ def filterMotif():
 
 @app.route('/updateFig', methods=['POST'])
 def updateFig():
-    print('Update Figures:')
+    # print('Updating Figure')
     json = request.get_json()
     webapp.minS = float(json.get('minS'))
     webapp.minES = float(json.get('minES'))
@@ -192,6 +192,7 @@ def setEntropy():
 def comet():
     print('Start Job: COMET')
     webapp.filterMotifs(parseForm()) ##
+    print('Job Done: COMET')
     return render_template('results.html', parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
 

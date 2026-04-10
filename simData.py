@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import argparse
 import os
 import random
@@ -48,7 +50,7 @@ print(f'Generating {args.num_variants:,} variants\n\n'
       f'* Experimental: {args.mut_exp} %\n'
       f'* Background: {args.mut_bg} %\n')
 
-dir = 'ds/test/'
+dir = 'dset/test/'
 if not os.path.exists(dir):
     os.makedirs(dir, exist_ok=True)
 pathExp = os.path.join(dir, 'variantsExp.fastq')
