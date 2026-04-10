@@ -55,7 +55,7 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('filterAA.html',
+    return render_template('filterMotif.html',
                            csrf_token=generate_csrf())
 
 
@@ -156,8 +156,8 @@ def filterSubs():
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
     webapp.evalSubs(parseForm(), filterMotifs=True)
-    print('Job Done: Fix Motif')
     webapp.done = True
+    print(f'Motif:\n{list(webapp.motifPos.items())}')
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
         minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
@@ -177,11 +177,14 @@ def updateFig():
         'entropy': webapp.figures.get('entropy'),
         'motifPos': list(webapp.motifPos.items())  # ← list of pairs
     }
+    print(f'Motif: {data["motifPos"]}')
     return jsonify(data)
 
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
+    print('Set Entropy')
+    print(f'Motif (SE): {list(webapp.motifPos.items())}')
     return render_template('setEntropy.html', minS=webapp.minS,
                            minES=webapp.minES, minESRel=webapp.minESRel,
                            parameters=webapp.jobParams,

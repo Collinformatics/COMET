@@ -70,16 +70,20 @@
 
                         <div class="form-group" id="motifPos">
                             <label for="motifPos">Motif Positions:</label>
-                            {% for pos, val in motifPos %}
-                            <p class="p3">{{ pos }}: ∆S=
-                                <span class="param-value">{{ "%.2f"|format(val) }}</span>
-                            </p>
-                            {% endfor %}
+                            {% if motifPos %}
+                                {% for pos, val in motifPos %}
+                                    <p class="p3">{{ pos }}: ∆S=
+                                        <span class="param-value">{{"%.2f"|format(val) }}</span>
+                                    </p>
+                                {% endfor %}
+                            {% else %}
+                                <p class="p3">No positions selected.</p>
+                            {% endif %}
                         </div>
 
                         <!-- Execute -->
                         <div class="button-wrapper">
-                            <button class="button" onclick="buttonFilterSubs('comet')">Filter</button>
+                            <button class="button" onclick="buttonFilterSubs('motif')">Filter</button>
                         </div>
                     </form>
                 </div>

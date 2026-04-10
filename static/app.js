@@ -406,9 +406,16 @@ async function download() {
 }
 
 function updateMinS() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const entropyValue = document.getElementById('entropy').value;
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content; // ← fix
+    const minES = document.getElementById('minES').value;
+    const minESRel = document.getElementById('minESRel').value;
     console.log('Sending entropy value:', entropyValue); // Debugging statement
+    const data = JSON.stringify({
+        entropy: entropyValue,
+        minES: minES,
+        minESRel: minESRel
+    })
 
     fetch('/updateFig', {
         method: 'POST',
@@ -416,7 +423,7 @@ function updateMinS() {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ entropy: entropyValue })
+        body: data
     })
     .then(response => {
         if (!response.ok) {

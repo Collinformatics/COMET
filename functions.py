@@ -320,15 +320,13 @@ class WebApp:
 
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
+        # Initialize params
         self.figures = {}
+        self.fixAA = {}
+        self.exclAA = {}
         self.motifFilter = False
 
-        # print('Filter:')
-        # for key, value in form.items():
-        #     print(f'  {key}: {value}')
-        # print()
-
-        # Directories
+        # Initialize directories
         self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
@@ -389,8 +387,7 @@ class WebApp:
             ## Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
-
-            if 'eln' in self.enzymeName.lower():
+            if 'eln' in self.enzymeName.lower(): ##
                 self.fileExp = [
                     'dset/ELN/data/ELN-Subs_Exp-Excl_C@R1_C@R2_C@R3_C@R4_C@R5_C@R6_C@R7_C@R8-MinCounts_1-8AA.pkl'
                 ]
@@ -412,13 +409,13 @@ class WebApp:
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
                 ]
             print(f'Enz: {self.enzymeName}')
-            ## Add: Min counts
+            # Add: Min counts
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
             print(f'File Bg: {type(self.fileBg)}\n'
                   f'{self.fileBg}')
         elif filterMotif:
-            ## Placeholder files
+            # Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
@@ -982,7 +979,9 @@ class WebApp:
         # Plot figures
         self.calculateRF()
         self.calculateEntropy()
-        if not filterMotifs:
+        if filterMotifs:
+            self.selectMotifPos()
+        else:
             self.calculateEnrichment()
 
         return None
@@ -1054,8 +1053,6 @@ class WebApp:
         self.selectMotifPos() ##
         self.log(f'Minimum ∆S: {self.minS}\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
-
-        self.fixAA = {}
 
         print(f'Min ES: {self.minES}, {self.minESRel}')
         for pos in self.motifPos.keys():
@@ -1209,7 +1206,7 @@ class WebApp:
         # File path
         figName = f'counts-{self.enzymeName}-{datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
-        print(f'\nSaving Fig: Counts {datasetType}\n     {path}')
+        # print(f'\nSaving Fig: Counts {datasetType}\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1481,7 +1478,7 @@ class WebApp:
         if self.motifFilter:
             figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
-        print(f'\nSaving Fig: Entropy\n     {path}')
+        # print(f'\nSaving Fig: Entropy\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1582,7 +1579,7 @@ class WebApp:
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
-        print(f'\nSaving Fig: EM\n     {path}')
+        # print(f'\nSaving Fig: EM\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
