@@ -199,9 +199,11 @@ async function buttonFilterSubs(filter) {
     formData.delete('csrf_token');
 
     // Evaluate the form
-    jobID = await processForm(formData);
-    console.log('jobID', jobID);
-    formData.append('jobID', jobID);
+    if (filter != 'comet') {
+        jobID = await processForm(formData);
+        console.log('jobID', jobID);
+        formData.append('jobID', jobID);
+    }
 
     // POST the raw formData to Flask
     if (filter == 'aa') {
@@ -412,12 +414,12 @@ async function download() {
 
 function updateMinS() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const entropyValue = document.getElementById('entropy').value;
+    const minS = document.getElementById('minS').value;
     const minES = document.getElementById('minES').value;
     const minESRel = document.getElementById('minESRel').value;
-    console.log('Sending entropy value:', entropyValue); // Debugging statement
+    console.log('Sending entropy value:', minS); // Debugging statement
     const data = JSON.stringify({
-        entropy: entropyValue,
+        minS: minS,
         minES: minES,
         minESRel: minESRel
     })

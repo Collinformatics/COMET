@@ -865,7 +865,7 @@ class WebApp:
             with open(path, 'rb') as openedFile:  # Open file
                 data = pk.load(openedFile)  # Access the data
             queueData.put(data)
-            queueLog.put(f'     {path}\n')
+            queueLog.put(f'     {path}')
         except Exception as e:
             queueLog.put(self.logErrorFn(
                 function='loadSubstrates()',
@@ -940,7 +940,7 @@ class WebApp:
                         self.subsExp[substrate] += count
                     else:
                         self.subsExp[substrate] = count
-            self.log('Substrates:')
+            self.log('\nSubstrates:')
             if self.subsExp:
                 i = 0
                 for substrate, count in self.subsExp.items():
@@ -1048,7 +1048,11 @@ class WebApp:
 
     def filterMotifs(self, form):
         for k, v in form.items():
-            print(f'{k}: {v}')
+            print(k, v, type(v))
+        print()
+        self.minS = float(form['minS'])
+        self.minES = float(form['minES'])
+        self.minESRel = float(form['minESRel'])
 
         self.calculateEnrichment()
         self.log('\n\n================================ Filter Motif '
@@ -1059,19 +1063,18 @@ class WebApp:
 
         print(f'Min ES: {self.minES}, {self.minESRel}')
         for pos in self.motifPos.keys():
-            print(f'Pos: {pos}')
             if pos not in self.fixAA.keys():
                 AA = []
-                print(f'Scores:\n{self.eMap.loc[:, pos]}\n')
+                print(f'Scores: {pos}')
                 for aa in self.eMap.index:
                     if self.eMap.loc[aa, pos] >= self.minES:
+                        print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
                         AA.append(aa)
                 self.fixAA[f'fix{pos}'] = AA
-
-        print(self.fixAA)
-
-
-
+                print('')
+        print(f'Fix AA:')
+        for k, v in self.fixAA.items():
+            print(f'* {k}: {v}')
 
 
     def selectMotifPos(self):
@@ -1099,7 +1102,7 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
-        self.log(f'Saving Substrates:\n     {path}')
+        # self.log(f'Saving Substrates:\n     {path}')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
 
@@ -1132,7 +1135,7 @@ class WebApp:
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)
-        self.log(f'Saving Counts:\n     {path}')
+        # self.log(f'Saving Counts:\n     {path}')
         countMatrix.to_csv(path)
 
 
@@ -1209,7 +1212,6 @@ class WebApp:
         # File path
         figName = f'counts-{self.enzymeName}-{datasetType}.png'
         path = os.path.join(self.pathFigs, figName)
-        # print(f'\nSaving Fig: Counts {datasetType}\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1481,7 +1483,6 @@ class WebApp:
         if self.motifFilter:
             figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
-        # print(f'\nSaving Fig: Entropy\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1582,7 +1583,6 @@ class WebApp:
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
-        # print(f'\nSaving Fig: EM\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1679,7 +1679,7 @@ class WebApp:
             if limitYAxis:
                 figName = figName.replace('eLogo-', 'eLogo_yMin-')
             path = os.path.join(self.pathFigs, figName)
-            self.log(f'\nSaving Enrichment Logo:\n     {path}')
+            # self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
             # Encode the figure
             figBase64 = self.encodeFig(fig)
@@ -1762,7 +1762,7 @@ class WebApp:
             sys.exit()
         figName = f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
         path = os.path.join(self.pathFigs, figName)
-        self.log(f'\nSaving Enrichment Logo:\n     {path}')
+        # self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)

@@ -157,7 +157,6 @@ def filterSubs():
 def filterMotif():
     webapp.evalSubs(parseForm(), filterMotifs=True)
     webapp.done = True
-    print(f'Motif:\n{list(webapp.motifPos.items())}')
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
         minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
@@ -167,24 +166,22 @@ def filterMotif():
 def updateFig():
     print('Update Figures:')
     json = request.get_json()
-    webapp.minS = float(json.get('entropy'))
+    webapp.minS = float(json.get('minS'))
     webapp.minES = float(json.get('minES'))
     webapp.minESRel = float(json.get('minESRel'))
     webapp.selectMotifPos()
     webapp.plotEntropy()
     data = {
         'status': 'success',
-        'entropy': webapp.figures.get('entropy'),
+        'minS': webapp.figures.get('minS'),
         'motifPos': list(webapp.motifPos.items())  # ← list of pairs
     }
-    print(f'Motif: {data["motifPos"]}')
     return jsonify(data)
 
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
     print('Set Entropy')
-    print(f'Motif (SE): {list(webapp.motifPos.items())}')
     return render_template('setEntropy.html', minS=webapp.minS,
                            minES=webapp.minES, minESRel=webapp.minESRel,
                            parameters=webapp.jobParams,
@@ -194,17 +191,9 @@ def setEntropy():
 @app.route('/comet', methods=['POST'])
 def comet():
     print('Start Job: COMET')
-    try:
-        data = parseForm()
-        print('Parsed data keys:', data.keys())
-        webapp.filterMotifs(parseForm()) ##
-        return render_template('results.html', parameters=webapp.jobParams,
-                               motifPos=list(webapp.motifPos.items()))
-    except Exception as e:
-        import traceback
-        traceback.print_exc()  # full stack trace in terminal
-        return str(e), 400
-
+    webapp.filterMotifs(parseForm()) ##
+    return render_template('results.html', parameters=webapp.jobParams,
+                           motifPos=list(webapp.motifPos.items()))
 
 
 # Run the app
