@@ -194,10 +194,17 @@ def setEntropy():
 @app.route('/comet', methods=['POST'])
 def comet():
     print('Start Job: COMET')
-    json = request.get_json()
-    webapp.filterMotifs() ##
-    return render_template('results.html', parameters=webapp.jobParams,
-                           motifPos=list(webapp.motifPos.items()))
+    try:
+        data = parseForm()
+        print('Parsed data keys:', data.keys())
+        webapp.filterMotifs(parseForm()) ##
+        return render_template('results.html', parameters=webapp.jobParams,
+                               motifPos=list(webapp.motifPos.items()))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # full stack trace in terminal
+        return str(e), 400
+
 
 
 # Run the app

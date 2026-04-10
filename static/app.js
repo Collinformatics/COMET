@@ -200,8 +200,8 @@ async function buttonFilterSubs(filter) {
 
     // Evaluate the form
     jobID = await processForm(formData);
+    console.log('jobID', jobID);
     formData.append('jobID', jobID);
-
 
     // POST the raw formData to Flask
     if (filter == 'aa') {
@@ -224,48 +224,53 @@ async function buttonFilterSubs(filter) {
             console.error('Error:', error);
             alert("An error occurred.");
         });
+    } else if (filter == 'motif') {
+        console.log('Run: Eval Motif');
+
+        fetch('/evalFormFilterMotif', {
+            body: formData,  // Send the actual FormData object, not a JSON
+            headers: { 'X-CSRFToken': csrfToken },
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redirect
+                console.log('Redirect:');
+                window.location.href = '/setEntropy';
+            } else {
+                console.log("ERROR: Filtering motif.");
+                alert("ERROR: Filtering motif.");
+                }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("An error occurred.");
+        });
+    } else if (filter == 'comet') {
+        console.log('Run: COMET');
+        console.log('CSRF token:', csrfToken);  // add this
+        console.log('FormData entries:', [...formData.entries()]);
+        fetch('/comet', {
+            body: formData,  // Send the actual FormData object, not a JSON
+            headers: { 'X-CSRFToken': csrfToken },
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redirect
+                console.log('Redirect:');
+                window.location.href = '/results';
+            } else {
+                console.log("ERROR: Running COMET.");
+                alert("ERROR: Running COMET.");
+                }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("An error occurred.");
+        });
     } else {
-        if (filter == 'motif') {
-            console.log('Run: Eval Motif')
-            fetch('/evalFormFilterMotif', {
-                body: formData,  // Send the actual FormData object, not a JSON
-                headers: { 'X-CSRFToken': csrfToken },
-                method: 'POST'
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Redirect
-                    console.log('Redirect:');
-                    window.location.href = '/setEntropy';
-                } else {
-                    alert("ERROR: Filtering motif.");
-                    }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("An error occurred.");
-            });
-        } else {
-            console.log('Run: COMET')
-            fetch('/comet', {
-                body: formData,  // Send the actual FormData object, not a JSON
-                headers: { 'X-CSRFToken': csrfToken },
-                method: 'POST'
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Redirect
-                    console.log('Redirect:');
-                    window.location.href = '/results';
-                } else {
-                    alert("ERROR: Filtering motif.");
-                    }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("An error occurred.");
-            });
-        }
+        alert('No valid filter type was given to: buttonFilterSubs(filter)')
     }
 }
 
@@ -443,18 +448,26 @@ function updateMinS() {
                 }
             });
 
-            // update motifPos list
+            // Update motifPos list
             const motifContainer = document.getElementById('motifPos');
-            if (motifContainer && data.motifPos) {
+            if (motifContainer) {
                 const label = motifContainer.querySelector('label');
                 motifContainer.innerHTML = '';
                 motifContainer.appendChild(label);
-                data.motifPos.forEach(([pos, val]) => {
+
+                if (data.motifPos && data.motifPos.length > 0) {
+                    data.motifPos.forEach(([pos, val]) => {
+                        const p = document.createElement('p');
+                        p.className = 'p3';
+                        p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
+                        motifContainer.appendChild(p);
+                    });
+                } else {
                     const p = document.createElement('p');
                     p.className = 'p3';
-                    p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
+                    p.textContent = 'No positions selected.';
                     motifContainer.appendChild(p);
-                });
+                }
             }
         }
     })

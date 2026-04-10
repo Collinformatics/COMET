@@ -1046,7 +1046,10 @@ class WebApp:
                      datasetType=self.datasetTypes['Exp'])
 
 
-    def filterMotifs(self):
+    def filterMotifs(self, form):
+        for k, v in form.items():
+            print(f'{k}: {v}')
+
         self.calculateEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')

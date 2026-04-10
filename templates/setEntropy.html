@@ -28,14 +28,11 @@
             <!-- Application -->
             <div class="box">
                 <h2>Filter Motif</h2>
-                <p>
-                    Specify minimum ∆S.
-                </p>
 
                 <!-- Forms -->
                 <div class="box-form">
                     <form id="filterSubs" enctype="multipart/form-data" class="input-form" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <!-- Minimum ES: Filter -->
                         <div class="form-group">
@@ -83,7 +80,7 @@
 
                         <!-- Execute -->
                         <div class="button-wrapper">
-                            <button class="button" onclick="buttonFilterSubs('motif')">Filter</button>
+                            <button class="button" onclick="buttonFilterSubs('comet')">Filter</button>
                         </div>
                     </form>
                 </div>
