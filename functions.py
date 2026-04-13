@@ -1040,12 +1040,10 @@ class WebApp:
                 continue
 
             for posFix, fixAA in self.fixAA.items():
-                print(f'Pos: {posFix}, AA: {fixAA}')
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
                 idx = int(posFix.replace('R', '')) - 1
-                # print(f'Fix: {posFix} - {fixAA}')
-                # print(f'  idx: {idx}, sub: {substrate} - {substrate[idx]}')
+                print(f'* Pos: {posFix} {substrate[idx]} {fixAA}')
                 if substrate[idx] not in fixAA:
                     keepSub = False
                     print(f'  Drop - {posFix} {substrate[idx]}')
@@ -1056,11 +1054,6 @@ class WebApp:
                 countsTotal += count
         print(f'N Subs: {len(subs.keys())}')
         self.subsExp = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
-        print('Filtered Subs:')
-        for s, c in self.subsExp.items():
-            if s[-1] == 'C':
-                print(' ',s, c)
-        print(f'N Subs: {len(self.subsExp.keys())}')
 
         # Log substrates
         i = 0
@@ -1113,7 +1106,6 @@ class WebApp:
                 self.calculateRF()
                 self.calculateEnrichment()
                 print('')
-                return
             else:
                 print(f'Skip {pos}: {self.fixAA}')
             time.sleep(4)
