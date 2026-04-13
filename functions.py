@@ -78,7 +78,7 @@ class WebApp:
         # Params: COMET
         self.datasetTagMotif = ''
         self.fixMotif = False
-        self.minS = 0.3
+        self.minS = 0.65
         self.minES = 0
         self.minESRel = -1
         self.motifFilter = False
@@ -235,6 +235,8 @@ class WebApp:
     def getDatasetTag(self):
         tagFix = 'Fix '
         tagExcl = 'Excl '
+        self.fixAA = dict(sorted(self.fixAA.items()))
+        self.exclAA = dict(sorted(self.exclAA.items()))
 
         # Evaluate filters
         if self.exclAA:
@@ -418,7 +420,7 @@ class WebApp:
                   f'{self.fileBg}')
         elif filterMotif:
             # Placeholder files
-            self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            self.fileExp = ['dset/Name/data/Name-Subs_Exp-Fix_[C,G,H,K,T]@R4-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             print(f'\nFile Exp: {type(self.fileExp)}\n'
                   f'{self.fileExp}\n')
@@ -429,6 +431,8 @@ class WebApp:
             print('ERROR: What Script Is Running')
             sys.exit()
         self.getFilter(form)
+        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T']
+        print(f'\nFix AA Tag: fixR4: {self.fixAA}')
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
         # self.log(f'Job ID: {self.jobParams['jobID']}')
@@ -1018,7 +1022,7 @@ class WebApp:
             for posFix, fixAA in self.fixAA.items():
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
-                idx = int(posFix.replace('fixR', '')) - 1
+                idx = int(posFix.replace('R', '')) - 1
                 if substrate[idx] not in fixAA:
                     keepSub = False
                     break
@@ -1037,7 +1041,7 @@ class WebApp:
             i += 1
             if i >= self.printN:
                 break
-        self.log('')
+
         self.subsExp = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
 
         # Save data
@@ -1063,6 +1067,7 @@ class WebApp:
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
         print(f'Min ES: {self.minES}, {self.minESRel}')
+        print(f'\nFixAA: {self.fixAA}\nMotif Pos: {self.motifPos}\n')
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
                 AA = []
@@ -1072,12 +1077,15 @@ class WebApp:
                     if self.eMap.loc[aa, pos] >= self.minES:
                         print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
                         AA.append(aa)
-                self.fixAA[f'fix{pos}'] = AA
+                self.fixAA[pos] = AA
                 self.getDatasetTag()
                 self.filterSubs()
                 self.calculateRF()
                 self.calculateEnrichment()
                 print('')
+            else:
+                print(f'Skip: {pos}\n{self.fixAA}\n')
+            time.sleep(4)
         print(f'Fix AA:')
         for k, v in self.fixAA.items():
             print(f'* {k}: {v}')
@@ -1108,7 +1116,7 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
-        # self.log(f'Saving Substrates:\n     {path}')
+        # self.log(f'\nSaving Substrates:\n     {path}')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
 
@@ -1124,7 +1132,7 @@ class WebApp:
         for pos in countMatrix.columns:
             counts = sum(countMatrix.loc[:, pos])
             totalCounts.loc[pos, 'Sum'] = counts
-        self.log(f'Counts:\n{countMatrix}\n\n{totalCounts}\n')
+        self.log(f'Counts:\n{countMatrix}\n\n{totalCounts}')
 
         # File path
         saveTag = None
@@ -1141,7 +1149,7 @@ class WebApp:
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)
-        # self.log(f'Saving Counts:\n     {path}')
+        # self.log(f'\nSaving Counts:\n     {path}')
         countMatrix.to_csv(path)
 
 
@@ -1612,7 +1620,6 @@ class WebApp:
         data = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
         xticks = data.columns
         data.columns = range(len(data.columns))
-        print(f'\nMatrix:\n{data}\n')
 
         # Calculate: Max and min
         columnTotals = [[], []]
