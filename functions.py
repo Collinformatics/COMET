@@ -57,6 +57,7 @@ class WebApp:
         self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
         self.entropyMax = None
         self.subsExp = {}
+        self.subsExpAll = {}
         self.countsExp = 'Initialize me'
         self.countExpTotal = 0
         self.countExpUnique = 0
@@ -242,16 +243,16 @@ class WebApp:
         if self.exclAA:
             for index, (pos, AA) in enumerate(self.exclAA.items()):
                 if len(AA) > 1:
-                    tagExcl += f'[{','.join(AA)}]@{pos.replace('excl', '')} '
+                    tagExcl += f'[{','.join(AA)}]@{pos} '
                 else:
-                    tagExcl += f'{AA}@{pos.replace('excl', '')} '
+                    tagExcl += f'{AA}@{pos} '
             tagExcl = tagExcl[:-1]
         if self.fixAA:
             for index, (pos, AA) in enumerate(self.fixAA.items()):
                 if len(AA) > 1:
-                    tagFix += f'[{','.join(AA)}]@{pos.replace('fix', '')} '
+                    tagFix += f'[{','.join(AA)}]@{pos} '
                 else:
-                    tagFix += f'{AA}@{pos.replace('fix', '')} '
+                    tagFix += f'{AA}@{pos} '
             tagFix = tagFix[:-1]
         if tagExcl != 'Excl ' and tagFix != 'Fix ':
             self.datasetTag = f'{tagExcl} {tagFix}'
@@ -306,9 +307,9 @@ class WebApp:
             # Get filter params
             for key, value in data.items():
                 if 'fix' in key:
-                    self.fixAA[key] = value
+                    self.fixAA[key.replace('fix', '')] = value
                 if 'excl' in key:
-                    self.exclAA[key] = value
+                    self.exclAA[key.replace('excl', '')] = value
         self.getDatasetTag()
 
 
@@ -324,8 +325,6 @@ class WebApp:
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
         # Initialize params
         self.figures = {}
-        self.fixAA = {}
-        self.exclAA = {}
         self.motifFilter = False
 
         # Initialize directories
@@ -410,27 +409,26 @@ class WebApp:
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L003',
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
                 ]
-            print(f'Enz: {self.enzymeName}')
-            # Add: Min counts
-            print(f'File Exp: {type(self.fileExp)}\n'
-                  f'{self.fileExp}')
-            print(f'File Bg: {type(self.fileBg)}\n'
-                  f'{self.fileBg}')
         elif filterMotif:
             # Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Fix_[C,G,H,K,T]@R4-MinCounts_1-8AA.pkl']
+            # self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
-            print(f'\nFile Exp: {type(self.fileExp)}\n'
-                  f'{self.fileExp}\n')
-            print(f'File Bg: {type(self.fileBg)}\n'
-                  f'{self.fileBg}')
             self.motifFilter = True
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
-        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
+        print(f'Enz: {self.enzymeName}')
+        # Add: Min counts
+        print(f'File Exp: {type(self.fileExp)}\n'
+              f'{self.fileExp}')
+        print(f'File Bg: {type(self.fileBg)}\n'
+              f'{self.fileBg}')
+
+        # self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         print(f'\nFix AA Tag: fixR4: {self.fixAA}')
         self.getFilter(form)
+        print(f'\nFix AA Tag: fixR4: {self.fixAA}')
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
         # self.log(f'Job ID: {self.jobParams['jobID']}')
@@ -462,7 +460,7 @@ class WebApp:
                      f'========================================='
                      f'========================================\n'
                      f'========================================='
-                     f'========================================\n')
+                     f'========================================')
         else:
             self.log(f'\n========================================='
                      f'========================================\n'
@@ -473,7 +471,7 @@ class WebApp:
                      f'========================================='
                      f'========================================\n'
                      f'========================================='
-                     f'========================================\n')
+                     f'========================================')
             sys.exit(1)
 
 
@@ -956,6 +954,12 @@ class WebApp:
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
+            if filterMotifs:
+                print(f'\nFilter Motif: {filterMotifs} - N={len(self.subsExp.keys())}')
+                self.subsExpAll = self.subsExp
+                # Count AAs #
+                self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
+                             datasetType=self.datasetTypes['Exp'])
         if queuesBgLog:
             self.log('\nLoading Substrate Counts: Background')
             for log in queuesBgLog:
@@ -1003,14 +1007,21 @@ class WebApp:
                  f'     Total: {totalSubs:,}\n'
                  f'    Unique: {totalSubsUnique:,}')
 
+        if self.motifFilter:
+            substrates = self.subsExpAll
+        else:
+            substrates = self.subsExp
+
         subs = {}
         countsTotal = 0
-        for substrate, count in self.subsExp.items():
+        print(f'Filters:\n* {self.fixAA}\n* {self.exclAA}\n')
+        for substrate, count in substrates.items():
+            print(f'Substrate: {substrate}')
             keepSub = True
             for posExcl, exclAA in self.exclAA.items():
                 if not isinstance(exclAA, list):
                     exclAA = list(exclAA)
-                idx = int(posExcl.replace('exclR', '')) - 1
+                idx = int(posExcl.replace('R', '')) - 1
                 if substrate[idx] in exclAA:
                     keepSub = False
                     break
@@ -1018,19 +1029,30 @@ class WebApp:
                 continue
 
             for posFix, fixAA in self.fixAA.items():
+                print(f'Pos: {posFix}, AA: {fixAA}')
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
                 idx = int(posFix.replace('R', '')) - 1
+                # print(f'Fix: {posFix} - {fixAA}')
+                # print(f'  idx: {idx}, sub: {substrate} - {substrate[idx]}')
                 if substrate[idx] not in fixAA:
                     keepSub = False
                     break
             if keepSub:
+                # print('  keep')
                 subs[substrate] = count
                 countsTotal += count
-        self.log('')
+        print(f'N Subs: {len(subs.keys())}')
+        self.subsExp = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+        print('Filtered Subs:')
+        for s, c in self.subsExp.items():
+            if s[-1] == 'C':
+                print(' ',s, c)
+        print(f'N Subs: {len(self.subsExp.keys())}')
 
+        # Log substrates
         i = 0
-        self.log(f'Filtered Substrates:\n'
+        self.log(f'\nFiltered Substrates:\n'
                  f'     Total: {countsTotal:,}\n'
                  f'    Unique: {len(subs):,}\n')
         self.log('Substrates:')
@@ -1039,8 +1061,6 @@ class WebApp:
             i += 1
             if i >= self.printN:
                 break
-
-        self.subsExp = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
 
         # Save data
         self.saveSubstrates(substrates=self.subsExp, datasetType=self.datasetTypes['Exp'])
@@ -1073,7 +1093,7 @@ class WebApp:
                 print(self.eMap)
                 for aa in self.eMap.index:
                     if self.eMap.loc[aa, pos] >= self.minES:
-                        print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
+                        # print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
                         AA.append(aa)
                 self.fixAA[pos] = AA
                 self.getDatasetTag()
@@ -1115,7 +1135,7 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
-        # self.log(f'\nSaving Substrates:\n     {path}')
+        self.log(f'\nSaving Substrates:\n     {path}')
         with open(path, 'wb') as file:
             pk.dump(substrates, file)
 
@@ -1416,7 +1436,7 @@ class WebApp:
         #     )
         # )
 
-        self.figures['words'] = self.plotWordCloud(self.subsExp)
+        # self.figures['words'] = self.plotWordCloud(self.subsExp)
 
 
     def plotEntropy(self, combinedMotifs=False, releasedCounts=False):
