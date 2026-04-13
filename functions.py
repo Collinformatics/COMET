@@ -377,7 +377,9 @@ class WebApp:
         if evalDNA:
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
-            self.minPhred = int(form['minPhred']) if form['minPhred'] != '' else 0
+            self.minCounts = int((round(float(form['minCounts']))))
+            self.jobParams['Minimum Count'] = self.minCounts
+            self.minPhred = int(round(float(form['minPhred']))) if form['minPhred'] != '' else 0
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
@@ -418,14 +420,13 @@ class WebApp:
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
-        print(f'Enz: {self.enzymeName}')
         # Add: Min counts
         print(f'File Exp: {type(self.fileExp)}\n'
               f'{self.fileExp}')
         print(f'File Bg: {type(self.fileBg)}\n'
               f'{self.fileBg}')
 
-        # self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
+        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         print(f'\nFix AA Tag: fixR4: {self.fixAA}')
         self.getFilter(form)
         print(f'\nFix AA Tag: fixR4: {self.fixAA}')
@@ -812,21 +813,31 @@ class WebApp:
 
         # Get results from queue
         if self.fileExp:
+            subs = {}
             for queueData in queuesExp:
                 substrates = queueData.get()
                 for substrate, count in substrates.items():
-                    if substrate in self.subsExp.keys():
-                        self.subsExp[substrate] += count
+                    if substrate in subs.keys():
+                        subs[substrate] += count
                     else:
-                        self.subsExp[substrate] = count
+                        subs[substrate] = count
+            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            for substrate, count in subs.items():
+                if count >= self.minCounts:
+                    self.subsExp[substrate] = count
         if self.fileBg:
+            subs = {}
             for queueData in queuesBg:
                 substrates = queueData.get()
                 for substrate, count in substrates.items():
-                    if substrate in self.subsBg.keys():
-                        self.subsBg[substrate] += count
+                    if substrate in subs.keys():
+                        subs[substrate] += count
                     else:
-                        self.subsBg[substrate] = count
+                        subs[substrate] = count
+            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            for substrate, count in subs.items():
+                if count >= self.minCounts:
+                    self.subsBg[substrate] = count
 
         # Make figures
         if self.subsExp:
@@ -1037,6 +1048,7 @@ class WebApp:
                 # print(f'  idx: {idx}, sub: {substrate} - {substrate[idx]}')
                 if substrate[idx] not in fixAA:
                     keepSub = False
+                    print(f'  Drop - {posFix} {substrate[idx]}')
                     break
             if keepSub:
                 # print('  keep')
@@ -1144,6 +1156,7 @@ class WebApp:
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
+        countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
         for substrate, count in substrates.items():
             for index, AA in enumerate(substrate):
