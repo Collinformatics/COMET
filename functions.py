@@ -1320,6 +1320,7 @@ class WebApp:
                     if rf == 0:
                         rf = 1
                     matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
+        self.eMap = matrix
         if releasedCounts:
             self.log(f'Enrichment Score: Released Counts\n'
                   f'{matrix.round(self.roundVal)}\n')
@@ -1329,8 +1330,9 @@ class WebApp:
             self.log(f'Enrichment Score: {self.datasetTag}\n'
                   f'{matrix.round(self.roundVal)}\n')
 
-            # Evaluate stack heights
-            evalMatrix(matrix)
+        # Evaluate stack heights
+        evalMatrix(matrix.replace([np.inf, -np.inf], 0))
+
 
         self.log('\n\n===================== Calculate: Scaled Enrichment Score '
                  '=====================')
@@ -1341,7 +1343,6 @@ class WebApp:
             self.log(f'Scale Enrichment Scores:\n'
                   f'     Enrichment Scores * ΔS\n')
 
-
         # Calculate: Letter heights
         heights = pd.DataFrame(0, index=matrix.index,
                                columns=matrix.columns, dtype=float)
@@ -1349,10 +1350,6 @@ class WebApp:
             heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
                                            self.entropy.loc[indexColumn,
                                            self.entropy.columns[0]])
-
-        # Record values
-        self.eMap = matrix.copy()
-        self.eMapScaled = heights.copy()
 
         # Calculate: Max positive
         columnTotals = []
@@ -1372,13 +1369,12 @@ class WebApp:
                     self.log(f'{len(heights[column]) - nValues} NaN values at: {column}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
                 heights.loc[:, column] = heights.loc[:, column].fillna(0)
-        heights = heights.replace([np.inf, -np.inf], 0)
-        self.eMapScaled = heights
+        self.eMapScaled = heights.copy()
         self.log(f'Residue Heights: {self.datasetTag}\n'
-                 f'{self.eMapScaled}\n')
+                 f'{heights}\n')
 
         # Evaluate stack heights
-        evalMatrix(self.eMapScaled)
+        evalMatrix(heights.replace([np.inf, -np.inf], 0))
 
 
         # Plot: Enrichment Map
@@ -1612,12 +1608,18 @@ class WebApp:
         else:
             stackOrder = 'small_on_top'
 
+        # Rename columns for logomaker script
+        data = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
+        xticks = data.columns
+        data.columns = range(len(data.columns))
+        print(f'\nMatrix:\n{data}\n')
+
         # Calculate: Max and min
         columnTotals = [[], []]
-        for indexColumn in self.eMapScaled.columns:
+        for indexColumn in data.columns:
             totalPos = 0
             totalNeg = 0
-            for value in self.eMapScaled.loc[:, indexColumn]:
+            for value in data.loc[:, indexColumn]:
                 if value > 0:
                     totalPos += value
                 elif value < 0:
@@ -1627,10 +1629,6 @@ class WebApp:
         yMax = max(columnTotals[0])
         yMin = min(columnTotals[1])
 
-        # Rename columns for logomaker script
-        data = self.eMapScaled.copy()
-        xticks = data.columns
-        data.columns = range(len(data.columns))
 
         def plotLogo(matrix, limitYAxis=False):
             # Plot the sequence motif
