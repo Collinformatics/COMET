@@ -45,7 +45,7 @@ class WebApp:
         # Params: Job
         self.done = False
         self.jobParams = {}
-        self.datasetTag = 'Unfiltered'
+        self.datasetTag = ''
 
         # Params: Dataset
         self.enzymeName = ''
@@ -257,6 +257,8 @@ class WebApp:
             self.datasetTag = tagFix
         elif tagExcl != 'Excl ':
             self.datasetTag = tagExcl
+        else:
+            self.datasetTag = 'Unfiltered'
         self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Filter: {self.datasetTag}')
 
@@ -1048,7 +1050,6 @@ class WebApp:
 
     def filterMotifs(self, form):
         self.calculateEnrichment()
-
         self.log('\n\n================================ Filter Motif '
                  '================================')
         self.minS = float(form['minS'])
