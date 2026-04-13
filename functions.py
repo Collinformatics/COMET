@@ -233,10 +233,10 @@ class WebApp:
 
 
     def getDatasetTag(self):
-        tagFix = 'Fix '
-        tagExcl = 'Excl '
         self.fixAA = dict(sorted(self.fixAA.items()))
         self.exclAA = dict(sorted(self.exclAA.items()))
+        tagFix = 'Fix '
+        tagExcl = 'Excl '
 
         # Evaluate filters
         if self.exclAA:
@@ -309,8 +309,6 @@ class WebApp:
                     self.fixAA[key] = value
                 if 'excl' in key:
                     self.exclAA[key] = value
-            self.fixAA = dict(sorted(self.fixAA.items()))
-            self.exclAA = dict(sorted(self.exclAA.items()))
         self.getDatasetTag()
 
 
@@ -430,9 +428,9 @@ class WebApp:
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
-        self.getFilter(form)
-        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T']
+        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         print(f'\nFix AA Tag: fixR4: {self.fixAA}')
+        self.getFilter(form)
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
         # self.log(f'Job ID: {self.jobParams['jobID']}')
@@ -1083,8 +1081,9 @@ class WebApp:
                 self.calculateRF()
                 self.calculateEnrichment()
                 print('')
+                return
             else:
-                print(f'Skip: {pos}\n{self.fixAA}\n')
+                print(f'Skip {pos}: {self.fixAA}')
             time.sleep(4)
         print(f'Fix AA:')
         for k, v in self.fixAA.items():
@@ -1410,8 +1409,12 @@ class WebApp:
         )
 
         # # Calculate & Plot: Weblogo
-        # self.calculateWeblogo(probability=self.rfExp, releasedCounts=releasedCounts,
-        #                       combinedMotifs=combinedMotifs)
+        # self.figures['eMapSc'] = (
+        #     self.calculateWeblogo(
+        #         probability=self.rfExp, releasedCounts=releasedCounts,
+        #         combinedMotifs=combinedMotifs
+        #     )
+        # )
 
         self.figures['words'] = self.plotWordCloud(self.subsExp)
 
