@@ -1124,8 +1124,7 @@ class WebApp:
             for selPos in self.motifPos.keys():
                 if selPos != pos:
                     fix.append(selPos)
-            print(f'Release: {pos}\n* Fixing AA: {fix}\n')
-
+            print(f'Release: {pos}\n* Fixing AA: {fix}')
 
 
         # print(f'Fix AA:')

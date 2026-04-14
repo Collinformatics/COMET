@@ -184,11 +184,7 @@ def setEntropy():
 
 @app.route('/comet', methods=['POST'])
 def comet():
-    print('Start Job: COMET')
-    # webapp.filterMotifs(parseForm()) ##
-    # print('Job Done: COMET')
     thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
-    thread.daemon = True
     thread.start()
     return render_template('results.html', parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
