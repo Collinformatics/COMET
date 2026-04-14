@@ -289,9 +289,12 @@ class WebApp:
 
     def getSaveTag(self, saveTag=False):
         # Evaluate filters
-        tag = self.datasetTag
-        tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
-        tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
+        if self.motifFilter:
+            tag = 'COMET'
+        else:
+            tag = self.datasetTag
+            tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
+            tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
         if saveTag:
             return saveTag.replace(self.datasetTag, tag)
         else:
@@ -1112,6 +1115,7 @@ class WebApp:
         print(f'Fix AA:')
         for k, v in self.fixAA.items():
             print(f'* {k}: {v}')
+        self.done = False
 
 
     def selectMotifPos(self):
