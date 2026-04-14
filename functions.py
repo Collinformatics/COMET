@@ -433,7 +433,8 @@ class WebApp:
         # Get the filter and initialize the data structures
         self.getFilter(form)
         self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
-        print(f'\nFix AA Tag: fixR4: {self.fixAA}')
+        self.getDatasetTag() ## Delete me
+        # print(f'\nFix AA Tag: fixR4: {self.fixAA}')
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
         # self.log(f'Job ID: {self.jobParams['jobID']}')
@@ -1001,7 +1002,6 @@ class WebApp:
         self.filterSubs()
 
         # Plot figures
-        self.calculateRF()
         self.calculateEntropy()
         if filterMotifs:
             self.selectMotifPos()
@@ -1013,61 +1013,62 @@ class WebApp:
 
 
     def filterSubs(self):
-        self.log('\n\n============================== Filter Substrates '
-                 '=============================')
-        self.log(f'Dataset tag: {self.datasetTag}')
-        totalSubs = 0
-        for count in self.subsExp.values():
-            totalSubs += count
-        totalSubsUnique = len(self.subsExp.keys())
-        self.log(f'\nUnfiltered Substrates:\n'
-                 f'     Total: {totalSubs:,}\n'
-                 f'    Unique: {totalSubsUnique:,}')
+        if self.fixAA or self.exclAA:
+            self.log('\n\n============================== Filter Substrates '
+                     '=============================')
+            self.log(f'Dataset tag: {self.datasetTag}')
+            totalSubs = 0
+            for count in self.subsExp.values():
+                totalSubs += count
+            totalSubsUnique = len(self.subsExp.keys())
+            self.log(f'\nUnfiltered Substrates:\n'
+                     f'     Total: {totalSubs:,}\n'
+                     f'    Unique: {totalSubsUnique:,}')
 
-        if self.motifFilter:
-            substrates = self.subsExpAll
-        else:
-            substrates = self.subsExp
+            if self.motifFilter:
+                substrates = self.subsExpAll
+            else:
+                substrates = self.subsExp
 
-        subs = {}
-        countsTotal = 0
-        # print(f'\nFilters:\n* Fix: {self.fixAA}\n* Excl: {self.exclAA}\n')
-        for substrate, count in substrates.items():
-            # print(f'Substrate: {substrate}')
-            keepSub = True
-            for posExcl, exclAA in self.exclAA.items():
-                if not isinstance(exclAA, list):
-                    exclAA = list(exclAA)
-                idx = int(posExcl.replace('R', '')) - 1
-                if substrate[idx] in exclAA:
-                    keepSub = False
-                    break
-            if not keepSub:
-                continue
+            subs = {}
+            # print(f'\nFilters:\n* Fix: {self.fixAA}\n* Excl: {self.exclAA}\n')
+            for substrate, count in substrates.items():
+                # print(f'Substrate: {substrate}')
+                keepSub = True
+                for posExcl, exclAA in self.exclAA.items():
+                    if not isinstance(exclAA, list):
+                        exclAA = list(exclAA)
+                    idx = int(posExcl.replace('R', '')) - 1
+                    if substrate[idx] in exclAA:
+                        keepSub = False
+                        break
+                if not keepSub:
+                    continue
 
-            for posFix, fixAA in self.fixAA.items():
-                if not isinstance(fixAA, list):
-                    fixAA = list(fixAA)
-                idx = int(posFix.replace('R', '')) - 1
-                # print(f'* Pos: {posFix} {substrate[idx]} {fixAA}')
-                if substrate[idx] not in fixAA:
-                    keepSub = False
-                    # print(f'  Drop - {posFix} {substrate[idx]}')
-                    break
-            if keepSub:
-                # print('  keep')
-                subs[substrate] = count
-                countsTotal += count
-        print(f'N Subs: {len(subs.keys())}')
-        self.subsExp = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+                for posFix, fixAA in self.fixAA.items():
+                    if not isinstance(fixAA, list):
+                        fixAA = list(fixAA)
+                    idx = int(posFix.replace('R', '')) - 1
+                    # print(f'* Pos: {posFix} {substrate[idx]} {fixAA}')
+                    if substrate[idx] not in fixAA:
+                        keepSub = False
+                        # print(f'  Drop - {posFix} {substrate[idx]}')
+                        break
+                if keepSub:
+                    # print('  keep')
+                    subs[substrate] = count
+            print(f'N Subs: {len(subs.keys())}')
+            self.subsExp = subs
+        self.subsExp = dict(sorted(
+            self.subsExp.items(), key=lambda item: item[1], reverse=True)
+        )
 
         # Log substrates
-        i = 0
         self.log(f'\nFiltered Substrates:\n'
-                 f'     Total: {countsTotal:,}\n'
-                 f'    Unique: {len(subs):,}\n')
+                 f'     Total: {sum(self.subsExp.values()):,}\n'
+                 f'    Unique: {len(self.subsExp.keys()):,}\n')
         self.log('Substrates:')
-        for substrate, count in subs.items():
+        for i, (substrate, count) in enumerate(self.subsExp.items()):
             self.log(f'    {substrate}, {count:,}')
             i += 1
             if i >= self.printN:
@@ -1076,9 +1077,10 @@ class WebApp:
         # Save data
         self.saveSubstrates(substrates=self.subsExp, datasetType=self.datasetTypes['Exp'])
 
-        # Count AAs ##
+        # Count AAs
         self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
                      datasetType=self.datasetTypes['Exp'])
+        self.calculateRF()
 
 
     def filterMotifs(self, form):
@@ -1109,9 +1111,7 @@ class WebApp:
                         # print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
                         AA.append(aa)
                 self.fixAA[pos] = AA
-                self.getDatasetTag()
                 self.filterSubs()
-                self.calculateRF()
                 self.evalEnrichment()
             else:
                 print(f'Skip: {pos}')
@@ -1286,19 +1286,20 @@ class WebApp:
         )
         for pos in self.countsExp.columns:
             self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
-        self.log(f'RF Experimental:\n{self.rfExp}\n')
+        self.log(f'RF Experimental:\n{self.rfExp}')
 
-        self.rfBg = pd.DataFrame(
-            0.0, index=self.countsBg.index, columns=self.countsBg.columns
-        )
-        for pos in self.countsBg.columns:
-            totalCounts = sum(self.countsBg[pos])
-            for AA in self.countsBg.index:
-                count = self.countsBg.loc[AA, pos]
-                if count == 0:
-                    count = 1
-                self.rfBg.loc[AA, pos] = count / totalCounts
-        self.log(f'RF Background:\n{self.rfBg}')
+        if self.rfBg is None:
+            self.rfBg = pd.DataFrame(
+                0.0, index=self.countsBg.index, columns=self.countsBg.columns
+            )
+            for pos in self.countsBg.columns:
+                totalCounts = sum(self.countsBg[pos])
+                for AA in self.countsBg.index:
+                    count = self.countsBg.loc[AA, pos]
+                    if count == 0:
+                        count = 1
+                    self.rfBg.loc[AA, pos] = count / totalCounts
+            self.log(f'\nRF Background:\n{self.rfBg}')
 
 
     def calculateEntropy(self, plotFig=True):
@@ -1364,8 +1365,12 @@ class WebApp:
             # Eval: ES
             for pos in self.rfExp.columns:
                 for AA in self.rfExp.index:
-                    rf = self.rfBg.loc[AA, self.rfBg.columns[0]]
-                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
+                    rf = self.rfExp.loc[AA, pos]
+                    if rf == 0:
+                        matrix.loc[AA, pos] = -np.inf
+                    else:
+                        rfBg = self.rfBg.loc[AA, self.rfBg.columns[0]]
+                        matrix.loc[AA, pos] = np.log2(rf / rfBg)
         else:
             if len(self.rfBg.columns) != len(self.rfExp.columns):
                 self.log(f'ERROR: The number of columns in the Initial Sort '
@@ -1384,8 +1389,6 @@ class WebApp:
                         matrix.loc[AA, pos] = -np.inf
                     else:
                         matrix.loc[AA, pos] = np.log2(rf / self.rfBg.loc[AA, pos])
-            print(f'{matrix}')
-
         self.eMap = matrix
         if releasedCounts:
             self.log(f'Enrichment Score: Released Counts\n'
@@ -1467,7 +1470,7 @@ class WebApp:
             releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
         )
 
-        # Calculate & Plot: Weblogo
+        # Plot: Weblogo
         self.calculateWebLogo()
 
         # Plot: Wordcloud
@@ -1782,8 +1785,6 @@ class WebApp:
 
     def plotWordCloud(self, substrates, clusterNumPCA=None,
                       combinedMotifs=False, predActivity=False, predModel=False):
-        print('\n\n=============================== Plot: Word Cloud '
-              '================================')
         if clusterNumPCA is not None:
             print(f'Selecting PCA Population: {clusterNumPCA}')
         else:
@@ -1795,10 +1796,8 @@ class WebApp:
             iteration += 1
             if iteration == self.printN:
                 break
-        print('')
 
         # Limit the number of words
-        print(f'Selecting: {self.numSamples} words')
         subs = {}
         iteration = 0
         for substrate, count in substrates.items():
@@ -1808,11 +1807,9 @@ class WebApp:
                 break
         substrates = subs
         totalWords = len(substrates)
-        print(f'Plotting: {totalWords:,} words\n\n')
 
         # Define: Figure title
         title = self.enzymeName
-
 
         # Create word cloud
         cmap = self.createCustomColorMap(colorType='Word Cloud')
@@ -1841,7 +1838,7 @@ class WebApp:
         if self.motifFilter:
             figName = figName.replace('wordcloud', f'wordcloud_{self.iteration}')
         path = os.path.join(self.pathFigs, figName)
-        # self.log(f'\nSaving WebLogo:\n     {path}')
+        # self.log(f'\nSaving Wordcloud:\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1925,7 +1922,7 @@ class WebApp:
         if self.motifFilter:
             figName = figName.replace('webLogo', f'webLogo_{self.iteration}')
         path = os.path.join(self.pathFigs, figName)
-        # self.log(f'\nSaving Enrichment Logo:\n     {path}')
+        # self.log(f'\nSaving WebLogo:\n     {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
