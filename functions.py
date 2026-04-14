@@ -303,11 +303,10 @@ class WebApp:
 
 
     def getFilter(self, data):
+        self.fixAA = {}
+        self.exclAA = {}
         if 'filterPos' in data.keys():
             self.filterPos = data['filterPos']
-            self.fixAA = {}
-            self.exclAA = {}
-
             # Get filter params
             for key, value in data.items():
                 if 'fix' in key:
@@ -329,8 +328,6 @@ class WebApp:
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
         # Initialize params
         self.figures = {}
-        self.fixAA = {}
-        self.exclAA = {}
         self.motifFilter = False
 
         # Initialize directories
@@ -433,10 +430,9 @@ class WebApp:
         print(f'File Bg: {type(self.fileBg)}\n'
               f'{self.fileBg}')
 
-
-        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
-        print(f'\nFix AA Tag: fixR4: {self.fixAA}')
+        # Get the filter and initialize the data structures
         self.getFilter(form)
+        self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         print(f'\nFix AA Tag: fixR4: {self.fixAA}')
         self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
@@ -999,7 +995,7 @@ class WebApp:
             bg = True if queuesBg else False
             return {'Exp': exp, 'Bg': bg}
         self.motifLen = len(next(iter(self.subsExp)))
-        print(f'\nMotif Length: {self.motifLen}')
+        print(f'Motif Length: {self.motifLen}')
 
         # Filter AAs
         self.filterSubs()
@@ -1102,6 +1098,7 @@ class WebApp:
 
         print(f'Min ES: {self.minES}, {self.minESRel}')
         print(f'FixAA: {self.fixAA}\nMotif Pos: {self.motifPos}')
+        # Apply Filter
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
                 print(f'Filter: {pos}')
@@ -1119,6 +1116,13 @@ class WebApp:
             else:
                 print(f'Skip: {pos}')
             time.sleep(4)
+
+        # Refine Filter
+        for pos in self.motifPos.keys():
+            print(f'Release: {pos}')
+            self.fixAA = {}
+
+
         # print(f'Fix AA:')
         # for k, v in self.fixAA.items():
         #     print(f'* {k}: {v}')
@@ -1288,7 +1292,12 @@ class WebApp:
             0.0, index=self.countsBg.index, columns=self.countsBg.columns
         )
         for pos in self.countsBg.columns:
-            self.rfBg.loc[:, pos] = self.countsBg[pos] / sum(self.countsBg[pos])
+            totalCounts = sum(self.countsBg[pos])
+            for AA in self.countsBg.index:
+                count = self.countsBg.loc[AA, pos]
+                if count == 0:
+                    count = 1
+                self.rfBg.loc[AA, pos] = count / totalCounts
         self.log(f'RF Background:\n{self.rfBg}')
 
 
@@ -1356,8 +1365,6 @@ class WebApp:
             for pos in self.rfExp.columns:
                 for AA in self.rfExp.index:
                     rf = self.rfBg.loc[AA, self.rfBg.columns[0]]
-                    if rf == 0:
-                        rf = 1
                     matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
         else:
             if len(self.rfBg.columns) != len(self.rfExp.columns):
@@ -1372,10 +1379,13 @@ class WebApp:
             # Eval: ES
             for pos in self.rfExp.columns:
                 for AA in self.rfExp.index:
-                    rf = self.rfBg.loc[AA, pos]
+                    rf = self.rfExp.loc[AA, pos]
                     if rf == 0:
-                        rf = 1
-                    matrix.loc[AA, pos] = np.log2(self.rfExp.loc[AA, pos] / rf)
+                        matrix.loc[AA, pos] = -np.inf
+                    else:
+                        matrix.loc[AA, pos] = np.log2(rf / self.rfBg.loc[AA, pos])
+            print(f'{matrix}')
+
         self.eMap = matrix
         if releasedCounts:
             self.log(f'Enrichment Score: Released Counts\n'
@@ -1772,7 +1782,7 @@ class WebApp:
 
     def plotWordCloud(self, substrates, clusterNumPCA=None,
                       combinedMotifs=False, predActivity=False, predModel=False):
-        print('=============================== Plot: Word Cloud '
+        print('\n\n=============================== Plot: Word Cloud '
               '================================')
         if clusterNumPCA is not None:
             print(f'Selecting PCA Population: {clusterNumPCA}')
