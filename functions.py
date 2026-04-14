@@ -1438,10 +1438,10 @@ class WebApp:
             )
         )
         
-        # # Plot: Enrichment Logo
-        # self.plotEnrichmentLogo(
-        #     releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
-        # )
+        # Plot: Enrichment Logo
+        self.plotEnrichmentLogo(
+            releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
+        )
 
         # # Calculate & Plot: Weblogo
         # self.figures['eMapSc'] = (
@@ -1730,6 +1730,8 @@ class WebApp:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
             figName = f'eLogo-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+            if self.motifFilter:
+                figName = figName.replace('eLogo', f'eLogo_{self.iteration}')
             if limitYAxis:
                 figName = figName.replace('eLogo-', 'eLogo_yMin-')
             path = os.path.join(self.pathFigs, figName)
@@ -1815,6 +1817,8 @@ class WebApp:
             print(f'Dont save, dataset tag: {self.datasetTag}\n')
             sys.exit()
         figName = f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        if self.motifFilter:
+            figName = figName.replace('wordcloud', f'wordcloud_{self.iteration}')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving Enrichment Logo:\n     {path}')
 

@@ -293,28 +293,48 @@ function getFigures() {
         .then(res => res.json())
         // Verify if one figure is ready
         .then(data => {
-            console.log('checkFigures response:', data);
+            console.log('checkFigures comet response:', data);
+            if (data.entropy || data.eMap || data.eMapSc || data.eLogo || data.eLogoMin ||
+            data.wLogo || data.words || data.barCounts || data.barRF || data.exp_counts ||
+            data.bg_counts) {
+                container.innerHTML = ''; // Clear loading message
 
-            const hasFigure = data.entropy || data.eMap || data.eMapSc || data.eLogo ||
-                              data.eLogoMin || data.wLogo || data.words || data.barCounts ||
-                              data.barRF || data.exp_counts || data.bg_counts;
-
-            if (hasFigure) {
-                if (container.innerHTML.includes('Loading') || container.children.length === 0) {
-                    container.innerHTML = '';
+                if (data.entropy) {
+                    addFigure(container, "Entropy", data.entropy);
                 }
-
-                if (data.entropy) addFigure(container, 'Entropy', data.entropy);
-                if (data.eMap) addFigure(container, 'Enrichment Map', data.eMap);
-                if (data.eMapSc) addFigure(container, 'Scaled Enrichment Map', data.eMapSc);
-                if (data.wLogo) addFigure(container, 'WebLogo', data.wLogo);
-                if (data.words) addFigure(container, 'Word Cloud', data.words);
-                if (data.barCounts) addFigure(container, 'Substrate Counts', data.barCounts);
-                if (data.barRF) addFigure(container, 'Substrate Frequency', data.barRF);
-                if (data.exp_counts) addFigure(container, 'Experimental Counts', data.exp_counts);
-                if (data.bg_counts) addFigure(container, 'Background Counts', data.bg_counts);
-                if (data.eLogo || data.eLogoMin) {
-                    addFigure(container, 'Enrichment Logo', data.eLogo || null, data.eLogoMin || null);
+                if (data.eMap) {
+                    addFigure(container, "Enrichment Map", data.eMap);
+                }
+                if (data.eMapSc) {
+                    addFigure(container, "Scaled Enrichment Map", data.eMapSc);
+                }
+                if (data.eLogo && data.eLogoMin) {
+                    addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
+                } else {
+                    if (data.eLogo) {
+                        addFigure(container, "Enrichment Logo", data.eLogo);
+                    }
+                    if (data.eLogoMin) {
+                        addFigure(container, "Enrichment Logo", data.eLogoMin);
+                    }
+                }
+                if (data.wLogo) {
+                    addFigure(container, "WebLogo", data.wLogo);
+                }
+                if (data.words) {
+                    addFigure(container, "Word Cloud", data.words);
+                }
+                if (data.barCounts) {
+                    addFigure(container, "Substrate Counts", data.barCounts);
+                }
+                if (data.barRF) {
+                    addFigure(container, "Substrate Frequency", data.barRF);
+                }
+                if (data.exp_counts) {
+                    addFigure(container, "Experimental Counts", data.exp_counts);
+                }
+                if (data.bg_counts) {
+                    addFigure(container, "Background Counts", data.bg_counts);
                 }
             }
         });
@@ -342,54 +362,6 @@ function getFigures() {
                 }
             });
     }, 1000); // poll every 1 second
-}
-
-function addFigure(container, label, fig, fig2 = null) {
-    const figId = label.replace(/\s/g, '-');  // e.g. "Enrichment-Map"
-
-    // Reuse existing wrapper or create new one
-    let wrapper = document.getElementById('fig-' + figId);
-    if (!wrapper) {
-        wrapper = document.createElement('div');
-        wrapper.id = 'fig-' + figId;
-        const p = document.createElement('p');
-        p.className = 'p2';
-        p.textContent = label;
-        wrapper.appendChild(p);
-
-        const img1 = document.createElement('img');
-        img1.id = 'img-' + figId;
-        img1.style.maxWidth = '80vw';
-        img1.style.height = 'auto';
-        img1.style.marginBottom = '20px';
-        wrapper.appendChild(img1);
-
-        if (fig2 !== null) {
-            const img2 = document.createElement('img');
-            img2.id = 'img2-' + figId;
-            img2.style.maxWidth = '80vw';
-            img2.style.height = 'auto';
-            img2.style.marginBottom = '20px';
-            wrapper.appendChild(img2);
-        }
-
-        container.appendChild(wrapper);
-    }
-
-    // Always update src (cache-busted)
-    document.getElementById('img-' + figId).src = fig;
-    if (fig2) {
-        let img2 = document.getElementById('img2-' + figId);
-        if (!img2) {
-            img2 = document.createElement('img');
-            img2.id = 'img2-' + figId;
-            img2.style.maxWidth = '80vw';
-            img2.style.height = 'auto';
-            img2.style.marginBottom = '20px';
-            wrapper.appendChild(img2);
-        }
-        img2.src = fig2;
-    }
 }
 
 function getFiguresCOMET() {
@@ -476,6 +448,32 @@ function getFiguresCOMET() {
                 }
                 });
     }, 1000); // poll every 1 second
+}
+
+function addFigure(container, label, fig, fig2 = null) {
+    const p = document.createElement('p');
+    p.className = 'p2';
+    p.textContent = label;
+    container.appendChild(p);
+
+    // Add figure
+    const img1 = document.createElement('img');
+    img1.src = fig;
+    //console.log('fig:', img1.src);
+    img1.style.maxWidth = '80vw';
+    img1.style.height = 'auto';
+    img1.style.marginBottom = '20px';
+    container.appendChild(img1);
+
+    // Add a second figure
+    if (fig2) {
+        const img2 = document.createElement('img');
+        img2.src = fig2;
+        img2.style.maxWidth = '80vw';
+        img2.style.height = 'auto';
+        img2.style.marginBottom = '20px';
+        container.appendChild(img2);
+    }
 }
 
 async function download() {
