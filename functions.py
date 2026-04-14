@@ -62,6 +62,7 @@ class WebApp:
         self.countExpTotal = 0
         self.countExpUnique = 0
         self.rfExp = None
+        self.rfExpScaled = None
         self.saveTagExp = {}
         self.subsBg = {}
         self.countsBg = 'Initialize me'
@@ -877,7 +878,7 @@ class WebApp:
         if self.subsExp and self.subsBg:
             self.calculateRF()
             self.calculateEntropy()
-            self.calculateEnrichment()
+            self.evalEnrichment()
         self.jobDone = True
 
 
@@ -1009,7 +1010,7 @@ class WebApp:
         if filterMotifs:
             self.selectMotifPos()
         else:
-            self.calculateEnrichment()
+            self.evalEnrichment()
         self.jobDone = True
 
         return None
@@ -1086,7 +1087,7 @@ class WebApp:
 
     def filterMotifs(self, form):
         self.jobDone = False
-        self.calculateEnrichment()
+        self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
         self.minS = float(form['minS'])
@@ -1114,7 +1115,7 @@ class WebApp:
                 self.getDatasetTag()
                 self.filterSubs()
                 self.calculateRF()
-                self.calculateEnrichment()
+                self.evalEnrichment()
             else:
                 print(f'Skip: {pos}')
             time.sleep(4)
@@ -1311,7 +1312,20 @@ class WebApp:
             self.figures['entropy'] = self.plotEntropy()
 
 
-    def calculateEnrichment(self, releasedCounts=False, combinedMotifs=False,
+    def calculateWebLogo(self):
+        # Evaluate weblogo
+        self.rfExpScaled = pd.DataFrame(
+            0.0, index=self.countsExp.index, columns=self.countsExp.columns
+        )
+        for pos in self.entropy.index:
+            self.rfExpScaled.loc[:, pos] = (
+                    self.rfExp.loc[:, pos] *
+                    self.entropy.loc[pos, self.entropy.columns[0]]
+            )
+        self.figures['wLogo'] = self.plotWebLogo()
+
+
+    def evalEnrichment(self, releasedCounts=False, combinedMotifs=False,
                             posFilter=False, relFilter=False, releasedIteration=False):
         self.log('\n\n======================== Calculate: Enrichment Score '
                  '=========================')
@@ -1418,13 +1432,13 @@ class WebApp:
         # Evaluate stack heights
         evalMatrix(heights.replace([np.inf, -np.inf], 0))
 
-
-        # Plot: Enrichment Map
         x = {
             'eMap': False, 'eLogo': False, 'eLogoMin': False, 'eMapSc': False,
             'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False,
             'exp_counts': False, 'bg_counts': False
         }
+
+        # Plot: Enrichment Map
         self.figures['eMap'] = (
             self.plotEnrichmentScores(
                 dataType='Enrichment', releasedCounts=releasedCounts,
@@ -1443,15 +1457,12 @@ class WebApp:
             releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
         )
 
-        # # Calculate & Plot: Weblogo
-        # self.figures['eMapSc'] = (
-        #     self.calculateWeblogo(
-        #         probability=self.rfExp, releasedCounts=releasedCounts,
-        #         combinedMotifs=combinedMotifs
-        #     )
-        # )
+        # Calculate & Plot: Weblogo
+        self.calculateWebLogo()
 
-        # self.figures['words'] = self.plotWordCloud(self.subsExp)
+        # Plot: Wordcloud
+        self.figures['words'] = self.plotWordCloud(self.subsExp)
+
         if self.motifFilter:
             self.iteration += 1
 
@@ -1819,6 +1830,90 @@ class WebApp:
         figName = f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
         if self.motifFilter:
             figName = figName.replace('wordcloud', f'wordcloud_{self.iteration}')
+        path = os.path.join(self.pathFigs, figName)
+        # self.log(f'\nSaving WebLogo:\n     {path}')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
+
+    def plotWebLogo(self, combinedMotifs=False, releasedCounts=False,
+                           posFilter=False, relFilter=False, relIteration=False):
+        # Define: Figure title
+        title = f'{self.enzymeName}'
+
+        # Set parameters
+        if self.bigAAonTop:
+            stackOrder = 'big_on_top'
+        else:
+            stackOrder = 'small_on_top'
+
+        # Rename columns for logomaker script
+        data = self.rfExpScaled.copy().replace([np.inf, -np.inf], 0)
+        xticks = data.columns
+        data.columns = range(len(data.columns))
+
+        # Plot the sequence motif
+        fig, ax = plt.subplots(figsize=self.figSize)
+        motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
+                               width=0.95, stack_order=stackOrder)
+        motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        fig.tight_layout()
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks)
+
+        # Set borders
+        motif.style_spines(visible=False)
+        motif.style_spines(spines=['left', 'bottom'], visible=True)
+        for spine in motif.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
+        # Set x-ticks
+        motif.ax.set_xticks([pos for pos in range(len(xticks))])
+        motif.ax.set_xticklabels(xticks, fontsize=self.labelSizeTicks,
+                                 rotation=0, ha='center')
+
+        # Set y-ticks
+        yMax = self.entropyMax
+        yTicks = range(0, 5)
+        yTicks = list(range(0, 5))
+        yTickLabels = [f'{tick:.0f}' if tick != yMax else f'{yMax:.2f}' for tick in
+                       yTicks]
+        # yTicks.append(4.32)
+        # yTickLabels.append('')
+        motif.ax.set_yticks(yTicks)
+        motif.ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
+        motif.ax.set_ylim(0, yMax)
+
+        # Set tick width
+        for tick in motif.ax.xaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for tick in motif.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+
+        # Label the axes
+        motif.ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        motif.ax.set_ylabel('Bits', fontsize=self.labelSizeAxis)
+
+        # Set horizontal line
+        motif.ax.axhline(y=0, color='black', linestyle='-',
+                         linewidth=self.lineThickness)
+
+        # File path
+        if self.datasetTag is None:
+            print(f'Dont save, dataset tag: {self.datasetTag}\n')
+            sys.exit()
+        figName = f'webLogo-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        if self.motifFilter:
+            figName = figName.replace('webLogo', f'webLogo_{self.iteration}')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
