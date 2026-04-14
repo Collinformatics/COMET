@@ -13,6 +13,7 @@
     --colorHeader: var(--greydark);
     --colorBox: var(--colorBody);
     --colorForm: var(--grey);
+    --radForm: 8px;
 
     --textColor: var(--white);
     --textColorLabel: var(--orange);
@@ -34,7 +35,7 @@
     --buttonHeight: 40px;
     --buttonWidth: 120px;
     --buttonHighlight: #643603;
-    --buttonRad: 8px;
+    --buttonRad: var(--radForm);
 
     --gap: 5px;
     --padSize: 2px;
@@ -246,7 +247,7 @@ button:hover {
     background-color: var(--colorForm);
     outline: 2px solid var(--borderColor);
     margin: 0px var(--margin) 0px var(--margin);
-    border-radius: 10px;
+    border-radius: var(--radForm);
     min-width: 200px;
     padding: 20px; /* ## Pad the input form */
 }.form-button {

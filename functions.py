@@ -43,7 +43,7 @@ matplotlib.use('Agg')  # Use a non-interactive backend for servers
 class WebApp:
     def __init__(self):
         # Params: Job
-        self.done = False
+        self.jobDone = False
         self.jobParams = {}
         self.datasetTag = ''
 
@@ -77,6 +77,7 @@ class WebApp:
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: COMET
+        self.iteration = 0
         self.datasetTagMotif = ''
         self.fixMotif = False
         self.minS = 0.65
@@ -110,7 +111,6 @@ class WebApp:
         # Params: Figures
         self.numSamples = 50
         self.figureResolution = 600
-        self.saveFigureIteration = None
         self.titleCombined = ''
         self.titleReleased = ''
         self.titleWeblogo = ''
@@ -328,6 +328,8 @@ class WebApp:
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
         # Initialize params
         self.figures = {}
+        self.fixAA = {}
+        self.exclAA = {}
         self.motifFilter = False
 
         # Initialize directories
@@ -415,6 +417,7 @@ class WebApp:
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
                 ]
         elif filterMotif:
+            self.iteration = 0
             # Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Fix_[C,G,H,K,T]@R4-MinCounts_1-8AA.pkl']
             # self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
@@ -428,6 +431,7 @@ class WebApp:
               f'{self.fileExp}')
         print(f'File Bg: {type(self.fileBg)}\n'
               f'{self.fileBg}')
+
 
         self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         print(f'\nFix AA Tag: fixR4: {self.fixAA}')
@@ -874,6 +878,7 @@ class WebApp:
             self.calculateRF()
             self.calculateEntropy()
             self.calculateEnrichment()
+        self.jobDone = True
 
 
     def loadSubstrates(self, path, queueData, queueLog):
@@ -1005,6 +1010,7 @@ class WebApp:
             self.selectMotifPos()
         else:
             self.calculateEnrichment()
+        self.jobDone = True
 
         return None
 
@@ -1028,9 +1034,9 @@ class WebApp:
 
         subs = {}
         countsTotal = 0
-        print(f'Filters:\n* {self.fixAA}\n* {self.exclAA}\n')
+        # print(f'\nFilters:\n* Fix: {self.fixAA}\n* Excl: {self.exclAA}\n')
         for substrate, count in substrates.items():
-            print(f'Substrate: {substrate}')
+            # print(f'Substrate: {substrate}')
             keepSub = True
             for posExcl, exclAA in self.exclAA.items():
                 if not isinstance(exclAA, list):
@@ -1046,10 +1052,10 @@ class WebApp:
                 if not isinstance(fixAA, list):
                     fixAA = list(fixAA)
                 idx = int(posFix.replace('R', '')) - 1
-                print(f'* Pos: {posFix} {substrate[idx]} {fixAA}')
+                # print(f'* Pos: {posFix} {substrate[idx]} {fixAA}')
                 if substrate[idx] not in fixAA:
                     keepSub = False
-                    print(f'  Drop - {posFix} {substrate[idx]}')
+                    # print(f'  Drop - {posFix} {substrate[idx]}')
                     break
             if keepSub:
                 # print('  keep')
@@ -1079,6 +1085,7 @@ class WebApp:
 
 
     def filterMotifs(self, form):
+        self.jobDone = False
         self.calculateEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
@@ -1093,12 +1100,12 @@ class WebApp:
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
         print(f'Min ES: {self.minES}, {self.minESRel}')
-        print(f'\nFixAA: {self.fixAA}\nMotif Pos: {self.motifPos}\n')
+        print(f'FixAA: {self.fixAA}\nMotif Pos: {self.motifPos}')
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
+                print(f'Filter: {pos}')
                 AA = []
-                print(f'Scores: {pos}')
-                print(self.eMap)
+                # print(f'Scores: {pos}\n{self.eMap}')
                 for aa in self.eMap.index:
                     if self.eMap.loc[aa, pos] >= self.minES:
                         # print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
@@ -1108,14 +1115,13 @@ class WebApp:
                 self.filterSubs()
                 self.calculateRF()
                 self.calculateEnrichment()
-                print('')
             else:
-                print(f'Skip {pos}: {self.fixAA}')
+                print(f'Skip: {pos}')
             time.sleep(4)
-        print(f'Fix AA:')
-        for k, v in self.fixAA.items():
-            print(f'* {k}: {v}')
-        self.done = False
+        # print(f'Fix AA:')
+        # for k, v in self.fixAA.items():
+        #     print(f'* {k}: {v}')
+        self.jobDone = True
 
 
     def selectMotifPos(self):
@@ -1432,10 +1438,10 @@ class WebApp:
             )
         )
         
-        # Plot: Enrichment Logo
-        self.plotEnrichmentLogo(
-            releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
-        )
+        # # Plot: Enrichment Logo
+        # self.plotEnrichmentLogo(
+        #     releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
+        # )
 
         # # Calculate & Plot: Weblogo
         # self.figures['eMapSc'] = (
@@ -1446,6 +1452,8 @@ class WebApp:
         # )
 
         # self.figures['words'] = self.plotWordCloud(self.subsExp)
+        if self.motifFilter:
+            self.iteration += 1
 
 
     def plotEntropy(self, combinedMotifs=False, releasedCounts=False):
@@ -1621,7 +1629,10 @@ class WebApp:
         cbar.outline.set_edgecolor('black')
 
         # File path
+
         figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        if self.motifFilter:
+            figName = figName.replace('eMap', f'eMap_{self.iteration}')
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)

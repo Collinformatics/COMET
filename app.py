@@ -5,6 +5,7 @@ from functions import WebApp
 import io
 import os
 import sys
+import threading
 import zipfile
 
 
@@ -96,10 +97,7 @@ def getFigure(filename):
 
 @app.route('/checkFigures')
 def checkFigures():
-    if webapp.done:
-        return jsonify(webapp.figures)
-    else:
-        return jsonify({}) # No figures yet
+    return jsonify(webapp.figures)
 
 
 @app.route('/download', methods=['POST'])
@@ -140,7 +138,6 @@ def evalDNA():
     # Process the dset
     webapp.evalDNA(parseForm())
     print('Job Done: Eval DNA')
-    webapp.done = True
     return render_template('results.html', parameters=webapp.jobParams)
 
 
@@ -149,14 +146,12 @@ def filterSubs():
     # Parse the form
     error = webapp.evalSubs(parseForm())
     print('Job Done: Fix AA')
-    webapp.done = True
     return render_template('results.html', parameters=webapp.jobParams)
 
 
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
     webapp.evalSubs(parseForm(), filterMotifs=True)
-    webapp.done = True
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
         minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
@@ -181,7 +176,6 @@ def updateFig():
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
-    print('Set Entropy')
     return render_template('setEntropy.html', minS=webapp.minS,
                            minES=webapp.minES, minESRel=webapp.minESRel,
                            parameters=webapp.jobParams,
@@ -191,10 +185,19 @@ def setEntropy():
 @app.route('/comet', methods=['POST'])
 def comet():
     print('Start Job: COMET')
-    webapp.filterMotifs(parseForm()) ##
-    print('Job Done: COMET')
+    # webapp.filterMotifs(parseForm()) ##
+    # print('Job Done: COMET')
+    thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
+    thread.daemon = True
+    thread.start()
     return render_template('results.html', parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
+
+
+# Add a status flag to your webapp object
+@app.route('/jobStatus')
+def jobStatus():
+    return {'jobStatus': webapp.jobDone}  # a bool you set in filterMotifs()
 
 
 # Run the app
