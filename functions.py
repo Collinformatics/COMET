@@ -1119,8 +1119,13 @@ class WebApp:
 
         # Refine Filter
         for pos in self.motifPos.keys():
-            print(f'Release: {pos}')
             self.fixAA = {}
+            fix = []
+            for selPos in self.motifPos.keys():
+                if selPos != pos:
+                    fix.append(selPos)
+            print(f'Release: {pos}\n* Fixing AA: {fix}\n')
+
 
 
         # print(f'Fix AA:')
@@ -1465,16 +1470,16 @@ class WebApp:
             )
         )
         
-        # Plot: Enrichment Logo
-        self.plotEnrichmentLogo(
-            releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
-        )
-
-        # Plot: Weblogo
-        self.calculateWebLogo()
-
-        # Plot: Wordcloud
-        self.figures['words'] = self.plotWordCloud(self.subsExp)
+        # # Plot: Enrichment Logo
+        # self.plotEnrichmentLogo(
+        #     releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
+        # )
+        #
+        # # Plot: Weblogo
+        # self.calculateWebLogo()
+        #
+        # # Plot: Wordcloud
+        # self.figures['words'] = self.plotWordCloud(self.subsExp)
 
         if self.motifFilter:
             self.iteration += 1
@@ -1785,18 +1790,6 @@ class WebApp:
 
     def plotWordCloud(self, substrates, clusterNumPCA=None,
                       combinedMotifs=False, predActivity=False, predModel=False):
-        if clusterNumPCA is not None:
-            print(f'Selecting PCA Population: {clusterNumPCA}')
-        else:
-            print(f'Substrates: {self.datasetTag}')
-        iteration = 0
-        for substrate, count in substrates.items():
-            print(f'     {substrate}, '
-                  f'Count: {round(count, 1):,}')
-            iteration += 1
-            if iteration == self.printN:
-                break
-
         # Limit the number of words
         subs = {}
         iteration = 0
@@ -1834,9 +1827,11 @@ class WebApp:
         if self.datasetTag is None:
             print(f'Dont save, dataset tag: {self.datasetTag}\n')
             sys.exit()
-        figName = f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        figName = (f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA'
+                   f'{totalWords}_Words.png')
         if self.motifFilter:
-            figName = figName.replace('wordcloud', f'wordcloud_{self.iteration}')
+            figName = figName.replace('wordcloud',
+                                      f'wordcloud_{self.iteration}')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving Wordcloud:\n     {path}')
 
