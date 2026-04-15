@@ -263,7 +263,11 @@ class WebApp:
             self.datasetTag = tagExcl
         else:
             self.datasetTag = 'Unfiltered'
-        self.jobParams['Dataset Tag'] = self.datasetTag
+        if self.motifFilter:
+            self.datasetTagMotif = f'Motif - {self.datasetTag}'
+            self.jobParams['Dataset Tag'] = self.datasetTagMotif
+        else:
+            self.jobParams['Dataset Tag'] = self.datasetTag
         self.log(f'Filter: {self.datasetTag}')
 
         # Initialize: Save tags
@@ -999,10 +1003,9 @@ class WebApp:
         print(f'Motif Length: {self.motifLen}')
 
         # Filter AAs
-        self.filterSubs()
+        self.filterSubs(plotEntropy=True)
 
         # Plot figures
-        self.calculateEntropy()
         if filterMotifs:
             self.selectMotifPos()
         else:
@@ -1012,7 +1015,7 @@ class WebApp:
         return None
 
 
-    def filterSubs(self):
+    def filterSubs(self, plotEntropy=False):
         if self.fixAA or self.exclAA:
             self.log('\n\n============================== Filter Substrates '
                      '=============================')
@@ -1031,6 +1034,7 @@ class WebApp:
                 substrates = self.subsExp
 
             subs = {}
+            print(f'Filter: {self.fixAA}')
             # print(f'\nFilters:\n* Fix: {self.fixAA}\n* Excl: {self.exclAA}\n')
             for substrate, count in substrates.items():
                 # print(f'Substrate: {substrate}')
@@ -1081,6 +1085,7 @@ class WebApp:
         self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
                      datasetType=self.datasetTypes['Exp'])
         self.calculateRF()
+        self.calculateEntropy(plotFig=plotEntropy)
 
 
     def filterMotifs(self, form):
@@ -1095,41 +1100,51 @@ class WebApp:
         self.minESRel = float(form['minESRel'])
         self.log(f'Minimum ES Release: {self.minESRel}')
         self.selectMotifPos()  ##
-        self.log('Recognition Sites:')
+        self.log('\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
-        print(f'Min ES: {self.minES}, {self.minESRel}')
+
+        def evalAAs(position, minES):
+            self.fixAA[position] = []
+            for aa in self.eMap.index:
+                if self.eMap.loc[aa, position] >= minES:
+                    self.fixAA[position].append(aa)
+            print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
+
         print(f'FixAA: {self.fixAA}\nMotif Pos: {self.motifPos}')
         # Apply Filter
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
-                print(f'Filter: {pos}')
-                AA = []
-                # print(f'Scores: {pos}\n{self.eMap}')
-                for aa in self.eMap.index:
-                    if self.eMap.loc[aa, pos] >= self.minES:
-                        # print(f'Keep: {aa}, {self.eMap.loc[aa, pos]}')
-                        AA.append(aa)
-                self.fixAA[pos] = AA
+                evalAAs(pos, self.minES)
                 self.filterSubs()
                 self.evalEnrichment()
-            else:
-                print(f'Skip: {pos}')
             time.sleep(4)
 
         # Refine Filter
-        for pos in self.motifPos.keys():
+        for posRel in self.motifPos.keys():
             self.fixAA = {}
-            fix = []
-            for selPos in self.motifPos.keys():
-                if selPos != pos:
-                    fix.append(selPos)
-            print(f'Release: {pos}\n* Fixing AA: {fix}')
+            filter = []
+            for pos in self.motifPos.keys():
+                if pos != posRel:
+                    filter.append(pos)
 
+            for posFix in filter:
+                evalAAs(posFix, self.minESRel)
+            self.getDatasetTag()
+            time.sleep(4)
+            self.filterSubs()
+            self.evalEnrichment()
 
-        # print(f'Fix AA:')
-        # for k, v in self.fixAA.items():
-        #     print(f'* {k}: {v}')
+            # print(f'Refix: {posRel}')
+            evalAAs(posRel, self.minESRel)
+            self.getDatasetTag()
+            # print(f'* Fixing AA: {self.datasetTag}')
+            # for k, v in self.fixAA.items():
+            #     print(f'    {k}: {v}')
+            time.sleep(4)
+            self.filterSubs()
+            self.evalEnrichment()
+
         self.jobDone = True
 
 
@@ -1339,8 +1354,7 @@ class WebApp:
         self.figures['wLogo'] = self.plotWebLogo()
 
 
-    def evalEnrichment(self, releasedCounts=False, combinedMotifs=False,
-                            posFilter=False, relFilter=False, releasedIteration=False):
+    def evalEnrichment(self, releasedCounts=False):
         self.log('\n\n======================== Calculate: Enrichment Score '
                  '=========================')
         self.log(f'Enrichment Scores:\n'
@@ -1457,22 +1471,14 @@ class WebApp:
 
         # Plot: Enrichment Map
         self.figures['eMap'] = (
-            self.plotEnrichmentScores(
-                dataType='Enrichment', releasedCounts=releasedCounts,
-                posFilter=posFilter, relFilter=relFilter
-            )
+            self.plotEnrichmentScores(dataType='Enrichment')
         )
         self.figures['eMapSc'] = (
-            self.plotEnrichmentScores(
-                dataType='Scaled Enrichment', releasedCounts=releasedCounts,
-                posFilter=posFilter, relFilter=relFilter
-            )
+            self.plotEnrichmentScores(dataType='Scaled Enrichment')
         )
         
         # # Plot: Enrichment Logo
-        # self.plotEnrichmentLogo(
-        #     releasedCounts=releasedCounts, posFilter=posFilter, relFilter=relFilter
-        # )
+        # self.plotEnrichmentLogo()
         #
         # # Plot: Weblogo
         # self.calculateWebLogo()
@@ -1484,7 +1490,7 @@ class WebApp:
             self.iteration += 1
 
 
-    def plotEntropy(self, combinedMotifs=False, releasedCounts=False):
+    def plotEntropy(self):
         # Set figure title
         title = self.enzymeName
 
@@ -1573,8 +1579,7 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentScores(self, dataType, releasedCounts=False,
-                             posFilter=False, relFilter=False):
+    def plotEnrichmentScores(self, dataType):
         # Select: Dataset
         scaleData = False
         if 'scaled' in dataType.lower():
@@ -1657,13 +1662,13 @@ class WebApp:
         cbar.outline.set_edgecolor('black')
 
         # File path
-
         figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
         if self.motifFilter:
             figName = figName.replace('eMap', f'eMap_{self.iteration}')
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
+        self.log(f'Saving EM at:\n   {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
@@ -1676,8 +1681,7 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentLogo(self, combinedMotifs=False, releasedCounts=False,
-                           posFilter=False, relFilter=False, relIteration=False):
+    def plotEnrichmentLogo(self):
         # Define: Figure title
         title = f'{self.enzymeName}'
 
@@ -1787,8 +1791,7 @@ class WebApp:
         self.figures['eLogoMin'] = plotLogo(data, limitYAxis=True) # Limited y-axis
 
 
-    def plotWordCloud(self, substrates, clusterNumPCA=None,
-                      combinedMotifs=False, predActivity=False, predModel=False):
+    def plotWordCloud(self, substrates):
         # Limit the number of words
         subs = {}
         iteration = 0
@@ -1844,8 +1847,7 @@ class WebApp:
 
         return figName
 
-    def plotWebLogo(self, combinedMotifs=False, releasedCounts=False,
-                           posFilter=False, relFilter=False, relIteration=False):
+    def plotWebLogo(self):
         # Define: Figure title
         title = f'{self.enzymeName}'
 
