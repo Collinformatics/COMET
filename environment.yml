@@ -9,6 +9,7 @@ dependencies:
   - flask-wtf
   - logomaker
   - matplotlib
+  - numpy
   - pandas
   - seaborn
   - wordcloud
