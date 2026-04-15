@@ -46,6 +46,7 @@ class WebApp:
         self.jobDone = False
         self.jobParams = {}
         self.datasetTag = ''
+        self.datasetTagMotif = ''
 
         # Params: Dataset
         self.enzymeName = ''
@@ -79,8 +80,6 @@ class WebApp:
 
         # Params: COMET
         self.iteration = 0
-        self.datasetTagMotif = ''
-        self.fixMotif = False
         self.minS = 0.65
         self.minES = 0
         self.minESRel = -1
@@ -283,7 +282,7 @@ class WebApp:
             'counts': f'{self.enzymeName}-AA_Counts_Bg-{self.datasetTag}-'
                       f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv',
         }
-        if self.fixMotif:
+        if self.motifFilter:
             for tag, path in self.saveTagExp:
                 self.saveTagExp[tag] = (path.replace(f'{self.enzymeName}',
                                                      f'{self.enzymeName}-Motif'))
@@ -990,7 +989,8 @@ class WebApp:
                 counts = q.get()
                 self.countsBg += counts
                 self.log(f'Loaded Count Set: {idx}\n{counts}\n')
-            if (self.countsBg == 0).all(axis=None):
+            self.countBgTotal = sum(self.countsBg.iloc[:, 0])
+            if self.countBgTotal == 0:
                 print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
                 self.logErrorFn(function='loadCounts()',
                                 msg='No background substrates were loaded')
@@ -1111,14 +1111,12 @@ class WebApp:
                     self.fixAA[position].append(aa)
             print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
-        print(f'FixAA: {self.fixAA}\nMotif Pos: {self.motifPos}')
         # Apply Filter
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
                 evalAAs(pos, self.minES)
                 self.filterSubs()
                 self.evalEnrichment()
-            time.sleep(4)
 
         # Refine Filter
         for posRel in self.motifPos.keys():
@@ -1128,25 +1126,22 @@ class WebApp:
                 if pos != posRel:
                     filter.append(pos)
 
+            # Release
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
             self.getDatasetTag()
-            time.sleep(4)
             self.filterSubs()
             self.evalEnrichment()
 
-            # print(f'Refix: {posRel}')
+            # Refilter
             evalAAs(posRel, self.minESRel)
             self.getDatasetTag()
-            # print(f'* Fixing AA: {self.datasetTag}')
-            # for k, v in self.fixAA.items():
-            #     print(f'    {k}: {v}')
-            time.sleep(4)
             self.filterSubs()
             self.evalEnrichment()
-
+        # print(f'* Fixing AA: {self.datasetTag}')
+        # for k, v in self.fixAA.items():
+        #     print(f'    {k}: {v}')
         self.jobDone = True
-
 
     def selectMotifPos(self):
         self.motifPos = {}
