@@ -59,14 +59,14 @@ class WebApp:
         self.entropyMax = None
         self.subsExp = {}
         self.subsExpAll = {}
-        self.countsExp = pd.DataFrame(0)
+        self.countsExp = pd.DataFrame(0, index=[], columns=[])
         self.countExpTotal = 0
         self.countExpUnique = 0
         self.rfExp = None
         self.rfExpScaled = None
         self.saveTagExp = {}
         self.subsBg = {}
-        self.countsBg = pd.DataFrame(0)
+        self.countsBg = pd.DataFrame(0, index=[], columns=[])
         self.countBgTotal = 0
         self.countBgUnique = 0
         self.rfBg = None
@@ -234,7 +234,7 @@ class WebApp:
         return figBase64
 
 
-    def getDatasetTag(self):
+    def getDatasetTag(self, subProfile=False):
         self.fixAA = dict(sorted(self.fixAA.items()))
         self.exclAA = dict(sorted(self.exclAA.items()))
         tagFix = 'Fix '
@@ -263,7 +263,7 @@ class WebApp:
             self.datasetTag = tagExcl
         else:
             self.datasetTag = 'Unfiltered'
-        if self.motifFilter:
+        if self.motifFilter and  not self.datasetTagMotif:
             self.datasetTagMotif = f'Motif - {self.datasetTag}'
             self.jobParams['Dataset Tag'] = self.datasetTagMotif
         else:
@@ -283,10 +283,16 @@ class WebApp:
             'counts': f'{self.enzymeName}-AA_Counts_Bg-{self.datasetTag}-'
                       f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv',
         }
-        if self.motifFilter:
-            for tag, path in self.saveTagExp:
-                self.saveTagExp[tag] = (path.replace(f'{self.enzymeName}',
-                                                     f'{self.enzymeName}-Motif'))
+        if subProfile:
+            datasetTag = self.datasetTagMotif.replace('Motif - ', '')
+            for tag, path in self.saveTagExp.items():
+                path = path.replace(
+                    f'{self.enzymeName}', f'{self.enzymeName}-SubProfile'
+                ).replace(
+                    f'{self.datasetTag}', f'{datasetTag}'
+                )
+                self.saveTagExp[tag] = path
+            print(f'Tag:\n{self.saveTagExp}')
 
         self.saveTagFig = (f'{self.enzymeName}-Fig-{self.datasetTag}-'
                            f'Min_Counts_{self.minCounts}-{self.seqLength}AA')
@@ -1274,8 +1280,8 @@ class WebApp:
         cbar = heatmap.collections[0].colorbar
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth(self.lineThickness)
-        cbar.outline.set_edgecolor('black')
+        cbar.outline.set_linewidth = self.lineThickness
+        cbar.outline.set_edgecolor = 'black'
 
         # File path
         figName = f'counts-{self.enzymeName}-{datasetType}.png'
@@ -1556,7 +1562,7 @@ class WebApp:
                             length=self.tickLength, width=self.lineThickness)
         for tick in cbar.ax.yaxis.get_major_ticks():
             tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-        cbar.outline.set_linewidth(self.lineThickness)
+        cbar.outline.set_linewidth = self.lineThickness
 
         # File path
         figName = f'entropy-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
@@ -1654,8 +1660,8 @@ class WebApp:
         cbar = heatmap.collections[0].colorbar
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth(self.lineThickness)
-        cbar.outline.set_edgecolor('black')
+        cbar.outline.set_linewidth = self.lineThickness
+        cbar.outline.set_edgecolor = 'black'
 
         # File path
         figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
