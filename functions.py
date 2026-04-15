@@ -54,19 +54,19 @@ class WebApp:
         self.minCounts = 1
         self.printN = 10
         self.roundVal = 3
-        self.xAxisLabel = False
+        self.xAxisLabel = []
         self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
         self.entropyMax = None
         self.subsExp = {}
         self.subsExpAll = {}
-        self.countsExp = 'Initialize me'
+        self.countsExp = pd.DataFrame(0)
         self.countExpTotal = 0
         self.countExpUnique = 0
         self.rfExp = None
         self.rfExpScaled = None
         self.saveTagExp = {}
         self.subsBg = {}
-        self.countsBg = 'Initialize me'
+        self.countsBg = pd.DataFrame(0)
         self.countBgTotal = 0
         self.countBgUnique = 0
         self.rfBg = None
@@ -86,6 +86,7 @@ class WebApp:
         self.motifFilter = False
         self.motifLen = 0
         self.motifPos = pd.DataFrame()
+        self.substrateProfile = None
 
         # Params: Files
         self.queueLog = queue.Queue()
@@ -211,7 +212,7 @@ class WebApp:
 
 
     @staticmethod
-    def pressButton(self, message):
+    def pressButton(message):
         print(f'Received data: {message}')
         return {'key': 'Returned data'}
 
@@ -291,7 +292,7 @@ class WebApp:
                            f'Min_Counts_{self.minCounts}-{self.seqLength}AA')
 
 
-    def getSaveTag(self, saveTag=False):
+    def getSaveTag(self, saveTag=''):
         # Evaluate filters
         if self.motifFilter:
             tag = 'COMET'
@@ -603,7 +604,6 @@ class WebApp:
         useQS = False
         for datapoint in data:
             if 'phred_quality' in datapoint.letter_annotations:
-                useQS = True
                 useQS = True
             break
         queueLog.put(f'  Eval QS: {useQS}')
@@ -1103,7 +1103,6 @@ class WebApp:
         self.log('\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
-
         def evalAAs(position, minES):
             self.fixAA[position] = []
             for aa in self.eMap.index:
@@ -1111,12 +1110,14 @@ class WebApp:
                     self.fixAA[position].append(aa)
             print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
+
         # Apply Filter
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
                 evalAAs(pos, self.minES)
                 self.filterSubs()
                 self.evalEnrichment()
+
 
         # Refine Filter
         for posRel in self.motifPos.keys():
@@ -1882,7 +1883,6 @@ class WebApp:
         # Set y-ticks
         yMax = self.entropyMax
         yTicks = range(0, 5)
-        yTicks = list(range(0, 5))
         yTickLabels = [f'{tick:.0f}' if tick != yMax else f'{yMax:.2f}' for tick in
                        yTicks]
         # yTicks.append(4.32)
