@@ -389,6 +389,9 @@ function getFiguresCOMET() {
                     addFigure(container, "Entropy", data.entropy);
                 }
                 if (data.eMap) {
+                    addFigure(container, "Substrate Profile", data.subProfile);
+                }
+                if (data.eMap) {
                     addFigure(container, "Enrichment Map", data.eMap);
                 }
                 if (data.eMapSc) {

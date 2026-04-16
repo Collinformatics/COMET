@@ -1013,7 +1013,7 @@ class WebApp:
         self.jobDone = True
 
 
-    def filterSubs(self, plotEntropy=False):
+    def filterSubs(self, plotEntropy=False, saveData=True):
         if self.fixAA or self.exclAA:
             self.log('\n\n============================== Filter Substrates '
                      '=============================')
@@ -1077,13 +1077,16 @@ class WebApp:
                 break
 
         # Save data
-        self.saveSubstrates(substrates=self.subsExp, datasetType=self.datasetTypes['Exp'])
+        if saveData:
+            self.saveSubstrates(substrates=self.subsExp,
+                                datasetType=self.datasetTypes['Exp'])
 
         # Count AAs
         self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
-                     datasetType=self.datasetTypes['Exp'])
+                     datasetType=self.datasetTypes['Exp'], saveData=saveData)
         self.calculateRF()
-        self.calculateEntropy(plotFig=plotEntropy)
+        if saveData:
+            self.calculateEntropy(plotFig=plotEntropy)
 
 
     def filterMotifs(self, form):
@@ -1143,6 +1146,8 @@ class WebApp:
 
 
         # Release filter
+        self.fixAA = {}
+        eMap = self.eMap.copy()
         self.substrateProfile = pd.DataFrame(0.0, index=self.countsBg.index,
                                              columns=self.countsBg.columns)
         motifFilter = self.fixAA
@@ -1150,7 +1155,20 @@ class WebApp:
         print('Substrate Profile:')
         for posRel in self.motifPos.keys():
             print(f'* Release: {posRel}')
+            filter = []
+            for pos in self.motifPos.keys():
+                if pos != posRel:
+                    filter.append(pos)
+                for posFix in filter:
+                    evalAAs(posFix, self.minESRel)
 
+            self.filterSubs(saveData=False)
+            self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
+        for pos in eMap.columns:
+            if pos not in self.motifPos.keys():
+                self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
+        self.figures['subProfile'] = self.plotEnrichmentScores(dataType='Enrichment',
+                                                               subProfile=True)
 
 
     def selectMotifPos(self):
@@ -1183,7 +1201,7 @@ class WebApp:
             pk.dump(substrates, file)
 
 
-    def countAA(self, substrates, countMatrix, datasetType):
+    def countAA(self, substrates, countMatrix, datasetType, saveData=True):
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
@@ -1211,16 +1229,13 @@ class WebApp:
                             msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
-        path = os.path.join(self.pathData, saveTag)
-        # self.log(f'\nSaving Counts:\n     {path}')
-        countMatrix.to_csv(path)
+        if saveData:
+            path = os.path.join(self.pathData, saveTag)
+            # self.log(f'\nSaving Counts:\n     {path}')
+            countMatrix.to_csv(path)
 
 
     def plotCounts(self, countedData, totalCounts, datasetType):
-        # Remove commas from string values and convert to float
-        # countedData = countedData.applymap(lambda x:
-        #                                    float(x.replace(',', ''))
-        #                                    if isinstance(x, str) else x)
         countedData.index = self.AA
 
         # Create color map
@@ -1584,17 +1599,22 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentScores(self, dataType):
+    def plotEnrichmentScores(self, dataType, subProfile=False):
         # Select: Dataset
         scaleData = False
-        if 'scaled' in dataType.lower():
-            scaleData = True
-            scores = self.eMapScaled
+        if subProfile:
+            scores = self.substrateProfile
         else:
-            scores = self.eMap
+            if 'scaled' in dataType.lower():
+                scaleData = True
+                scores = self.eMapScaled
+            else:
+                scores = self.eMap
 
         # Define: Figure title
         title = f'{self.enzymeName}'
+        if subProfile:
+            title = f'{self.enzymeName}\nSubstrate Profile'
 
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='EM')
@@ -1672,6 +1692,8 @@ class WebApp:
             figName = figName.replace('eMap', f'eMap_{self.iteration}')
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
+        if subProfile:
+            figName = figName.replace('eMap', 'eMap_SubProfile')
         path = os.path.join(self.pathFigs, figName)
         self.log(f'Saving EM at:\n   {path}')
 
