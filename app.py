@@ -56,7 +56,7 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('filterMotif.html',
+    return render_template('filterAA.html',
                            csrf_token=generate_csrf())
 
 

@@ -1109,7 +1109,7 @@ class WebApp:
             for aa in self.eMap.index:
                 if self.eMap.loc[aa, position] >= minES:
                     self.fixAA[position].append(aa)
-            print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
+            # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
 
         # Apply Filter
@@ -1169,6 +1169,7 @@ class WebApp:
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
         self.figures['subProfile'] = self.plotEnrichmentScores(dataType='Enrichment',
                                                                subProfile=True)
+        self.jobDone = True
 
 
     def selectMotifPos(self):
@@ -1573,14 +1574,24 @@ class WebApp:
         ax.set_ylim(0, yMax)
 
         # Add color bar
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
-        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalize, cmap=colorBar), cax=cax)
+        # divider = make_axes_locatable(ax)
+        # cax = divider.append_axes("right", size="5%", pad=0.1)
+        # cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalize, cmap=colorBar), cax=cax)
+        # cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+        #                     length=self.tickLength, width=self.lineThickness)
+        # for tick in cbar.ax.yaxis.get_major_ticks():
+        #     tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+        # cbar.outline.set_linewidth = self.lineThickness
+
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
         for tick in cbar.ax.yaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-        cbar.outline.set_linewidth = self.lineThickness
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
 
         # File path
         figName = f'entropy-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
@@ -1613,8 +1624,6 @@ class WebApp:
 
         # Define: Figure title
         title = f'{self.enzymeName}'
-        if subProfile:
-            title = f'{self.enzymeName}\nSubstrate Profile'
 
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='EM')
@@ -1634,6 +1643,7 @@ class WebApp:
         else:
             cBarMin = np.min(scores)
             cBarMax = -1 * cBarMin
+        print(f'cBar: {cBarMax} - {cBarMin}')
 
         # Plot the heatmap with numbers centered inside the squares
         if self.figEMSquares:
@@ -1641,7 +1651,8 @@ class WebApp:
             heatmap = sns.heatmap(
                 scores, annot=False, cmap=cMapCustom, cbar=True,
                 linewidths=self.lineThickness - 1, linecolor='black',
-                square=True, center=None, vmax=cBarMax, vmin=cBarMin
+                square=True, center=None, vmax=cBarMax, vmin=cBarMin,
+                cbar_kws={'pad': 0.02}
             )
         else:
             fig, ax = plt.subplots(figsize=self.figSize)
@@ -1649,7 +1660,7 @@ class WebApp:
                 scores, annot=True, fmt='.3f', cmap=cMapCustom, cbar=True,
                 linewidths=self.lineThickness - 1, linecolor='black',
                 square=False, center=None, vmax=cBarMax, vmin=cBarMin,
-                annot_kws={'fontweight': 'bold'}
+                annot_kws={'fontweight': 'bold'}, cbar_kws={'pad': 0.02}
             )
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
@@ -1679,12 +1690,18 @@ class WebApp:
         cmap = plt.cm.get_cmap(cMapCustom)
         cmap.set_bad(color='lightgrey')
 
-        # Modify the colorbar
+        # Map entropy values to colors using the colormap
+        normalize = Normalize(vmax=cBarMax, vmin=cBarMin)  # Normalize the entropy values
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
+        sm.set_array([])
         cbar = heatmap.collections[0].colorbar
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth = self.lineThickness
-        cbar.outline.set_edgecolor = 'black'
+                            length=self.tickLength, width=self.lineThickness)  # no cax
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
 
         # File path
         figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
