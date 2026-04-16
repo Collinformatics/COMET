@@ -294,13 +294,16 @@ function getFigures() {
         // Verify if one figure is ready
         .then(data => {
             console.log('checkFigures comet response:', data);
-            if (data.entropy || data.eMap || data.eMapSc || data.eLogo || data.eLogoMin ||
-            data.wLogo || data.words || data.barCounts || data.barRF || data.exp_counts ||
-            data.bg_counts) {
+            if (data.entropy || data.subProfile || data.eMap || data.eMapSc ||
+                data.eLogo || data.eLogoMin || data.wLogo || data.words ||
+                data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
                 container.innerHTML = ''; // Clear loading message
 
                 if (data.entropy) {
                     addFigure(container, "Entropy", data.entropy);
+                }
+                if (data.subProfile) {
+                    addFigure(container, "Substrate Profile", data.subProfile);
                 }
                 if (data.eMap) {
                     addFigure(container, "Enrichment Map", data.eMap);
@@ -388,7 +391,7 @@ function getFiguresCOMET() {
                 if (data.entropy) {
                     addFigure(container, "Entropy", data.entropy);
                 }
-                if (data.eMap) {
+                if (data.subProfile) {
                     addFigure(container, "Substrate Profile", data.subProfile);
                 }
                 if (data.eMap) {

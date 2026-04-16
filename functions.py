@@ -1638,12 +1638,11 @@ class WebApp:
 
         # Define color bar limits
         if np.max(scores) >= np.min(scores):
-            cBarMax = np.max(scores)
+            cBarMax = np.ceil(np.max(scores) * 10) / 10
             cBarMin = -1 * cBarMax
         else:
-            cBarMin = np.min(scores)
+            cBarMin = np.floor(np.min(scores) * 10) / 10
             cBarMax = -1 * cBarMin
-        print(f'cBar: {cBarMax} - {cBarMin}')
 
         # Plot the heatmap with numbers centered inside the squares
         if self.figEMSquares:
