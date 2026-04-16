@@ -495,7 +495,7 @@ class WebApp:
     def processSubs(self, substrates, datasetType, filteredAA):
         self.log('\n\n================================= Substrates '
                  '=================================')
-        self.log(f'Dataset: {datasetType}\n')
+        self.log(f'Dataset: {datasetType}')
 
         # Inspect sequences
         if not filteredAA:
@@ -505,7 +505,7 @@ class WebApp:
                     if AA not in self.AA:
                         filteredSubs[substrate] = count
             if filteredSubs:
-                self.log(f'Filtering Substrates:\n'
+                self.log(f'\nFiltering Substrates:\n'
                          f'     If a substrate contains an '
                          f'unaccented AA it will be removed.\n'
                          f'     Accepted: {self.AA}\n\n'
@@ -513,7 +513,6 @@ class WebApp:
                 for substrate, count in filteredSubs.items():
                     substrates.pop(substrate, count)
                     self.log(f'          {substrate}: {count}')
-                self.log('')
 
         # Sort data
         substrates = dict(sorted(substrates.items(),
@@ -521,7 +520,7 @@ class WebApp:
 
         # Count AAs
         countMatrix = None
-        self.log('Substrate Totals:')
+        self.log('\nSubstrate Totals:')
         if datasetType == self.datasetTypes['Exp']:
             self.subsExp = substrates
             countMatrix = self.countsExp
@@ -553,7 +552,6 @@ class WebApp:
             if index >= self.printN:
                 break
             self.log(f'     {sub}: {count}')
-        self.log('')
 
         # Save data
         self.saveSubstrates(substrates=substrates, datasetType=datasetType)
@@ -636,6 +634,12 @@ class WebApp:
                             msg=f'Unknown dataset type: {datasetType}')
 
 
+        def reverseComplement(seq):
+            """Returns the reverse complement of a DNA sequence."""
+            complement = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C', 'N': 'N'}
+            return ''.join(complement[base] for base in reversed(seq))
+
+
         def extractionEfficiency(totalSeqsDNA, totalSubsExtracted, fullSet=False):
             if totalSeqsDNA == 0:
                 totalSeqsDNA = 1
@@ -653,15 +657,17 @@ class WebApp:
             totalSeqs += 1
             dna = str(datapoint.seq)
             if revRead:
-                dna = dna[::-1]
+                print(f'DNA: {dna}')
+                dna = reverseComplement(dna)
+                print(f'DNA Rev: {dna}')
             queueLog.put(f'DNA Seq: {dna}')
             print(f'DNA Seq: {dna}')
 
             # Inspect full dna seq
-            queueLog.put(f'Tags: {self.seq5Prime} - {self.seq3Prime}\n'
-                         f'seq: {self.seq5Prime in dna} - {self.seq3Prime in dna}')
-            print(f'Tags: {self.seq5Prime} - {self.seq3Prime}\n'
-                         f'seq: {self.seq5Prime in dna} - {self.seq3Prime in dna}')
+            queueLog.put(f'Tags: {self.seq5Prime}, {self.seq5Prime in dna} - '
+                  f'{self.seq3Prime}, {self.seq3Prime in dna}')
+            print(f'Tags: {self.seq5Prime}, {self.seq5Prime in dna} - '
+                  f'{self.seq3Prime}, {self.seq3Prime in dna}')
             if (self.seq5Prime in dna and self.seq3Prime in dna or
                     not self.seq5Prime and self.seq3Prime in dna or
                     self.seq5Prime in dna and not self.seq3Prime):
@@ -719,7 +725,8 @@ class WebApp:
             totalSeqs += 1
             dna = str(datapoint.seq)
             if revRead:
-                dna = dna[::-1]
+                dna = reverseComplement(dna)
+                # dna = Seq.reverse_complement(dna)
 
             # Inspect full dna seq
             if (self.seq5Prime in dna and self.seq3Prime in dna or
@@ -757,7 +764,7 @@ class WebApp:
 
             return substrates, totalSeqs, totalSubsExtracted
 
-
+        st = time.time()
         # Translate DNA and record substrates
         substrates = {}
         totalSeqs = 0
@@ -766,8 +773,10 @@ class WebApp:
             substrates, totalSeqs, totalSubsExtracted = processDNA(
                 datapoint, totalSeqs, totalSubsExtracted, substrates, useQS
             )
+        en = time.time()
+        r = (en - st) / 60
         extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
-
+        print(f'Runtime: {r}')
         return substrates
 
 

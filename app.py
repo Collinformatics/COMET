@@ -145,7 +145,7 @@ def evalDNA():
     # print('Job Done: Eval DNA')
     thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
     thread.start()
-    time.sleep(3)
+    time.sleep(2)
     return render_template('results.html', parameters=webapp.jobParams)
 
 
@@ -156,7 +156,7 @@ def filterSubs():
     print('Job Done: Fix AA')
     thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
     thread.start()
-    time.sleep(3)
+    time.sleep(2)
     return render_template('results.html', parameters=webapp.jobParams)
 
 
@@ -197,7 +197,7 @@ def setEntropy():
 def comet():
     thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
     thread.start()
-    time.sleep(3)
+    time.sleep(2)
     return render_template('results.html', parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
 
