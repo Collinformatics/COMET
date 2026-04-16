@@ -6,6 +6,7 @@ import io
 import os
 import sys
 import threading
+import time
 import zipfile
 
 
@@ -29,15 +30,19 @@ def parseForm():
     # print('Data:')
     for key in keys:
         values = request.form.getlist(key)
+        data[key] = values
         if len(values) == 1:  # Check if there are multiple values
             data[key] = values[0]
         else:
             data[key] = values  # Store as a list if multiple values exist
         # print('*', key, data[key])
-    # Parse files
+
+    # Parse form
     for key, value in request.files.items():
         if value:
-            data[key] = value
+            buf = io.BytesIO(value.read())
+            buf.filename = value.filename
+            data[key] = buf
 
     return data
 
@@ -56,7 +61,7 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('filterAA.html',
+    return render_template('processDNA.html',
                            csrf_token=generate_csrf())
 
 
@@ -136,8 +141,11 @@ def jobSummary():
 @app.route('/evalFormDNA', methods=['POST'])
 def evalDNA():
     # Process the dset
-    webapp.evalDNA(parseForm())
-    print('Job Done: Eval DNA')
+    # webapp.evalDNA(parseForm())
+    # print('Job Done: Eval DNA')
+    thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
+    thread.start()
+    time.sleep(3)
     return render_template('results.html', parameters=webapp.jobParams)
 
 
@@ -146,6 +154,9 @@ def filterSubs():
     # Parse the form
     webapp.evalSubs(parseForm())
     print('Job Done: Fix AA')
+    thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
+    thread.start()
+    time.sleep(3)
     return render_template('results.html', parameters=webapp.jobParams)
 
 
@@ -186,6 +197,7 @@ def setEntropy():
 def comet():
     thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
     thread.start()
+    time.sleep(3)
     return render_template('results.html', parameters=webapp.jobParams,
                            motifPos=list(webapp.motifPos.items()))
 
