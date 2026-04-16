@@ -59,14 +59,14 @@ class WebApp:
         self.entropyMax = None
         self.subsExp = {}
         self.subsExpAll = {}
-        self.countsExp = pd.DataFrame(0, index=[], columns=[])
+        self.countsExp = pd.DataFrame()
         self.countExpTotal = 0
         self.countExpUnique = 0
         self.rfExp = None
         self.rfExpScaled = None
         self.saveTagExp = {}
         self.subsBg = {}
-        self.countsBg = pd.DataFrame(0, index=[], columns=[])
+        self.countsBg = pd.DataFrame()
         self.countBgTotal = 0
         self.countBgUnique = 0
         self.rfBg = None
@@ -86,7 +86,7 @@ class WebApp:
         self.motifFilter = False
         self.motifLen = 0
         self.motifPos = pd.DataFrame()
-        self.substrateProfile = None
+        self.substrateProfile = pd.DataFrame()
 
         # Params: Files
         self.queueLog = queue.Queue()
@@ -976,12 +976,10 @@ class WebApp:
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
                         break
-                self.log('')
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
             if filterMotifs:
-                print(f'\nFilter Motif: {filterMotifs} - N={len(self.subsExp.keys())}')
                 self.subsExpAll = self.subsExp
                 # Count AAs #
                 self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
@@ -1001,10 +999,6 @@ class WebApp:
                 self.logErrorFn(function='loadCounts()',
                                 msg='No background substrates were loaded')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
-        if not queuesExp or not queuesBg:
-            exp = True if queuesExp else False
-            bg = True if queuesBg else False
-            return {'Exp': exp, 'Bg': bg}
         self.motifLen = len(next(iter(self.subsExp)))
         print(f'Motif Length: {self.motifLen}')
 
@@ -1017,8 +1011,6 @@ class WebApp:
         else:
             self.evalEnrichment()
         self.jobDone = True
-
-        return None
 
 
     def filterSubs(self, plotEntropy=False):
@@ -1148,7 +1140,18 @@ class WebApp:
         # print(f'* Fixing AA: {self.datasetTag}')
         # for k, v in self.fixAA.items():
         #     print(f'    {k}: {v}')
-        self.jobDone = True
+
+
+        # Release filter
+        self.substrateProfile = pd.DataFrame(0.0, index=self.countsBg.index,
+                                             columns=self.countsBg.columns)
+        motifFilter = self.fixAA
+        print(f'Filter:\n* {motifFilter}')
+        print('Substrate Profile:')
+        for posRel in self.motifPos.keys():
+            print(f'* Release: {posRel}')
+
+
 
     def selectMotifPos(self):
         self.motifPos = {}
