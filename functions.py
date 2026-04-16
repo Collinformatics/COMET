@@ -1573,16 +1573,7 @@ class WebApp:
         ax.set_xlim(-0.5, xMax-0.5)
         ax.set_ylim(0, yMax)
 
-        # Add color bar
-        # divider = make_axes_locatable(ax)
-        # cax = divider.append_axes("right", size="5%", pad=0.1)
-        # cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalize, cmap=colorBar), cax=cax)
-        # cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-        #                     length=self.tickLength, width=self.lineThickness)
-        # for tick in cbar.ax.yaxis.get_major_ticks():
-        #     tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-        # cbar.outline.set_linewidth = self.lineThickness
-
+        # Colorbar
         sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, pad=0.02)
@@ -1689,13 +1680,13 @@ class WebApp:
         cmap = plt.cm.get_cmap(cMapCustom)
         cmap.set_bad(color='lightgrey')
 
-        # Map entropy values to colors using the colormap
-        normalize = Normalize(vmax=cBarMax, vmin=cBarMin)  # Normalize the entropy values
+        # Colorbar
+        normalize = Normalize(vmax=cBarMax, vmin=cBarMin)
         sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
         sm.set_array([])
         cbar = heatmap.collections[0].colorbar
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)  # no cax
+                            length=self.tickLength, width=self.lineThickness)
         for tick in cbar.ax.yaxis.get_major_ticks():
             tick.tick1line.set_markeredgewidth(self.lineThickness)
         for spine in cbar.ax.spines.values():
@@ -1704,7 +1695,7 @@ class WebApp:
 
         # File path
         figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
-        if self.motifFilter:
+        if self.motifFilter and not subProfile:
             figName = figName.replace('eMap', f'eMap_{self.iteration}')
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
