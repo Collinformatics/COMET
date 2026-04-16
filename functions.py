@@ -1267,9 +1267,9 @@ class WebApp:
         # Plot the heatmap with numbers centered inside the squares
         fig, ax = plt.subplots(figsize=self.figSize)
         heatmap = sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
-                              cbar=True, linewidths=self.lineThickness-1,
-                              linecolor='black', square=False, center=None,
-                              annot_kws={'fontweight': 'bold'}, vmax=maxRound)
+                              cbar=False, linewidths=self.lineThickness-1, square=False,
+                              linecolor='black', center=None, vmax=maxRound,
+                              annot_kws={'fontweight': 'bold'}, cbar_kws={'pad': 0.02})
         ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
@@ -1295,12 +1295,17 @@ class WebApp:
         ax.set_yticks(yTicks)
         ax.set_yticklabels(countedData.index)
 
-        # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
+        # Colorbar
+        normalize = Normalize(vmin=0, vmax=maxRound)  # Normalize the entropy values
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth = self.lineThickness
-        cbar.outline.set_edgecolor = 'black'
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
 
         # File path
         figName = f'counts-{self.enzymeName}-{datasetType}.png'
@@ -1691,7 +1696,6 @@ class WebApp:
             tick.tick1line.set_markeredgewidth(self.lineThickness)
         for spine in cbar.ax.spines.values():
             spine.set_linewidth(self.lineThickness)
-
 
         # File path
         figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'

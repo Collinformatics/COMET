@@ -108,6 +108,7 @@ p {
 }.pL { /* Labels */
     color: var(--textColor);
     font-size: calc(var(--textSize) + var(--textSizeInc));
+    font-weight: bold;
     text-align: center;
     width: fit-content;
     margin: 0 auto;  /* ⬅ centers the element itself */
