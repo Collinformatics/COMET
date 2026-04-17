@@ -41,6 +41,17 @@ defaultResidues = (
 matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
 
+def _count_batch(args):
+    batch, columns, index = args
+    # Reconstruct a local matrix
+    matrix = pd.DataFrame(0, index=index, columns=columns)
+    for k, v in batch:
+        for i, a in enumerate(k, start=1):
+            col = f'R{i}'
+            if col in matrix.columns and a in matrix.index:
+                matrix.loc[a, col] += v
+    return matrix
+
 
 class WebApp:
     def __init__(self):
@@ -526,15 +537,12 @@ class WebApp:
         substrates = dict(sorted(substrates.items(),
                                  key=lambda item: item[1], reverse=True))
 
-        # Save data
-        self.saveSubstrates(substrates=substrates, datasetType=datasetType)
 
         # Count AAs
-        countMatrix = None
+        countMatrix = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.log('\nSubstrate Totals:')
         if datasetType == self.datasetTypes['Exp']:
             self.subsExp = substrates
-            countMatrix = self.countsExp
             self.countExpTotal = sum(substrates.values())
             self.countExpUnique = len(substrates.keys())
             self.log(f'     Total Substrates: {self.countExpTotal:,}\n'
@@ -545,7 +553,6 @@ class WebApp:
             self.jobParams['Unique Experimental Substrates'] = f'{self.countExpUnique:,}'
         elif datasetType == self.datasetTypes['Bg']:
             self.subsBg = substrates
-            countMatrix = self.countsBg
             self.countBgTotal = sum(substrates.values())
             self.countBgUnique = len(substrates.keys())
             self.log(f'     Total Substrates: {self.countBgTotal:,}\n'
@@ -564,12 +571,17 @@ class WebApp:
                 break
             self.log(f'     {sub}: {count}')
 
+        # Save data
+        self.saveSubstrates(substrates=substrates, datasetType=datasetType)
 
         # Count AAs
-        self.countAA(substrates=substrates, countMatrix=countMatrix,
-                     datasetType=datasetType)
-
-
+        print(f'Count: {datasetType}')
+        countMatrix = self.countAA(substrates=substrates, countMatrix=countMatrix,
+                                   datasetType=datasetType)
+        if datasetType == self.datasetTypes['Bg']:
+            self.countsBg = countMatrix
+        else:
+            self.countsExp = countMatrix
 
     def loadDNA(self, path, datasetType, queueData, queueLog, reverseRead):
         translate = True
@@ -776,6 +788,8 @@ class WebApp:
             substrates, totalSeqs, totalSubsExtracted = processDNA(
                 datapoint, totalSeqs, totalSubsExtracted, substrates, useQS
             )
+            # if len(substrates.keys()) > 100: ## Delete me
+            #     break
         extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
         return substrates
 
@@ -1273,8 +1287,9 @@ class WebApp:
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import ProcessPoolExecutor
         from itertools import batched
+        print(f'Name: {__name__}')
 
         def counter(data, matrix):
             for k, v in data.items():
@@ -1282,33 +1297,30 @@ class WebApp:
                     matrix.loc[a, f'R{i}'] += v
             return matrix
 
-
         def splitData(data, matrix):
             cores = os.cpu_count()
-            size = len(data.keys())
-            print('\nsize:', size)
-            if size > cores:
-                size = int(np.ceil(size / cores))
-            print(f'Cores: {cores}')
-            print(f'\nSplitting data (N={len(data)}) into {size} samples')
+            size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
-            print(f'\nBatches:\n{len(batches)}')
+            print(f'Cores: {cores}, Batches: {len(batches)}, Size: {size:,}')
 
-            with ThreadPoolExecutor() as executor:
-                results = list(executor.map(
-                    lambda batch: counter(dict(batch), matrix.copy()), batches
-                ))
-            sumMatrix = sum(results)
-            print(f'\nResults:\n{sumMatrix}')
-            return sumMatrix
+            args = [(batch, matrix.columns.tolist(), matrix.index.tolist())
+                    for batch in batches]
+
+            with ProcessPoolExecutor(max_workers=cores) as executor:
+                results = list(executor.map(_count_batch, args))
+
+            return sum(results)
 
         countMatrix = splitData(substrates, countMatrix)
-
+        self.log(f'Counts:\n{countMatrix}')
+        print(f'Results:\n{countMatrix}')
+        print(f'\nSaving Counts: {saveData}')
 
         for pos in countMatrix.columns:
             counts = sum(countMatrix.loc[:, pos])
             totalCounts.loc[pos, 'Sum'] = counts
-        self.log(f'Counts:\n{countMatrix}\n\n{totalCounts}')
+        self.log(f'\nCount Totals:\n{totalCounts}')
+        print(f'\nCount Totals:\n{totalCounts}')
 
         # File path
         saveTag = None
@@ -1330,6 +1342,8 @@ class WebApp:
             # self.log(f'\nSaving Counts:\n     {path}')
             countMatrix.to_csv(path)
 
+        return countMatrix
+
 
     def plotCounts(self, countedData, totalCounts, datasetType):
         countedData.index = self.AA
@@ -1349,6 +1363,7 @@ class WebApp:
             countedData.index = [residue[2] for residue in self.residues]
 
         # Define color bar limit
+        print(f'Results:\n{countedData}')
         maxCount = np.max(countedData.values)
         mag = math.floor(math.log10(maxCount)) - 1
         maxNorm = maxCount / (10 ** mag)
