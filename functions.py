@@ -21,6 +21,8 @@ import sys
 import threading
 import time
 import warnings
+
+from numpy.ma.core import size
 from wordcloud import WordCloud
 
 
@@ -91,8 +93,10 @@ class WebApp:
         # Params: Files
         self.queueLog = queue.Queue()
         self.fileExp = []
+        self.fileExpRev = []
         self.seqExp = None
         self.fileBg = []
+        self.fileBgRev = []
         self.seqBg = None
         self.pathDir = ''
         self.pathData = ''
@@ -369,8 +373,12 @@ class WebApp:
 
         # Get the files
         for key, value in form.items():
-            if 'fileExp' in key:
+            if 'fileExpRev' in key:
+                self.fileExpRev.append(value)
+            elif 'fileExp' in key:
                 self.fileExp.append(value)
+            elif 'fileBgRev' in key:
+                self.fileBgRev.append(value)
             elif 'fileBg' in key:
                 self.fileBg.append(value)
 
@@ -518,6 +526,9 @@ class WebApp:
         substrates = dict(sorted(substrates.items(),
                                  key=lambda item: item[1], reverse=True))
 
+        # Save data
+        self.saveSubstrates(substrates=substrates, datasetType=datasetType)
+
         # Count AAs
         countMatrix = None
         self.log('\nSubstrate Totals:')
@@ -553,15 +564,14 @@ class WebApp:
                 break
             self.log(f'     {sub}: {count}')
 
-        # Save data
-        self.saveSubstrates(substrates=substrates, datasetType=datasetType)
 
         # Count AAs
         self.countAA(substrates=substrates, countMatrix=countMatrix,
                      datasetType=datasetType)
 
 
-    def loadDNA(self, path, datasetType, queueData, queueLog, forwardRead):
+
+    def loadDNA(self, path, datasetType, queueData, queueLog, reverseRead):
         translate = True
         filename = path.filename if hasattr(path, 'filename') else path.name
         print(f'File: {filename}')
@@ -573,7 +583,7 @@ class WebApp:
                 path.seek(0)  # ensure at start
                 file_handle = io.StringIO(path.read().decode('utf-8'))
             data = None
-            print('Try to load DNA')
+
             if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
                 data = SeqIO.parse(file_handle, 'fastq')
             elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
@@ -589,8 +599,9 @@ class WebApp:
 
             # Translate the dna
             if translate:
-                substrates = self.translate(data, filename, datasetType,
-                                            queueLog, forwardRead)
+                substrates = self.translate(
+                    data, filename, datasetType, queueLog, reverseRead
+                )
                 queueData.put(substrates) # Put the substrates in the queue
         except Exception as e:
             queueLog.put(self.logErrorFn(
@@ -654,6 +665,9 @@ class WebApp:
 
 
         def logDNA(datapoint, idx, totalSeqs, totalSubsExtracted, useQS):
+            """
+                Scan dataset and log datapoints
+            """
             totalSeqs += 1
             dna = str(datapoint.seq)
             if revRead:
@@ -678,11 +692,10 @@ class WebApp:
                     substrateDNA = dna[start:].strip()
                 queueLog.put(f'* Sub DNA: {substrateDNA}')
                 if len(substrateDNA) == self.seqLength * 3:
-                    # Express substrate
                     substrate = str(Seq.translate(substrateDNA))
                     queueLog.put(f'Sub Seq: {substrate}')
 
-                    # Inspect substrate seq: PRINT ONLY
+                    # Inspect substrate seq: log only
                     if 'X' not in substrate and '*' not in substrate:
                         if useQS:
                             qs = datapoint.letter_annotations['phred_quality']
@@ -694,7 +707,7 @@ class WebApp:
                             if all(score < self.minPhred for score in qs):
                                 print(f'Low QS: {qs}')
                                 return totalSeqs, totalSubsExtracted
-                        queueLog.put(f'* Keep Substrate\n')
+                        queueLog.put(f'* Keep Substrate')
                         totalSubsExtracted += 1
             queueLog.put('')
 
@@ -709,7 +722,6 @@ class WebApp:
             totalSeqs, totalSubsExtracted = logDNA(
                 datapoint, idx, totalSeqs, totalSubsExtracted, useQS
             )
-            print(totalSeqs, totalSubsExtracted)
         extractionEfficiency(totalSeqs, totalSubsExtracted)
 
 
@@ -718,6 +730,7 @@ class WebApp:
             totalSeqs += 1
             dna = str(datapoint.seq)
             if revRead:
+                print(f'Reverse DNA: {dna}')
                 dna = reverseComplement(dna)
 
             # Inspect full dna seq
@@ -735,10 +748,9 @@ class WebApp:
                 else:
                     substrateDNA = dna[start:].strip()
                 if len(substrateDNA) == self.seqLength * 3:
-                    # Express substrate
                     substrate = str(Seq.translate(substrateDNA))
 
-                    # Inspect substrate seq: PRINT ONLY
+                    # Inspect substrate seq
                     if 'X' not in substrate and '*' not in substrate:
                         if useQS:
                             qs = datapoint.letter_annotations['phred_quality']
@@ -756,7 +768,6 @@ class WebApp:
 
             return substrates, totalSeqs, totalSubsExtracted
 
-        st = time.time()
         # Translate DNA and record substrates
         substrates = {}
         totalSeqs = 0
@@ -765,10 +776,7 @@ class WebApp:
             substrates, totalSeqs, totalSubsExtracted = processDNA(
                 datapoint, totalSeqs, totalSubsExtracted, substrates, useQS
             )
-        en = time.time()
-        r = (en - st) / 60
         extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
-        print(f'Runtime: {r}')
         return substrates
 
 
@@ -779,8 +787,12 @@ class WebApp:
         threads = []
         queuesExp = []
         queuesExpLog = []
+        queuesExpRev = []
+        queuesExpRevLog = []
         queuesBg = []
         queuesBgLog = []
+        queuesBgRev = []
+        queuesBgRevLog = []
         if self.fileExp:
             for file in self.fileExp:
                 queueExp = queue.Queue()
@@ -789,7 +801,22 @@ class WebApp:
                 queuesExpLog.append(queueLog)
                 thread = threading.Thread(
                     target=self.loadDNA,
-                    args=(file, self.datasetTypes['Exp'], queueExp, queueLog, True,))
+                    args=(file, self.datasetTypes['Exp'],
+                          queueExp, queueLog, False,)
+                )
+                thread.start()
+                threads.append(thread)
+        if self.fileExpRev:
+            for file in self.fileExpRev:
+                queueExpRev = queue.Queue()
+                queueExpRevLog = queue.Queue()
+                queuesExpRev.append(queueExpRev)
+                queuesExpRevLog.append(queueExpRevLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Exp'],
+                          queueExpRev, queueExpRevLog, True,)
+                )
                 thread.start()
                 threads.append(thread)
         if self.fileBg:
@@ -800,10 +827,24 @@ class WebApp:
                 queuesBgLog.append(queueLog)
                 thread = threading.Thread(
                     target=self.loadDNA,
-                    args=(file, self.datasetTypes['Bg'], queueBg, queueLog, True,))
+                    args=(file, self.datasetTypes['Bg'],
+                          queueBg, queueLog, False,)
+                )
                 thread.start()
                 threads.append(thread)
-
+        if self.fileBgRev:
+            for file in self.fileBg:
+                queueBgRev = queue.Queue()
+                queueBgRevLog = queue.Queue()
+                queuesBgRev.append(queueBgRev)
+                queuesBgRevLog.append(queueBgRevLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Bg'],
+                          queueBgRev, queueBgRevLog, True,)
+                )
+                thread.start()
+                threads.append(thread)
         # Wait for all threads to finish
         for thread in threads:
             thread.join()
@@ -812,8 +853,14 @@ class WebApp:
         if queuesExpLog:
             for log in queuesExpLog:
                 self.logInQueue(log)
+        if queuesExpRevLog:
+            for log in queuesExpRevLog:
+                self.logInQueue(log)
         if queuesBgLog:
             for log in queuesBgLog:
+                self.logInQueue(log)
+        if queuesBgRevLog:
+            for log in queuesBgRevLog:
                 self.logInQueue(log)
 
         # Get results from queue
@@ -830,9 +877,35 @@ class WebApp:
             for substrate, count in subs.items():
                 if count >= self.minCounts:
                     self.subsExp[substrate] = count
+        if self.fileExpRev:
+            subs = {}
+            for queueData in queuesExpRev:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in subs.keys():
+                        subs[substrate] += count
+                    else:
+                        subs[substrate] = count
+            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            for substrate, count in subs.items():
+                if count >= self.minCounts:
+                    self.subsExp[substrate] = count
         if self.fileBg:
             subs = {}
             for queueData in queuesBg:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in subs.keys():
+                        subs[substrate] += count
+                    else:
+                        subs[substrate] = count
+            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            for substrate, count in subs.items():
+                if count >= self.minCounts:
+                    self.subsBg[substrate] = count
+        if self.fileBgRev:
+            subs = {}
+            for queueData in queuesBgRev:
                 substrates = queueData.get()
                 for substrate, count in substrates.items():
                     if substrate in subs.keys():
@@ -1199,9 +1272,39 @@ class WebApp:
         self.log(f'Dataset: {datasetType}\n')
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
-        for substrate, count in substrates.items():
-            for index, AA in enumerate(substrate):
-                countMatrix.loc[AA, self.xAxisLabel[index]] += count
+
+        from concurrent.futures import ThreadPoolExecutor
+        from itertools import batched
+
+        def counter(data, matrix):
+            for k, v in data.items():
+                for i, a in enumerate(k, start=1):
+                    matrix.loc[a, f'R{i}'] += v
+            return matrix
+
+
+        def splitData(data, matrix):
+            cores = os.cpu_count()
+            size = len(data.keys())
+            print('\nsize:', size)
+            if size > cores:
+                size = int(np.ceil(size / cores))
+            print(f'Cores: {cores}')
+            print(f'\nSplitting data (N={len(data)}) into {size} samples')
+            batches = list(batched(data.items(), size))
+            print(f'\nBatches:\n{len(batches)}')
+
+            with ThreadPoolExecutor() as executor:
+                results = list(executor.map(
+                    lambda batch: counter(dict(batch), matrix.copy()), batches
+                ))
+            sumMatrix = sum(results)
+            print(f'\nResults:\n{sumMatrix}')
+            return sumMatrix
+
+        countMatrix = splitData(substrates, countMatrix)
+
+
         for pos in countMatrix.columns:
             counts = sum(countMatrix.loc[:, pos])
             totalCounts.loc[pos, 'Sum'] = counts
@@ -1221,6 +1324,7 @@ class WebApp:
                             msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
+        print(f'\nSaving Counts: {saveData}\n     {saveTag}')
         if saveData:
             path = os.path.join(self.pathData, saveTag)
             # self.log(f'\nSaving Counts:\n     {path}')
