@@ -2,8 +2,10 @@ import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
+from concurrent.futures import ProcessPoolExecutor
 import gzip
 import io
+from itertools import batched
 import logomaker
 import math
 import matplotlib
@@ -20,10 +22,9 @@ import secrets
 import sys
 import threading
 import time
-import warnings
-
-from numpy.ma.core import size
 from wordcloud import WordCloud
+
+
 
 
 defaultResidues = (
@@ -41,7 +42,7 @@ defaultResidues = (
 matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
 
-def _count_batch(args):
+def counter(args):
     batch, columns, index = args
     # Reconstruct a local matrix
     matrix = pd.DataFrame(0, index=index, columns=columns)
@@ -344,6 +345,10 @@ class WebApp:
 
     def initDataStructures(self):
         # Initialize data structures
+        self.fileExp = []
+        self.fileExpRev = []
+        self.fileBg = []
+        self.fileBgRev = []
         self.subsExp = {}
         self.subsBg = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
@@ -353,6 +358,7 @@ class WebApp:
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
         # Initialize params
+        self.initDataStructures()
         self.figures = {}
         self.motifFilter = False
 
@@ -454,11 +460,20 @@ class WebApp:
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
+
         # Add: Min counts
-        print(f'File Exp: {type(self.fileExp)}\n'
-              f'{self.fileExp}')
-        print(f'File Bg: {type(self.fileBg)}\n'
-              f'{self.fileBg}')
+        if self.fileExp:
+            print(f'File Exp: {type(self.fileExp)}\n'
+                  f'{self.fileExp}')
+        if self.fileExpRev:
+            print(f'File Exp: {type(self.fileExpRev)}\n'
+                  f'{self.fileExpRev}')
+        if self.fileBg:
+            print(f'File Bg: {type(self.fileBg)}\n'
+                  f'{self.fileBg}')
+        if self.fileBgRev:
+            print(f'File Bg: {type(self.fileBgRev)}\n'
+                  f'{self.fileBgRev}')
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
@@ -676,7 +691,7 @@ class WebApp:
                          f'       Extraction Efficiency: {round(perExtracted, 3)} %')
 
 
-        def logDNA(datapoint, idx, totalSeqs, totalSubsExtracted, useQS):
+        def logDNA(datapoint, totalSeqs, totalSubsExtracted, useQS):
             """
                 Scan dataset and log datapoints
             """
@@ -732,7 +747,7 @@ class WebApp:
             if totalSubsExtracted >= self.printN:
                 break
             totalSeqs, totalSubsExtracted = logDNA(
-                datapoint, idx, totalSeqs, totalSubsExtracted, useQS
+                datapoint, totalSeqs, totalSubsExtracted, useQS
             )
         extractionEfficiency(totalSeqs, totalSubsExtracted)
 
@@ -1287,28 +1302,17 @@ class WebApp:
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
-        from concurrent.futures import ProcessPoolExecutor
-        from itertools import batched
         print(f'Name: {__name__}')
-
-        def counter(data, matrix):
-            for k, v in data.items():
-                for i, a in enumerate(k, start=1):
-                    matrix.loc[a, f'R{i}'] += v
-            return matrix
 
         def splitData(data, matrix):
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
-            print(f'Cores: {cores}, Batches: {len(batches)}, Size: {size:,}')
-
+            print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
             args = [(batch, matrix.columns.tolist(), matrix.index.tolist())
                     for batch in batches]
-
             with ProcessPoolExecutor(max_workers=cores) as executor:
-                results = list(executor.map(_count_batch, args))
-
+                results = list(executor.map(counter, args))
             return sum(results)
 
         countMatrix = splitData(substrates, countMatrix)
@@ -1376,10 +1380,10 @@ class WebApp:
 
         # Plot the heatmap with numbers centered inside the squares
         fig, ax = plt.subplots(figsize=self.figSize)
-        heatmap = sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
-                              cbar=False, linewidths=self.lineThickness-1, square=False,
-                              linecolor='black', center=None, vmax=maxRound,
-                              annot_kws={'fontweight': 'bold'}, cbar_kws={'pad': 0.02})
+        sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
+                    cbar=False, linewidths=self.lineThickness-1, square=False,
+                    linecolor='black', center=None, vmax=maxRound,
+                    annot_kws={'fontweight': 'bold'}, cbar_kws={'pad': 0.02})
         ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')

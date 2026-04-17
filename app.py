@@ -38,11 +38,16 @@ def parseForm():
         # print('*', key, data[key])
 
     # Parse form
-    for key, value in request.files.items():
-        if value:
-            buf = io.BytesIO(value.read())
-            buf.filename = value.filename
-            data[key] = buf
+    for key in request.files.keys():
+        files = request.files.getlist(key)
+        bufs = []
+        for value in files:
+            if value:
+                buf = io.BytesIO(value.read())
+                buf.filename = value.filename
+                bufs.append(buf)
+        if bufs:
+            data[key] = bufs if len(bufs) > 1 else bufs[0]
 
     return data
 
