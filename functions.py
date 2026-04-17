@@ -657,16 +657,11 @@ class WebApp:
             totalSeqs += 1
             dna = str(datapoint.seq)
             if revRead:
-                print(f'DNA: {dna}')
                 dna = reverseComplement(dna)
-                print(f'DNA Rev: {dna}')
             queueLog.put(f'DNA Seq: {dna}')
-            print(f'DNA Seq: {dna}')
 
             # Inspect full dna seq
             queueLog.put(f'Tags: {self.seq5Prime}, {self.seq5Prime in dna} - '
-                  f'{self.seq3Prime}, {self.seq3Prime in dna}')
-            print(f'Tags: {self.seq5Prime}, {self.seq5Prime in dna} - '
                   f'{self.seq3Prime}, {self.seq3Prime in dna}')
             if (self.seq5Prime in dna and self.seq3Prime in dna or
                     not self.seq5Prime and self.seq3Prime in dna or
@@ -682,8 +677,6 @@ class WebApp:
                 else:
                     substrateDNA = dna[start:].strip()
                 queueLog.put(f'* Sub DNA: {substrateDNA}')
-                print(f'* Sub DNA: {substrateDNA}')
-                print(f'Len: {len(substrateDNA)}, {self.seqLength * 3}')
                 if len(substrateDNA) == self.seqLength * 3:
                     # Express substrate
                     substrate = str(Seq.translate(substrateDNA))
@@ -726,7 +719,6 @@ class WebApp:
             dna = str(datapoint.seq)
             if revRead:
                 dna = reverseComplement(dna)
-                # dna = Seq.reverse_complement(dna)
 
             # Inspect full dna seq
             if (self.seq5Prime in dna and self.seq3Prime in dna or
