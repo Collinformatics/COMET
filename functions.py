@@ -895,6 +895,14 @@ class WebApp:
             for log in queuesBgRevLog:
                 self.logInQueue(log)
 
+        def addSubs(data, subs):
+            for sub, count in subs.items():
+                if count >= self.minCounts:
+                    if sub in data.keys():
+                        data[sub] += count
+                    else:
+                        data[sub] = count
+
         # Get results from queue
         if self.fileExp:
             subs = {}
@@ -906,12 +914,7 @@ class WebApp:
                     else:
                         subs[substrate] = count
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
-            for substrate, count in subs.items():
-                if count >= self.minCounts:
-                    if substrate in self.subsExp.keys():
-                        self.subsExp[substrate] += count
-                    else:
-                        self.subsExp[substrate] = count
+            addSubs(self.subsExp, subs)
         if self.fileExpRev:
             subs = {}
             for queueData in queuesExpRev:
@@ -922,12 +925,7 @@ class WebApp:
                     else:
                         subs[substrate] = count
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
-            for substrate, count in subs.items():
-                if count >= self.minCounts:
-                    if substrate in self.subsExp.keys():
-                        self.subsExp[substrate] += count
-                    else:
-                        self.subsExp[substrate] = count
+            addSubs(self.subsExp, subs)
         if self.fileBg:
             subs = {}
             for queueData in queuesBg:
@@ -938,12 +936,7 @@ class WebApp:
                     else:
                         subs[substrate] = count
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
-            for substrate, count in subs.items():
-                if count >= self.minCounts:
-                    if substrate in self.subsBg.keys():
-                        self.subsBg[substrate] += count
-                    else:
-                        self.subsBg[substrate] = count
+            addSubs(self.subsBg, subs)
         if self.fileBgRev:
             subs = {}
             for queueData in queuesBgRev:
@@ -954,12 +947,7 @@ class WebApp:
                     else:
                         subs[substrate] = count
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
-            for substrate, count in subs.items():
-                if count >= self.minCounts:
-                    if substrate in self.subsBg.keys():
-                        self.subsBg[substrate] += count
-                    else:
-                        self.subsBg[substrate] = count
+            addSubs(self.subsBg, subs)
 
         # Make figures
         if self.subsExp:
