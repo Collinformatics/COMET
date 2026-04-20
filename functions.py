@@ -44,7 +44,6 @@ matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
 def counter(args):
     batch, columns, index = args
-    print(f'Counter: {batch}, {columns}, {index}')
     # Reconstruct a local matrix
     matrix = pd.DataFrame(0, index=index, columns=columns)
     for k, v in batch:
@@ -107,10 +106,8 @@ class WebApp:
         self.queueLog = queue.Queue()
         self.fileExp = []
         self.fileExpRev = []
-        self.seqExp = None
         self.fileBg = []
         self.fileBgRev = []
-        self.seqBg = None
         self.pathDir = ''
         self.pathData = ''
         self.pathFigs = ''
@@ -346,6 +343,10 @@ class WebApp:
 
     def initDataStructures(self):
         # Initialize data structures
+        self.fileExp = []
+        self.fileExpRev = []
+        self.fileBg = []
+        self.fileBgRev = []
         self.subsExp = {}
         self.subsBg = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
@@ -354,29 +355,11 @@ class WebApp:
 
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
-        self.pathLog = os.path.join(self.pathDir, 'log.txt')
-        self.log()  # Clear the log
-        self.log('================================ Job Summary '
-                 '=================================')
-
-        # Record job params
-        self.log(f'Job: {job}')
-        self.enzymeName = form['enzymeName']
-        self.jobParams['Enzyme Name'] = self.enzymeName
-        self.log(f'Enzyme: {self.enzymeName}')
-        self.seqLength = int(form['seqLength'])
-        self.jobParams['Substrate Length'] = self.seqLength
-        self.log(f'Substrate Length: {self.seqLength}')
-
-        # Initialize params
-        self.initDataStructures()
-        self.figures = {}
-        self.motifFilter = False
-
         # Initialize directories
         self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
+        self.pathLog = os.path.join(self.pathDir, 'log.txt')
         if self.pathDir is not None:
             if not os.path.exists(self.pathDir):
                 os.makedirs(self.pathDir, exist_ok=True)
@@ -398,16 +381,42 @@ class WebApp:
                 # time.sleep(5)
                 os.makedirs(self.pathFigs, exist_ok=True)
 
+        self.log() # Clear the log
+        self.log('================================ Job Summary '
+                 '=================================')
+
+        # Record job params
+        self.log(f'Job: {job}')
+        self.enzymeName = form['enzymeName']
+        self.jobParams['Enzyme Name'] = self.enzymeName
+        self.log(f'Enzyme: {self.enzymeName}')
+        self.seqLength = int(form['seqLength'])
+        self.jobParams['Substrate Length'] = self.seqLength
+        self.log(f'Substrate Length: {self.seqLength}')
+
+        # Initialize params
+        self.initDataStructures()
+        self.figures = {}
+        self.motifFilter = False
+
+
+        def addFile(data, value):
+            if isinstance(value, list):
+                for f in value:
+                    data.append(f)
+            else:
+                data.append(value)
+
         # Get the files
         for key, value in form.items():
             if 'fileExpRev' in key:
-                self.fileExpRev.append(value)
+                addFile(self.fileExpRev, value)
             elif 'fileExp' in key:
-                self.fileExp.append(value)
+                addFile(self.fileExp, value)
             elif 'fileBgRev' in key:
-                self.fileBgRev.append(value)
+                addFile(self.fileBgRev, value)
             elif 'fileBg' in key:
-                self.fileBg.append(value)
+                addFile(self.fileBg, value)
 
         # Job dependant parameters
         if evalDNA:
@@ -419,9 +428,6 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-            ## Placeholder files
-            # self.fileExp = ['dset/test/variantsExp.fastq'] # , 'dset/test/variantsExp2.fastq'
-            # self.fileBg = ['dset/test/variantsBg.fasta'] # , 'dset/test/variantsBg2.fasta'
         elif filterAA:
             ## Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
@@ -526,7 +532,6 @@ class WebApp:
         self.log('\n\n================================= Substrates '
                  '=================================')
         self.log(f'Dataset: {datasetType}')
-        print(f'Dataset: {datasetType}')
 
         # Inspect sequences
         if not filteredAA:
@@ -587,7 +592,6 @@ class WebApp:
         self.saveSubstrates(substrates=substrates, datasetType=datasetType)
 
         # Count AAs
-        print(f'Count: {datasetType}')
         countMatrix = self.countAA(substrates=substrates, countMatrix=countMatrix,
                                    datasetType=datasetType)
         if datasetType == self.datasetTypes['Bg']:
@@ -598,7 +602,6 @@ class WebApp:
     def loadDNA(self, path, datasetType, queueData, queueLog, reverseRead):
         translate = True
         filename = path.filename if hasattr(path, 'filename') else path.name
-        print(f'File: {filename}')
         try:
             # Open the file
             if filename.endswith('.gz'):
@@ -861,8 +864,6 @@ class WebApp:
                 )
                 thread.start()
                 threads.append(thread)
-        else:
-            print(f'Fastq: None')
         if self.fileBgRev:
             for file in self.fileBgRev:
                 print(f'Fastq Rev: {file}')
@@ -1303,13 +1304,11 @@ class WebApp:
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
         countMatrix.loc[:, :] = 0
-        print(f'\nCount Results:\n{countMatrix}\n')
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
         print(f'Name: {__name__}')
 
         def splitData(data, matrix):
-            print(f'\nSplit Data:\n{matrix}\n')
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
@@ -1318,21 +1317,15 @@ class WebApp:
                     for batch in batches]
             with ProcessPoolExecutor(max_workers=cores) as executor:
                 results = list(executor.map(counter, args))
-            print(f'\nSum Results:')
-            for x in results:
-                print(f'\n{x}')
             return sum(results)
 
         countMatrix = splitData(substrates, countMatrix)
         self.log(f'Counts:\n{countMatrix}')
-        print(f'Counted Data:\n{countMatrix}')
-        print(f'\nSaving Counts: {saveData}')
 
         for pos in countMatrix.columns:
             counts = sum(countMatrix.loc[:, pos])
             totalCounts.loc[pos, 'Sum'] = counts
         self.log(f'\nCount Totals:\n{totalCounts}')
-        print(f'\nCount Totals:\n{totalCounts}')
 
         # File path
         saveTag = None
@@ -1375,7 +1368,6 @@ class WebApp:
             countedData.index = [residue[2] for residue in self.residues]
 
         # Define color bar limit
-        print(f'Plot Counts:\n{countedData}')
         maxCount = np.max(countedData.values)
         mag = math.floor(math.log10(maxCount)) - 1
         maxNorm = maxCount / (10 ** mag)
