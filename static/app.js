@@ -143,6 +143,10 @@ function pageFilterMotif() {
     window.location.href = "/filterMotif";
 }
 
+function pageCombineProfiles() {
+    window.location.href = "/combineProfiles";
+}
+
 function pageResources() {
     window.location.href = "/resources";
 }
@@ -159,6 +163,7 @@ async function buttonProcessDNA() {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
+    console.log('Data:\n', formData);
 
     // Evaluate the form
     jobID = await processForm(formData);
@@ -197,6 +202,7 @@ async function buttonFilterSubs(filter) {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
+    console.log('Data:\n', formData);
 
     // Evaluate the form
     if (filter != 'comet') {
