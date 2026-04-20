@@ -31,20 +31,27 @@ function createAAContainer(containerId) {
         const aaGroup = document.createElement('div');
         aaGroup.style.display = 'none';
         aaGroup.style.flexWrap = 'wrap';
-        aaGroup.style.marginLeft = '10px';
+        aaGroup.style.marginLeft = '16px';
+
 
         aminoAcids.forEach(aa => {
             const aaLabel = document.createElement('label');
             aaLabel.style.color = 'white';
-            aaLabel.style.fontSize = '12px';
+            aaLabel.style.fontSize = '14px';
+            aaLabel.style.display = 'flex';
+            aaLabel.style.flexDirection = 'column';
+            aaLabel.style.alignItems = 'center';
+            aaLabel.style.textAlign = 'center';
 
             const aaCheckbox = document.createElement('input');
             aaCheckbox.type = 'checkbox';
             aaCheckbox.name = `${containerId === 'exclAAContainer' ? 'exclR' : 'fixR'}${i}`;
             aaCheckbox.value = aa;
+//            aaCheckbox.style.display = 'flex';
 
-            aaLabel.appendChild(aaCheckbox);
             aaLabel.appendChild(document.createTextNode(aa));
+//            aaLabel.appendChild(document.createElement('br')); // Optional: add line break
+            aaLabel.appendChild(aaCheckbox);
             aaGroup.appendChild(aaLabel);
         });
 

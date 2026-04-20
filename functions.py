@@ -2,7 +2,7 @@ import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import gzip
 import io
 from itertools import batched
@@ -40,18 +40,6 @@ defaultResidues = (
 
 # Generate figures entirely in memory without opening a window
 matplotlib.use('Agg')  # Use a non-interactive backend for servers
-
-
-def counter(args):
-    batch, columns, index = args
-    # Reconstruct a local matrix
-    matrix = pd.DataFrame(0, index=index, columns=columns)
-    for k, v in batch:
-        for i, a in enumerate(k, start=1):
-            col = f'R{i}'
-            if col in matrix.columns and a in matrix.index:
-                matrix.loc[a, col] += v
-    return matrix
 
 
 class WebApp:
@@ -354,7 +342,7 @@ class WebApp:
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
 
 
-    def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
+    def jobInit(self, form, job):
         # Initialize directories
         self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
@@ -373,11 +361,11 @@ class WebApp:
                 import shutil
                 # Remove everything inside the directory
                 for filename in os.listdir(self.pathFigs):
-                    file_path = os.path.join(self.pathFigs, filename)
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)  # delete file or link
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)  # delete subdirectory
+                    path = os.path.join(self.pathFigs, filename)
+                    if os.path.isfile(path) or os.path.islink(path):
+                        os.unlink(path)  # delete file or link
+                    elif os.path.isdir(path):
+                        shutil.rmtree(path)  # delete subdirectory
                 # time.sleep(5)
                 os.makedirs(self.pathFigs, exist_ok=True)
 
@@ -387,6 +375,8 @@ class WebApp:
 
         # Record job params
         self.log(f'Job: {job}')
+        self.jobParams['jobID'] = form['jobID']
+        self.log(f'Job ID: {self.jobParams['jobID']}')
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
@@ -419,7 +409,7 @@ class WebApp:
                 addFile(self.fileBg, value)
 
         # Job dependant parameters
-        if evalDNA:
+        if job == 'Process DNA':
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
             self.minCounts = int((round(float(form['minCounts']))))
@@ -428,7 +418,7 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-        elif filterAA:
+        elif job == 'Filter AA':
             ## Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
@@ -453,13 +443,16 @@ class WebApp:
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L003',
                     'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
                 ]
-        elif filterMotif:
+        elif job == 'Filter Motif':
             self.iteration = 0
             # Placeholder files
             self.fileExp = ['dset/Name/data/Name-Subs_Exp-Fix_[C,G,H,K,T]@R4-MinCounts_1-8AA.pkl']
             # self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
             self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             self.motifFilter = True
+        elif job == 'Combine Motifs':
+            print(f'Job: {job}')
+            self.motifLen = form['motifLength']
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
@@ -483,8 +476,6 @@ class WebApp:
         # self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         # self.getDatasetTag() ## Delete me
         # print(f'\nFix AA Tag: fixR4: {self.fixAA}')
-        self.jobParams['jobID'] = form['jobID']
-        # self.log(f'Job ID: {self.jobParams['jobID']}')
 
 
     def log(self, txt=None):
@@ -807,7 +798,7 @@ class WebApp:
 
 
     def evalDNA(self, form):
-        self.jobInit(form, job='Process DNA', evalDNA=True)
+        self.jobInit(form, job='Process DNA')
 
         # Load the data
         threads = []
@@ -1009,9 +1000,9 @@ class WebApp:
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
             print('\nFilter Motif')
-            self.jobInit(form, job='Filter Motif', filterMotif=True)
+            self.jobInit(form, job='Filter Motif')
         else:
-            self.jobInit(form, job='Filter AA', filterAA=True)
+            self.jobInit(form, job='Filter AA')
         self.log('\n\n================================== Load Data '
                  '=================================')
 
@@ -1263,6 +1254,10 @@ class WebApp:
         self.jobDone = True
 
 
+    def combineProfiles(self, form):
+        self.jobInit(form, job='Combine Motifs')
+
+
     def selectMotifPos(self):
         self.motifPos = {}
         entropy = self.entropy.sort_values(by=self.entropy.columns[0], ascending=False)
@@ -1303,13 +1298,24 @@ class WebApp:
         print(f'Name: {__name__}')
 
         def splitData(data, matrix):
+            def counter(args):
+                batch, columns, index = args
+                matrixLocal = pd.DataFrame(0, index=index, columns=columns)
+                for k, v in batch.items():  # batch is a dict
+                    for i, a in enumerate(k, start=1):
+                        col = f'R{i}'
+                        if col in matrixLocal.columns and a in matrixLocal.index:  # was matrix.index
+                            matrixLocal.loc[a, col] += v
+                return matrixLocal
+
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
             print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
-            args = [(batch, matrix.columns.tolist(), matrix.index.tolist())
+            args = [(dict(batch), matrix.columns.tolist(), matrix.index.tolist())
                     for batch in batches]
-            with ProcessPoolExecutor(max_workers=cores) as executor:
+
+            with ThreadPoolExecutor(max_workers=cores) as executor:
                 results = list(executor.map(counter, args))
             return sum(results)
 

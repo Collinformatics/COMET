@@ -18,7 +18,7 @@
                     <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
                     <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
                     <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
-                    <button class="buttonHeader" onclick="pageCombineProfiles()">Filter Motif</button>
+                    <button class="buttonHeader" onclick="pageCombineProfiles()">Combine Profiles</button>
                 </div>
                 <div class="button-group-r">
                     <button class="buttonHeader" onclick="pageResources()">Resources</button>
@@ -28,9 +28,9 @@
 
         <!-- Application -->
         <div class="box">
-            <h2>Filter Motif</h2>
+            <h2>Combine Substrate Profiles</h2>
             <p>
-                Apply an automated, entropy-based filter to your data.
+                Combine enzyme profiles.
             </p>
 
             <!-- Forms -->
@@ -81,14 +81,14 @@
                         </div>
                     </div>
 
-                    <!-- Fix AA and Position -->
+                    <!-- Motif Length -->
                     <div class="form-group">
-                        <label>Fix Residues:</label>
-                        <div id="fixAAContainer"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>Exclude Residues:</label>
-                        <div id="exclAAContainer"></div>
+                        <label for="motifLength">Motif Length:</label>
+                        <div class="form-wrapper">
+                            <input type="number" id="motifLength" name="motifLength"
+                               value="6" min="1" style="width: 60px;"
+                             required>
+                        </div>
                     </div>
 
                     <!-- Execute -->

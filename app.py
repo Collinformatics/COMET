@@ -87,6 +87,11 @@ def pFilterMotif():
     return render_template('filterMotif.html',
                            csrf_token=generate_csrf())
 
+@app.route('/combineProfiles')
+def pCombineProfiles():
+    return render_template('combineProfiles.html',
+                           csrf_token=generate_csrf())
+
 
 @app.route('/resources')
 def resources():
@@ -211,6 +216,16 @@ def comet():
 @app.route('/jobStatus')
 def jobStatus():
     return {'jobStatus': webapp.jobDone}  # a bool you set in filterMotifs()
+
+
+@app.route('/combineProfiles', methods=['POST'])
+def combineProfiles():
+    thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
+    thread.start()
+    time.sleep(2)
+    return render_template('combineProfiles.html',
+                           parameters=webapp.jobParams,
+                           motifPos=list(webapp.motifPos.items()))
 
 
 # Run the app
