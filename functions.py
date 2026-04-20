@@ -638,10 +638,6 @@ class WebApp:
 
 
     def translate(self, data, fileName, datasetType, queueLog, revRead):
-        print(f'File Name: {fileName}, Rev: {revRead}')
-        # self.seq5Prime = '' ## Delete me
-        # self.seq3Prime = ''
-
         queueLog.put('\n\n================================ Translate DNA '
                      '===============================')
         data = list(data)
@@ -852,7 +848,6 @@ class WebApp:
         print(f'BG: {self.fileBg}')
         if self.fileBg:
             for file in self.fileBg:
-                print(f'Fastq: {file}')
                 queueBg = queue.Queue()
                 queueLog = queue.Queue()
                 queuesBg.append(queueBg)
@@ -866,7 +861,6 @@ class WebApp:
                 threads.append(thread)
         if self.fileBgRev:
             for file in self.fileBgRev:
-                print(f'Fastq Rev: {file}')
                 queueBgRev = queue.Queue()
                 queueBgRevLog = queue.Queue()
                 queuesBgRev.append(queueBgRev)
