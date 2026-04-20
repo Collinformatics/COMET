@@ -44,6 +44,7 @@ matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
 def counter(args):
     batch, columns, index = args
+    print(f'Counter: {batch}, {columns}, {index}')
     # Reconstruct a local matrix
     matrix = pd.DataFrame(0, index=index, columns=columns)
     for k, v in batch:
@@ -345,10 +346,6 @@ class WebApp:
 
     def initDataStructures(self):
         # Initialize data structures
-        self.fileExp = []
-        self.fileExpRev = []
-        self.fileBg = []
-        self.fileBgRev = []
         self.subsExp = {}
         self.subsBg = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
@@ -357,6 +354,20 @@ class WebApp:
 
 
     def jobInit(self, form, job, evalDNA=False, filterAA=False, filterMotif=False):
+        self.pathLog = os.path.join(self.pathDir, 'log.txt')
+        self.log()  # Clear the log
+        self.log('================================ Job Summary '
+                 '=================================')
+
+        # Record job params
+        self.log(f'Job: {job}')
+        self.enzymeName = form['enzymeName']
+        self.jobParams['Enzyme Name'] = self.enzymeName
+        self.log(f'Enzyme: {self.enzymeName}')
+        self.seqLength = int(form['seqLength'])
+        self.jobParams['Substrate Length'] = self.seqLength
+        self.log(f'Substrate Length: {self.seqLength}')
+
         # Initialize params
         self.initDataStructures()
         self.figures = {}
@@ -366,7 +377,6 @@ class WebApp:
         self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
-        self.pathLog = os.path.join(self.pathDir, 'log.txt')
         if self.pathDir is not None:
             if not os.path.exists(self.pathDir):
                 os.makedirs(self.pathDir, exist_ok=True)
@@ -398,19 +408,6 @@ class WebApp:
                 self.fileBgRev.append(value)
             elif 'fileBg' in key:
                 self.fileBg.append(value)
-
-        self.log()  # Clear the log
-        self.log('================================ Job Summary '
-                 '=================================')
-
-        # Record job params
-        self.log(f'Job: {job}')
-        self.enzymeName = form['enzymeName']
-        self.jobParams['Enzyme Name'] = self.enzymeName
-        self.log(f'Enzyme: {self.enzymeName}')
-        self.seqLength = int(form['seqLength'])
-        self.jobParams['Substrate Length'] = self.seqLength
-        self.log(f'Substrate Length: {self.seqLength}')
 
         # Job dependant parameters
         if evalDNA:
@@ -464,23 +461,22 @@ class WebApp:
         # Add: Min counts
         if self.fileExp:
             print(f'File Exp: {type(self.fileExp)}\n'
-                  f'{self.fileExp}')
+                  f'* {self.fileExp}')
         if self.fileExpRev:
-            print(f'File Exp: {type(self.fileExpRev)}\n'
-                  f'{self.fileExpRev}')
+            print(f'File Exp Rev: {type(self.fileExpRev)}\n'
+                  f'* {self.fileExpRev}')
         if self.fileBg:
             print(f'File Bg: {type(self.fileBg)}\n'
-                  f'{self.fileBg}')
+                  f'* {self.fileBg}')
         if self.fileBgRev:
-            print(f'File Bg: {type(self.fileBgRev)}\n'
-                  f'{self.fileBgRev}')
+            print(f'File Bg Rev: {type(self.fileBgRev)}\n'
+                  f'* {self.fileBgRev}')
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
         # self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
         # self.getDatasetTag() ## Delete me
         # print(f'\nFix AA Tag: fixR4: {self.fixAA}')
-        self.initDataStructures()
         self.jobParams['jobID'] = form['jobID']
         # self.log(f'Job ID: {self.jobParams['jobID']}')
 
@@ -530,6 +526,7 @@ class WebApp:
         self.log('\n\n================================= Substrates '
                  '=================================')
         self.log(f'Dataset: {datasetType}')
+        print(f'Dataset: {datasetType}')
 
         # Inspect sequences
         if not filteredAA:
@@ -638,7 +635,7 @@ class WebApp:
 
 
     def translate(self, data, fileName, datasetType, queueLog, revRead):
-
+        print(f'File Name: {fileName}, Rev: {revRead}')
         # self.seq5Prime = '' ## Delete me
         # self.seq3Prime = ''
 
@@ -697,6 +694,7 @@ class WebApp:
             """
             totalSeqs += 1
             dna = str(datapoint.seq)
+            # print(f'DNA: {dna}')
             if revRead:
                 dna = reverseComplement(dna)
             queueLog.put(f'DNA Seq: {dna}')
@@ -757,7 +755,7 @@ class WebApp:
             totalSeqs += 1
             dna = str(datapoint.seq)
             if revRead:
-                print(f'Reverse DNA: {dna}')
+                # print(f'Reverse DNA: {dna}')
                 dna = reverseComplement(dna)
 
             # Inspect full dna seq
@@ -848,8 +846,10 @@ class WebApp:
                 )
                 thread.start()
                 threads.append(thread)
+        print(f'BG: {self.fileBg}')
         if self.fileBg:
             for file in self.fileBg:
+                print(f'Fastq: {file}')
                 queueBg = queue.Queue()
                 queueLog = queue.Queue()
                 queuesBg.append(queueBg)
@@ -861,8 +861,11 @@ class WebApp:
                 )
                 thread.start()
                 threads.append(thread)
+        else:
+            print(f'Fastq: None')
         if self.fileBgRev:
-            for file in self.fileBg:
+            for file in self.fileBgRev:
+                print(f'Fastq Rev: {file}')
                 queueBgRev = queue.Queue()
                 queueBgRevLog = queue.Queue()
                 queuesBgRev.append(queueBgRev)
@@ -905,7 +908,10 @@ class WebApp:
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
             for substrate, count in subs.items():
                 if count >= self.minCounts:
-                    self.subsExp[substrate] = count
+                    if substrate in self.subsExp.keys():
+                        self.subsExp[substrate] += count
+                    else:
+                        self.subsExp[substrate] = count
         if self.fileExpRev:
             subs = {}
             for queueData in queuesExpRev:
@@ -918,7 +924,10 @@ class WebApp:
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
             for substrate, count in subs.items():
                 if count >= self.minCounts:
-                    self.subsExp[substrate] = count
+                    if substrate in self.subsExp.keys():
+                        self.subsExp[substrate] += count
+                    else:
+                        self.subsExp[substrate] = count
         if self.fileBg:
             subs = {}
             for queueData in queuesBg:
@@ -931,7 +940,10 @@ class WebApp:
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
             for substrate, count in subs.items():
                 if count >= self.minCounts:
-                    self.subsBg[substrate] = count
+                    if substrate in self.subsBg.keys():
+                        self.subsBg[substrate] += count
+                    else:
+                        self.subsBg[substrate] = count
         if self.fileBgRev:
             subs = {}
             for queueData in queuesBgRev:
@@ -944,7 +956,10 @@ class WebApp:
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
             for substrate, count in subs.items():
                 if count >= self.minCounts:
-                    self.subsBg[substrate] = count
+                    if substrate in self.subsBg.keys():
+                        self.subsBg[substrate] += count
+                    else:
+                        self.subsBg[substrate] = count
 
         # Make figures
         if self.subsExp:
@@ -1300,11 +1315,13 @@ class WebApp:
                  '==================================')
         self.log(f'Dataset: {datasetType}\n')
         countMatrix.loc[:, :] = 0
+        print(f'\nCount Results:\n{countMatrix}\n')
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
         print(f'Name: {__name__}')
 
         def splitData(data, matrix):
+            print(f'\nSplit Data:\n{matrix}\n')
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
@@ -1313,11 +1330,14 @@ class WebApp:
                     for batch in batches]
             with ProcessPoolExecutor(max_workers=cores) as executor:
                 results = list(executor.map(counter, args))
+            print(f'\nSum Results:')
+            for x in results:
+                print(f'\n{x}')
             return sum(results)
 
         countMatrix = splitData(substrates, countMatrix)
         self.log(f'Counts:\n{countMatrix}')
-        print(f'Results:\n{countMatrix}')
+        print(f'Counted Data:\n{countMatrix}')
         print(f'\nSaving Counts: {saveData}')
 
         for pos in countMatrix.columns:
@@ -1367,7 +1387,7 @@ class WebApp:
             countedData.index = [residue[2] for residue in self.residues]
 
         # Define color bar limit
-        print(f'Results:\n{countedData}')
+        print(f'Plot Counts:\n{countedData}')
         maxCount = np.max(countedData.values)
         mag = math.floor(math.log10(maxCount)) - 1
         maxNorm = maxCount / (10 ** mag)
