@@ -54,7 +54,16 @@
 
                     <!-- Experimental dataset -->
                     <div class="form-group">
-                        <label>Experimental Data:</label>
+                        <div class="help">
+                            <label>Experimental Data:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Experimental substrates.<br>
+                                    Acceptable file extensions:
+                                    .fasta, .fasta.gz, .fa, .fa.gz, .fastq, .fastq.gz, .fq, .fq.gz
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <label class="label-sub" for="fileExp">Forward Read:</label>
                             <input type="file" id="fileExp" name="fileExp"
@@ -72,25 +81,42 @@
 
                     <!-- Background dataset -->
                     <div class="form-group">
-                        <label>Background Data:</label>
+                        <div class="help">
+                            <label>Background Data:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Background substrates.<br>
+                                    Acceptable file extensions:
+                                    .fasta, .fasta.gz, .fa, .fa.gz, .fastq, .fastq.gz, .fq, .fq.gz
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <label class="label-sub" for="fileBg">Forward Read:</label>
                             <input type="file" id="fileBg" name="fileBg"
-                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                                   accept=".fasta,.fasta.gz,.fa,.fa.gz,.fastq,.fastq.gz,.fq,.fq.gz"
                                    value="data/variantsBg.fastq"
                                    multiple>
                         </div>
                         <div class="form-wrapper">
                             <label class="label-sub" for="fileBgRev">Reverse Read:</label>
                             <input type="file" id="fileBgRev" name="fileBgRev"
-                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
+                                   accept=".fasta,.fasta.gz,.fa,.fa.gz,.fastq,.fastq.gz,.fq,.fq.gz"
                                    multiple>
                         </div>
                     </div>
 
                     <!-- Flanking sequence -->
                     <div class="form-group">
-                        <label>Flanking Sequences:</label>
+                        <div class="help">
+                            <label>Flanking Sequences:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Extract DNA sequence between these sequences.<br>
+                                    Ex: 5'seq-substrate-3'seq
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <label class="label-sub" for="seq5Prime" style="padding-bottom: 5px;">5':</label>
                             <input type="text" id="seq5Prime"
@@ -105,42 +131,81 @@
 
                     <!-- Sequence Length -->
                     <div class="form-group">
-                        <label for="seqLength">Sequence Length (AA):</label>
+                        <div class="help">
+                            <label for="seqLength">Sequence Length:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Number of AAs in the substrate.
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <input type="number" id="seqLength" name="seqLength"
-                               value="8" min="1" onchange="updateFixedAA()"
-                               style="width: 60px;"
-                             required>
+                               value="8" min="1" style="width: 60px;"
+                               onchange="updateFixedAA()"
+                               required>
                         </div>
                     </div>
 
                     <!-- Minimum Substrate Counts -->
                     <div class="form-group">
-                        <label for="minCounts">Minimum Substrate Counts:</label>
+                        <div class="help">
+                            <label>Minimum Substrate Counts:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Drop substrates with fewer counts than this value.
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
-                            <input type="number" id="minCounts" name="minCounts"
-                               value="1" min="0"  style="width: 60px;"
-                             required>
+                            <label for="minCounts">
+                                <input type="number" id="minCounts" name="minCounts"
+                                   value="1" min="0"  style="width: 60px;"
+                                 required>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Minimum Phred Score -->
+                    <div class="form-group">
+                        <div class="help">
+                            <label>Minimum Phred Score:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Minimum quality score of acceptable DNA reads.
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-wrapper">
+                            <input type="number" id="minPhred" name="minPhred"
+                                   value="20" min="0"  max="40" style="width: 50px;">
                         </div>
                     </div>
 
                     <!-- Fix AA and Position -->
                     <div class="form-group">
-                        <label>Fix Residues:</label>
+                        <div class="help">
+                            <label>Fix Residues:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Select substrates with a given AA at a defined
+                                    residue in the sequence.
+                                </span>
+                            </div>
+                        </div>
                         <div id="fixAAContainer"></div>
                     </div>
                     <div class="form-group">
-                        <label>Exclude Residues:</label>
-                        <div id="exclAAContainer"></div>
-                    </div>
-
-                    <!-- Minimum Phred Score -->
-                    <div class="form-group">
-                        <label for="minPhred">Minimum Phred Score:</label>
-                        <div class="form-wrapper">
-                            <input type="number" id="minPhred" name="minPhred"
-                                   value="20" min="0"  max="40" style="width: 50px;">
+                        <div class="help">
+                            <label>Exclude Residues:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Exclude substrates with a given AA at a defined
+                                    residue in the sequence.
+                                </span>
+                            </div>
                         </div>
+                        <div id="exclAAContainer"></div>
                     </div>
 
                     <!-- Execute -->

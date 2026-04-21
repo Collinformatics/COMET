@@ -66,7 +66,7 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('processDNA.html',
+    return render_template('filterAA.html',
                            csrf_token=generate_csrf())
 
 
@@ -86,6 +86,7 @@ def pFilterAA():
 def pFilterMotif():
     return render_template('filterMotif.html',
                            csrf_token=generate_csrf())
+
 
 @app.route('/combineProfiles')
 def pCombineProfiles():
@@ -218,7 +219,7 @@ def jobStatus():
     return {'jobStatus': webapp.jobDone}  # a bool you set in filterMotifs()
 
 
-@app.route('/combineProfiles', methods=['POST'])
+@app.route('/evalProfiles', methods=['POST'])
 def combineProfiles():
     thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
     thread.start()

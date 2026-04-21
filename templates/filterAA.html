@@ -50,19 +50,35 @@
 
                     <!-- Experimental dataset -->
                     <div class="form-group">
-                        <label>Experimental Data:</label>
-                        <div class="form-wrapper">
-                            <label class="label-sub" for="fileExp">Substrates:</label>
-                            <input type="file" id="fileExp" name="fileExp"
-
-                                   value="data/variantsExp.fastq"
-                                   multiple>
+                        <div class="help">
+                            <label>Experimental Data:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Experimental substrates.<br>
+                                    Must be a .pkl file.
+                                </span>
+                            </div>
                         </div>
-                    </div> <!-- accept=".pkl" -->
+                            <div class="form-wrapper">
+                                <label class="label-sub" for="fileExp">Substrates:</label>
+                                <input type="file" id="fileExp" name="fileExp"
+                                       accept=".pkl"
+                                       value="data/variantsExp.fastq"
+                                       multiple>
+                            </div>
+                    </div>
 
                     <!-- Background dataset -->
                     <div class="form-group">
-                        <label>Background Data:</label>
+                        <div class="help">
+                            <label>Background Data:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Background count matrix.<br>
+                                    Must be a .csv file.
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <label class="label-sub" for="fileBg">Counts:</label>
                             <input type="file" id="fileBg" name="fileBg"
@@ -74,22 +90,43 @@
 
                     <!-- Sequence Length -->
                     <div class="form-group">
-                        <label for="seqLength">Sequence Length:</label>
+                        <div class="help">
+                            <label for="seqLength">Sequence Length:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Number of AAs in the substrate.
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <input type="number" id="seqLength" name="seqLength"
                                value="8" min="1" style="width: 60px;"
                                onchange="updateFixedAA()"
-                             required>
+                               required>
                         </div>
                     </div>
 
                     <!-- Fix AA and Position -->
                     <div class="form-group">
-                        <label>Fix Residues:</label>
+                        <div class="help">
+                            <label>Fix Residues:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Select substrates with a given AA at a defined residue in the sequence.
+                                </span>
+                            </div>
+                        </div>
                         <div id="fixAAContainer"></div>
                     </div>
                     <div class="form-group">
-                        <label>Exclude Residues:</label>
+                        <div class="help">
+                            <label>Exclude Residues:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Exclude substrates with a given AA at a defined residue in the sequence.
+                                </span>
+                            </div>
+                        </div>
                         <div id="exclAAContainer"></div>
                     </div>
 

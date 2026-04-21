@@ -263,8 +263,6 @@ async function buttonFilterSubs(filter) {
         });
     } else if (filter == 'comet') {
         console.log('Run: COMET');
-        console.log('CSRF token:', csrfToken);  // add this
-        console.log('FormData entries:', [...formData.entries()]);
         fetch('/comet', {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },

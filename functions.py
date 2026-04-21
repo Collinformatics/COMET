@@ -420,8 +420,8 @@ class WebApp:
                      f'Min Phred Score: {self.minPhred}')
         elif job == 'Filter AA':
             ## Placeholder files
-            self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
+            # self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
+            # self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             if 'eln' in self.enzymeName.lower(): ##
                 self.fileExp = [
                     'dset/ELN/data/ELN-Subs_Exp-Excl_C@R1_C@R2_C@R3_C@R4_C@R5_C@R6_C@R7_C@R8-MinCounts_1-8AA.pkl'
@@ -800,6 +800,8 @@ class WebApp:
     def evalDNA(self, form):
         self.jobInit(form, job='Process DNA')
 
+        start = time.time()
+
         # Load the data
         threads = []
         queuesExp = []
@@ -836,7 +838,6 @@ class WebApp:
                 )
                 thread.start()
                 threads.append(thread)
-        print(f'BG: {self.fileBg}')
         if self.fileBg:
             for file in self.fileBg:
                 queueBg = queue.Queue()
@@ -935,6 +936,7 @@ class WebApp:
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
             addSubs(self.subsBg, subs)
 
+        print(f'Finished loading data')
         # Make figures
         if self.subsExp:
             # Sort substrates and count AA
@@ -968,6 +970,10 @@ class WebApp:
             self.calculateEntropy()
             self.evalEnrichment()
         self.jobDone = True
+        end = time.time()
+        runtime = (end - start) / 60
+        runtime = round(runtime, 3)
+        print(f'Finished in {runtime} minutes')
 
 
     def loadSubstrates(self, path, queueData, queueLog):
@@ -1341,7 +1347,7 @@ class WebApp:
                             msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
-        print(f'\nSaving Counts: {saveData}\n     {saveTag}')
+        print(f'Saving Counts: {saveData}\n     {saveTag}')
         if saveData:
             path = os.path.join(self.pathData, saveTag)
             # self.log(f'\nSaving Counts:\n     {path}')
@@ -1388,6 +1394,7 @@ class WebApp:
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -1776,6 +1783,7 @@ class WebApp:
         ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -1872,6 +1880,7 @@ class WebApp:
                                    width=0.95, stack_order=stackOrder)
             motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
             fig.tight_layout()
+            fig.set_size_inches(self.figSize)
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -1977,6 +1986,7 @@ class WebApp:
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.axis('off')
         fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         if self.datasetTag is None:
@@ -2021,6 +2031,7 @@ class WebApp:
                                width=0.95, stack_order=stackOrder)
         motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
