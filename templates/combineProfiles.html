@@ -53,7 +53,7 @@
                             <div class="help-icon">?
                                 <span class="help-tooltip">
                                     Experimental substrates.<br>
-                                    Must be a .pkl file.
+                                    Acceptable file extension: .pkl
                                 </span>
                             </div>
                         </div>
@@ -73,7 +73,7 @@
                             <div class="help-icon">?
                                 <span class="help-tooltip">
                                     Background count matrix.<br>
-                                    Must be a .csv file.
+                                    Acceptable file extension: .csv
                                 </span>
                             </div>
                         </div>
@@ -89,7 +89,7 @@
                     <!-- Sequence Length -->
                     <div class="form-group">
                         <div class="help">
-                            <label>Sequence Length:</label>
+                            <label for="seqLength">Sequence Length:</label>
                             <div class="help-icon">?
                                 <span class="help-tooltip">
                                     Number of AAs in the substrate.
@@ -100,17 +100,24 @@
                             <input type="number" id="seqLength" name="seqLength"
                                value="8" min="1" style="width: 60px;"
                                onchange="updateFixedAA()"
-                             required>
+                               required>
                         </div>
                     </div>
 
                     <!-- Motif Length -->
                     <div class="form-group">
-                        <label for="motifLength">Motif Length:</label>
+                        <div class="help">
+                            <label for="seqLength">Motif Length:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Number of AAs in the motif.
+                                </span>
+                            </div>
+                        </div>
                         <div class="form-wrapper">
                             <input type="number" id="motifLength" name="motifLength"
-                               value="6" min="1" style="width: 60px;"
-                             required>
+                                   value="6" min="1" style="width: 60px;"
+                                   required>
                         </div>
                     </div>
 

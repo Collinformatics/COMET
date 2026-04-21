@@ -66,32 +66,37 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
-    return render_template('filterAA.html',
-                           csrf_token=generate_csrf())
+    return render_template(
+        'filterAA.html', csrf_token=generate_csrf()
+    )
 
 
 @app.route('/processDNA')
 def pProcessDNA():
-    return render_template('processDNA.html',
-                           csrf_token=generate_csrf())
+    return render_template(
+        'processDNA.html', csrf_token=generate_csrf()
+    )
 
 
 @app.route('/filterAA')
 def pFilterAA():
-    return render_template('filterAA.html',
-                           csrf_token=generate_csrf())
+    return render_template(
+        'filterAA.html', csrf_token=generate_csrf()
+    )
 
 
 @app.route('/filterMotif')
 def pFilterMotif():
-    return render_template('filterMotif.html',
-                           csrf_token=generate_csrf())
+    return render_template(
+        'filterMotif.html', csrf_token=generate_csrf()
+    )
 
 
 @app.route('/combineProfiles')
 def pCombineProfiles():
-    return render_template('combineProfiles.html',
-                           csrf_token=generate_csrf())
+    return render_template(
+        'combineProfiles.html', csrf_token=generate_csrf()
+    )
 
 
 @app.route('/resources')
@@ -101,9 +106,10 @@ def resources():
 
 @app.route('/results')
 def results():
-    return render_template('results.html',
-                           figures=webapp.figures,
-                           parameters=webapp.jobParams)
+    return render_template(
+        'results.html', figures=webapp.figures,
+        parameters=webapp.jobParams
+    )
 
 
 @app.route(f'/<filename>')
@@ -145,8 +151,9 @@ def download():
 @app.route('/jobSummary')
 def jobSummary():
     print('Job Summary')
-    return render_template('results.html',
-                           parameters=webapp.jobParams())
+    return render_template(
+        'results.html', parameters=webapp.jobParams()
+    )
 
 
 @app.route('/evalFormDNA', methods=['POST'])
@@ -157,26 +164,37 @@ def evalDNA():
     thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
     thread.start()
     time.sleep(2)
-    return render_template('results.html', parameters=webapp.jobParams)
+    return render_template(
+        'results.html', parameters=webapp.jobParams
+    )
 
 
 @app.route('/evalFormFilterAA', methods=['POST'])
 def filterSubs():
+    print('Job Filter AA')
     # Parse the form
-    webapp.evalSubs(parseForm())
-    print('Job Done: Fix AA')
-    thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
+    # webapp.evalSubs(parseForm())
+    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
     thread.start()
     time.sleep(2)
-    return render_template('results.html', parameters=webapp.jobParams)
+    print('Job Done: Fix AA')
+    return render_template(
+        'results.html', parameters=webapp.jobParams
+    )
 
 
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
-    webapp.evalSubs(parseForm(), filterMotifs=True)
+    print('Job Filter Motif')
+    # Parse the form
+    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
+    thread.start()
+    time.sleep(2)
+    print('Job Filter Motif')
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
-        minS=webapp.minS, motifPos=list(webapp.motifPos.items()))
+        minS=webapp.minS, motifPos=list(webapp.motifPos.items())
+    )
 
 
 @app.route('/updateFig', methods=['POST'])
@@ -198,10 +216,11 @@ def updateFig():
 
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
-    return render_template('setEntropy.html', minS=webapp.minS,
-                           minES=webapp.minES, minESRel=webapp.minESRel,
-                           parameters=webapp.jobParams,
-                           motifPos=list(webapp.motifPos.items()))
+    return render_template(
+        'setEntropy.html', minS=webapp.minS,
+        minES=webapp.minES, minESRel=webapp.minESRel,
+        parameters=webapp.jobParams, motifPos=list(webapp.motifPos.items())
+    )
 
 
 @app.route('/comet', methods=['POST'])
@@ -209,8 +228,10 @@ def comet():
     thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
     thread.start()
     time.sleep(2)
-    return render_template('results.html', parameters=webapp.jobParams,
-                           motifPos=list(webapp.motifPos.items()))
+    return render_template(
+        'results.html', parameters=webapp.jobParams,
+        motifPos=list(webapp.motifPos.items())
+    )
 
 
 # Add a status flag to your webapp object
@@ -224,9 +245,10 @@ def combineProfiles():
     thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
     thread.start()
     time.sleep(2)
-    return render_template('combineProfiles.html',
-                           parameters=webapp.jobParams,
-                           motifPos=list(webapp.motifPos.items()))
+    return render_template(
+        'combineProfiles.html', parameters=webapp.jobParams,
+        motifPos=list(webapp.motifPos.items())
+    )
 
 
 # Run the app

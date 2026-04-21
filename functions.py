@@ -344,6 +344,8 @@ class WebApp:
 
     def jobInit(self, form, job):
         # Initialize directories
+        self.jobParams['jobID'] = form['jobID']
+        # self.pathDir = os.path.join('dset', f"{form['enzymeName']}-{form['jobID']}")
         self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
@@ -357,26 +359,25 @@ class WebApp:
         if self.pathFigs is not None:
             if not os.path.exists(self.pathFigs):
                 os.makedirs(self.pathFigs, exist_ok=True)
-            else:
-                import shutil
-                # Remove everything inside the directory
-                for filename in os.listdir(self.pathFigs):
-                    path = os.path.join(self.pathFigs, filename)
-                    if os.path.isfile(path) or os.path.islink(path):
-                        os.unlink(path)  # delete file or link
-                    elif os.path.isdir(path):
-                        shutil.rmtree(path)  # delete subdirectory
-                # time.sleep(5)
-                os.makedirs(self.pathFigs, exist_ok=True)
+            # else:
+            #     import shutil
+            #     # Remove everything inside the directory
+            #     for filename in os.listdir(self.pathFigs):
+            #         path = os.path.join(self.pathFigs, filename)
+            #         if os.path.isfile(path) or os.path.islink(path):
+            #             os.unlink(path)  # delete file or link
+            #         elif os.path.isdir(path):
+            #             shutil.rmtree(path)  # delete subdirectory
+            #     # time.sleep(5)
+            #     os.makedirs(self.pathFigs, exist_ok=True)
 
         self.log() # Clear the log
         self.log('================================ Job Summary '
                  '=================================')
 
         # Record job params
-        self.log(f'Job: {job}')
-        self.jobParams['jobID'] = form['jobID']
         self.log(f'Job ID: {self.jobParams['jobID']}')
+        self.log(f'Job: {job}')
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
@@ -419,36 +420,10 @@ class WebApp:
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
         elif job == 'Filter AA':
-            ## Placeholder files
-            # self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            # self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
-            if 'eln' in self.enzymeName.lower(): ##
-                self.fileExp = [
-                    'dset/ELN/data/ELN-Subs_Exp-Excl_C@R1_C@R2_C@R3_C@R4_C@R5_C@R6_C@R7_C@R8-MinCounts_1-8AA.pkl'
-                ]
-                self.fileBg = [
-                    'dset/ELN/data/counts_ELN-I_S1_L001',
-                    'dset/ELN/data/counts_ELN-I_S1_L002'
-                ]
-            elif 'mpro2' in self.enzymeName.lower():
-                self.fileExp = [
-                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L001',
-                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L002',
-                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L003',
-                    'dset/Mpro2/data/substrates_Mpro2-R4_S3_L004'
-                ]
-                self.fileBg = [
-                    'dset/Mpro2/data/counts_Mpro2-I_S1_L001',
-                    'dset/Mpro2/data/counts_Mpro2-I_S1_L002',
-                    'dset/Mpro2/data/counts_Mpro2-I_S1_L003',
-                    'dset/Mpro2/data/counts_Mpro2-I_S1_L004'
-                ]
+            print(f'Job: {job}')
         elif job == 'Filter Motif':
+            print(f'Job: {job}')
             self.iteration = 0
-            # Placeholder files
-            self.fileExp = ['dset/Name/data/Name-Subs_Exp-Fix_[C,G,H,K,T]@R4-MinCounts_1-8AA.pkl']
-            # self.fileExp = ['dset/Name/data/Name-Subs_Exp-Unfiltered-MinCounts_1-8AA.pkl']
-            self.fileBg = ['dset/Name/data/Name-AA_Counts_Bg-Unfiltered-MinCounts_1-8AA.csv']
             self.motifFilter = True
         elif job == 'Combine Motifs':
             print(f'Job: {job}')
@@ -800,8 +775,6 @@ class WebApp:
     def evalDNA(self, form):
         self.jobInit(form, job='Process DNA')
 
-        start = time.time()
-
         # Load the data
         threads = []
         queuesExp = []
@@ -936,7 +909,6 @@ class WebApp:
             subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
             addSubs(self.subsBg, subs)
 
-        print(f'Finished loading data')
         # Make figures
         if self.subsExp:
             # Sort substrates and count AA
@@ -970,16 +942,16 @@ class WebApp:
             self.calculateEntropy()
             self.evalEnrichment()
         self.jobDone = True
-        end = time.time()
-        runtime = (end - start) / 60
-        runtime = round(runtime, 3)
-        print(f'Finished in {runtime} minutes')
 
 
     def loadSubstrates(self, path, queueData, queueLog):
+        # with open(path, 'rb') as openedFile:  # Open file
+        #     data = pk.load(openedFile)  # Access the data
+        # queueData.put(data)
+        # queueLog.put(f'     {path}')
         try:
-            with open(path, 'rb') as openedFile:  # Open file
-                data = pk.load(openedFile)  # Access the data
+            path.seek(0)  # ensure at start
+            data = pk.load(path)  # BytesIO is already file-like
             queueData.put(data)
             queueLog.put(f'     {path}')
         except Exception as e:
@@ -987,6 +959,7 @@ class WebApp:
                 function='loadSubstrates()',
                 msg=f'Failed to load file:\n     {path}\n     {e}',
                 getStr=True))
+            sys.exit(0)
 
 
     def loadCounts(self, path, queueData, queueLog):
@@ -1046,8 +1019,8 @@ class WebApp:
         # Process input
         if queuesExpLog:
             self.log('Loading Substrates: Experimental')
-            for log in queuesExpLog:
-                self.logInQueue(log)
+            # for log in queuesExpLog:
+            #     self.logInQueue(log)
         if queuesExp:
             for q in queuesExp:
                 substrates = q.get()
@@ -1073,9 +1046,7 @@ class WebApp:
                 self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
                              datasetType=self.datasetTypes['Exp'])
         if queuesBgLog:
-            self.log('\nLoading Substrate Counts: Background')
-            for log in queuesBgLog:
-                self.logInQueue(log)
+            self.log('\nLoading Substrate Counts: Background\n')
         if queuesBg:
             for idx, q in enumerate(queuesBg):
                 counts = q.get()
@@ -1170,8 +1141,10 @@ class WebApp:
                                 datasetType=self.datasetTypes['Exp'])
 
         # Count AAs
-        self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
-                     datasetType=self.datasetTypes['Exp'], saveData=saveData)
+        self.countsExp = self.countAA(
+            substrates=self.subsExp, countMatrix=self.countsExp,
+            datasetType=self.datasetTypes['Exp'], saveData=saveData
+        )
         self.calculateRF()
         if saveData:
             self.calculateEntropy(plotFig=plotEntropy)
@@ -1451,6 +1424,7 @@ class WebApp:
         self.rfExp = pd.DataFrame(
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
         )
+        print(f'Counts -> RF:\n{self.countsExp}')
         for pos in self.countsExp.columns:
             self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
         self.log(f'RF Experimental:\n{self.rfExp}')
@@ -1625,14 +1599,14 @@ class WebApp:
             self.plotEnrichmentScores(dataType='Scaled Enrichment')
         )
         
-        # # Plot: Enrichment Logo
-        # self.plotEnrichmentLogo()
-        #
-        # # Plot: Weblogo
-        # self.calculateWebLogo()
-        #
-        # # Plot: Wordcloud
-        # self.figures['words'] = self.plotWordCloud(self.subsExp)
+        # Plot: Enrichment Logo
+        self.plotEnrichmentLogo()
+
+        # Plot: Weblogo
+        self.calculateWebLogo()
+
+        # Plot: Wordcloud
+        self.figures['words'] = self.plotWordCloud(self.subsExp)
 
         if self.motifFilter:
             self.iteration += 1
@@ -1829,7 +1803,7 @@ class WebApp:
         if subProfile:
             figName = figName.replace('eMap', 'eMap_SubProfile')
         path = os.path.join(self.pathFigs, figName)
-        self.log(f'Saving EM at:\n   {path}')
+        self.log(f'\nSaving EM at:\n   {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
