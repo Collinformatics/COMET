@@ -263,6 +263,7 @@ button:hover {
     gap: var(--gap);
     font-weight: normal;
     margin-left: var(--marginFormHorizontal);
+    padding-top: 1px;
 }.box-button {
     background-color: var(--colorForm);
     padding: var(--marginFormVertical) 0px 0px 0px;

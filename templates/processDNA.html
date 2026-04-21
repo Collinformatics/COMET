@@ -118,7 +118,7 @@
                             </div>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="seq5Prime" style="padding-bottom: 5px;">5':</label>
+                            <label class="label-sub" for="seq5Prime">5':</label>
                             <input type="text" id="seq5Prime"
                                    name="seq5Prime" value="AAAGGCAGT">
                         </div>
@@ -126,6 +126,39 @@
                             <label class="label-sub" for="seq3Prime">3':</label>
                             <input type="text" id="seq3Prime"
                                    name="seq3Prime" value="GGTGGAAGT">
+                        </div>
+                    </div>
+
+                    <!-- Minimum Phred Score -->
+                    <div class="form-group">
+                        <div class="help">
+                            <label for="minPhred">Minimum Phred Score:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Minimum quality score of acceptable DNA reads.
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-wrapper">
+                            <input type="number" id="minPhred" name="minPhred"
+                                   value="20" min="0"  max="40" style="width: 50px;">
+                        </div>
+                    </div>
+
+                    <!-- Minimum Substrate Counts -->
+                    <div class="form-group">
+                        <div class="help">
+                            <label for="minCounts">Minimum Substrate Count:</label>
+                            <div class="help-icon">?
+                                <span class="help-tooltip">
+                                    Drop substrates with fewer counts than this value.
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-wrapper">
+                            <input type="number" id="minCounts" name="minCounts"
+                               value="1" min="0"  style="width: 60px;"
+                             required>
                         </div>
                     </div>
 
@@ -147,42 +180,7 @@
                         </div>
                     </div>
 
-                    <!-- Minimum Substrate Counts -->
-                    <div class="form-group">
-                        <div class="help">
-                            <label>Minimum Substrate Counts:</label>
-                            <div class="help-icon">?
-                                <span class="help-tooltip">
-                                    Drop substrates with fewer counts than this value.
-                                </span>
-                            </div>
-                        </div>
-                        <div class="form-wrapper">
-                            <label for="minCounts">
-                                <input type="number" id="minCounts" name="minCounts"
-                                   value="1" min="0"  style="width: 60px;"
-                                 required>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Minimum Phred Score -->
-                    <div class="form-group">
-                        <div class="help">
-                            <label>Minimum Phred Score:</label>
-                            <div class="help-icon">?
-                                <span class="help-tooltip">
-                                    Minimum quality score of acceptable DNA reads.
-                                </span>
-                            </div>
-                        </div>
-                        <div class="form-wrapper">
-                            <input type="number" id="minPhred" name="minPhred"
-                                   value="20" min="0"  max="40" style="width: 50px;">
-                        </div>
-                    </div>
-
-                    <!-- Fix AA and Position -->
+                    <!-- Filter Substrates -->
                     <div class="form-group">
                         <div class="help">
                             <label>Fix Residues:</label>
