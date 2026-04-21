@@ -171,13 +171,10 @@ def evalDNA():
 
 @app.route('/evalFormFilterAA', methods=['POST'])
 def filterSubs():
-    print('Job Filter AA')
     # Parse the form
-    # webapp.evalSubs(parseForm())
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
     thread.start()
     time.sleep(2)
-    print('Job Done: Fix AA')
     return render_template(
         'results.html', parameters=webapp.jobParams
     )
@@ -185,12 +182,11 @@ def filterSubs():
 
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
-    print('Job Filter Motif')
     # Parse the form
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
     thread.start()
     time.sleep(2)
-    print('Job Filter Motif')
+    print('Job Done: Filter Motif')
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
         minS=webapp.minS, motifPos=list(webapp.motifPos.items())
@@ -199,7 +195,6 @@ def filterMotif():
 
 @app.route('/updateFig', methods=['POST'])
 def updateFig():
-    # print('Updating Figure')
     json = request.get_json()
     webapp.minS = float(json.get('minS'))
     webapp.minES = float(json.get('minES'))
@@ -209,7 +204,7 @@ def updateFig():
     data = {
         'status': 'success',
         'minS': webapp.figures.get('minS'),
-        'motifPos': list(webapp.motifPos.items())  # ← list of pairs
+        'motifPos': list(webapp.motifPos.items())
     }
     return jsonify(data)
 

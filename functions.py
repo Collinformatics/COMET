@@ -1046,12 +1046,13 @@ class WebApp:
                 self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
                              datasetType=self.datasetTypes['Exp'])
         if queuesBgLog:
-            self.log('\nLoading Substrate Counts: Background\n')
+            self.log('\nLoading Substrate Counts: Background')
         if queuesBg:
             for idx, q in enumerate(queuesBg):
                 counts = q.get()
                 self.countsBg += counts
-                self.log(f'Loaded Count Set: {idx}\n{counts}\n')
+                if len(queuesBg) > 1:
+                    self.log(f'\nLoaded Count Set: {idx}\n{counts}\n')
             self.countBgTotal = sum(self.countsBg.iloc[:, 0])
             if self.countBgTotal == 0:
                 print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
@@ -1073,10 +1074,10 @@ class WebApp:
 
 
     def filterSubs(self, plotEntropy=False, saveData=True):
+        self.log('\n\n============================== Filter Substrates '
+                 '=============================')
+        self.log(f'Dataset tag: {self.datasetTag}')
         if self.fixAA or self.exclAA:
-            self.log('\n\n============================== Filter Substrates '
-                     '=============================')
-            self.log(f'Dataset tag: {self.datasetTag}')
             totalSubs = 0
             for count in self.subsExp.values():
                 totalSubs += count
@@ -1273,8 +1274,6 @@ class WebApp:
         self.log(f'Dataset: {datasetType}\n')
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
-
-        print(f'Name: {__name__}')
 
         def splitData(data, matrix):
             def counter(args):
