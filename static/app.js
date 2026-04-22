@@ -108,7 +108,7 @@ function createProfileContainer(containerId = 'profileContainer') {
         const wrapper1 = document.createElement('div');
         wrapper1.className = 'form-wrapper';
         wrapper1.innerHTML = `
-            <label class="label-sub" for="fileExp${i}">Profile ${i}:</label>
+            <label class="label-w" for="fileExp${i}">Profile ${i}:</label>
             <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".pkl">
         `;
         container.appendChild(wrapper1);
@@ -118,7 +118,7 @@ function createProfileContainer(containerId = 'profileContainer') {
         wrapper2.className = 'form-wrapper';
         wrapper2.style.marginBottom = '1px';
         wrapper2.innerHTML = `
-            <label class="label-sub" for="fileExp${i}">Motif Index:</label>
+            <label class="label-w" for="fileExp${i}">Motif Index:</label>
             <input type="number" id="idxStart${i}" value="${i}"
                    min="1" max="${seqLength-motifLength}" style="width: 60px;"
                    required>
