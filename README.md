@@ -2,6 +2,8 @@
 
 COMET (COmprehensive Motif Evaluation Toolkit) was developed to process high-throughput datasets for the evaluation of enzymatic specificity.
 
+The process involves multiple stages to refine a comprehensive substrate profile as illustrated below:
+
 <img width="9900" height="3300" alt="image" src="https://github.com/user-attachments/assets/1617cf0c-8ecb-4af4-8b2f-5ba292d1f3fa" />
 
 # Installation:
