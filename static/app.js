@@ -90,8 +90,9 @@ function createProfileContainer(containerId = 'profileContainer') {
                 <label>Experimental Data:</label>
                 <div class="help-icon">?
                     <span class="help-tooltip">
-                        Substrate files obtained from "Filter Motif".<br>
-                        Acceptable file extension: .pkl
+                        Substrate profiles obtained from "Filter Motif".<br>
+                        Acceptable file extension: .pkl<br><br>
+                        The "Motif Index" defines the index of the first AA in the motif within the full substrate sequence
                     </span>
                 </div>
             </div>
@@ -99,9 +100,10 @@ function createProfileContainer(containerId = 'profileContainer') {
 
     for (let i = 1; i <= nProfiles; i++) {
         if (i > seqLength-motifLength) {
-            break;
+            break; // Enforce data boundaries
         }
 
+        // Upload file
         const wrapper1 = document.createElement('div');
         wrapper1.className = 'form-wrapper';
         wrapper1.innerHTML = `
@@ -110,6 +112,7 @@ function createProfileContainer(containerId = 'profileContainer') {
         `;
         container.appendChild(wrapper1);
 
+        // Motif start index
         const wrapper2 = document.createElement('div');
         wrapper2.className = 'form-wrapper';
         wrapper2.style.marginBottom = '1px';

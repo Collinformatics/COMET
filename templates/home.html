@@ -29,74 +29,88 @@
 
         <!-- Body -->
         <div class="box">
-            <h1>
-                Your Name
-            </h1>
-            <p>
-                This website will allow you to process enzyme profiling data.<br><br>
-                The available tools can:<br>
-                 — Extract protein sequences from FASTQ or FASTA files.<br>
-                 — Evaluate amino acid (AA) enrichment in an experimental (Exp) dataset
-                relative to a background (Bg) set.<br>
-                 — Use Shannon Entropy to filter the Exp dataset.<br><br>
-            </p>
-
-            <p class="pL"> <!-- Paragraph label -->
-                <b>Process DNA:</b></p>
-            <p>
-                Upload a FASTQ or FASTA file to translate the DNA sequences. The prevalence of
-                amino acids in your datasets will be evaluated. Both the counts matrix, and
-                protein sequences can then be downloaded and used for subsequent analyses.
+            <h2>Your Name</h2>
+            <div class="box-form">
+                <p>
+                    This website will allow you to process enzyme profiling data.<br><br>
+                    The available tools can:<br>
+                     — Extract protein sequences from FASTQ or FASTA files.<br>
+                     — Evaluate amino acid (AA) enrichment in an experimental (Exp) dataset
+                    relative to a background (Bg) set.<br>
+                     — Use Shannon Entropy to filter the Exp dataset.
+                </p>
                 <br><br>
-            </p>
 
-            <p class="pL">
-                <b>Filter AA:</b>
-            </p>
-            <p>
-                To apply a filter to the data, select which residues will be fixed, or excluded
-                from a given position in the sequence. If you don't know which AAs to fix, then
-                don't add a filter and plot the raw data. This will indicate favorable residues.
+
+                <div class="input-form">
+                    <p class="pL"> <!-- Paragraph label -->
+                        <b>Process DNA:</b></p>
+                    <p>
+                        Upload a FASTQ or FASTA file to translate the DNA sequences. The prevalence of
+                        amino acids in your datasets will be evaluated. Both the counts matrix, and
+                        protein sequences can then be downloaded and used for subsequent analyses.
+                    </p>
+                </div>
                 <br><br>
-            </p>
 
-            <p class="pL">
-                <b>Filter Motif:</b>
-            </p>
-            <p>
-                By evaluating the amino acid probabilities in the Exp set, we can determine
-                entropy scores (∆S) at each position in the sequence.<br><br>
-            </p>
+                <div class="input-form">
+                    <p class="pL">
+                        <b>Filter AA:</b>
+                    </p>
+                    <p>
+                        To apply a filter to the data, select which residues will be fixed, or excluded
+                        from a given position in the sequence. If you don't know which AAs to fix, then
+                        don't add a filter and plot the raw data. This will indicate favorable residues.
+                    </p>
+                </div>
+                <br><br>
 
-            <p class="pL">
-                <b>Equations:</b>
-            </p>
-            <p>
-                By comparing the probability of finding a given residue in the Exp and Bg
-                datasets, the Enrichment Score (ES) of each residue can be evaluated.
-            </p>
-            <p class="pE"> <!-- Equation -->
-                ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
-            </p>
-            <p>
-                The AA probabilities in the Exp set are used to determine the change in
-                entropy (∆S) at a given position in the sequence.
-            </p>
-            <p class="pE">
-                ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
-                ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))<br><br>
-            </p>
+                <div class="input-form">
+                    <p class="pL">
+                        <b>Filter Motif:</b>
+                    </p>
+                    <p>
+                        By evaluating the amino acid probabilities in the Exp set, we can determine
+                        entropy scores (∆S) at each position in the sequence.
+                    </p>
+                </div>
+                <br><br>
 
-            <p class="pL">
-                <b>Miscellaneous:</b>
-            </p>
-            <p>
-                Source Code is available at:
-                <a href="https:/github.com/Collinformatics/SpecificityProfile"
-                   target=\"_blank\">
-                    <strong>https:/github.com/Collinformatics/SpecificityProfile</strong>
-                </a><br><br>
-            </p>
+                <div class="input-form">
+                    <p class="pL">
+                    <b>Equations:</b>
+                    </p>
+                    <p>
+                        By comparing the probability of finding a given residue in the Exp and Bg
+                        datasets, the Enrichment Score (ES) of each residue can be evaluated.
+                    </p>
+                    <p class="pE"> <!-- Equation -->
+                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
+                    </p>
+                    <p>
+                        The AA probabilities in the Exp set are used to determine the change in
+                        entropy (∆S) at a given position in the sequence.
+                    </p>
+                    <p class="pE">
+                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
+                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))
+                    </p>
+                </div>
+                <br><br>
+
+                <div class="input-form">
+                    <p class="pL">
+                    <b>Miscellaneous:</b>
+                    </p>
+                    <p>
+                        Source Code is available at:
+                        <a href="https://github.com/Collinformatics/COMET"
+                           target=\"_blank\">
+                            <strong>github.com/Collinformatics/COMET</strong>
+                        </a>
+                    </p>
+                </div>
+            </div>
         </div>
         <div class=ft>
             <span>Version 1.0.0 (2026)</span>

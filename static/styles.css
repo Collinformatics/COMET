@@ -84,16 +84,17 @@ p {
     font-size: var(--textSize);
     width: fit-content;
     align-self: flex-start;
-    margin: 0px var(--margin) 0px var(--margin);
+    margin: 0px var(--margin) 10px var(--margin);
     padding: var(--padSize);
+
 }.p2 {
     color: var(--orange);
     font-size: calc(var(--textSize) + var(--textSizeInc));
     font-weight: bold;
     text-align: left;
-    text-align: center;       /* center inline content */
-    display: block;           /* ensure it's block-level */
-    margin: 10px auto;        /* center the block horizontally */
+    text-align: center; /* center inline content */
+    display: block;     /* ensure it's block-level */
+    margin: 10px auto;  /* center the block horizontally */
     margin-bottom: 0px;
     padding: 0px 0px calc(var(--marginFormVertical) / 2) 0px;
 }.p3 { /* Job Parameters */
@@ -106,7 +107,7 @@ p {
     color: var(--orangeburnt);
     font-weight: bold;
 }.pL { /* Labels */
-    color: var(--textColor);
+    color: var(--orange);
     font-size: calc(var(--textSize) + var(--textSizeInc));
     font-weight: bold;
     text-align: center;
@@ -266,8 +267,8 @@ button:hover {
     background-color: var(--colorBody);
     width: 100%;
     padding-top: 0px;
-    margin: var(--marginFormVertical) var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
-    padding: 0px 0px calc(var(--marginFormVertical) / 2) 0px;
+    margin: 0px var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
+    padding: calc(var(--marginFormVertical) / 2) 0px calc(var(--marginFormVertical) / 2) 0px;
 }.form-group {
     font-size: var(--textSize);
     display: flex;
