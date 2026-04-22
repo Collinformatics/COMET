@@ -375,7 +375,7 @@ function getFigures() {
                     };
                 }
             });
-    }, 5000); // poll: 1000 = 1 second
+    }, 1000); // poll: 1000 = 1 second
 }
 
 function getFiguresCOMET() {

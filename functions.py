@@ -1275,7 +1275,7 @@ class WebApp:
     def countAA(self, substrates, countMatrix, datasetType, saveData=True):
         self.log('\n\n================================== Count AA '
                  '==================================')
-        self.log(f'Dataset: {datasetType}\n')
+        self.log(f'Dataset: {datasetType}')
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
@@ -1298,7 +1298,7 @@ class WebApp:
         runtime = round(runtime, 3)
         self.log(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
         print(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
-        self.log(f'Counts:\n{countMatrix}')
+        self.log(f'\nCounts:\n{countMatrix}')
 
         for pos in countMatrix.columns:
             counts = sum(countMatrix.loc[:, pos])
