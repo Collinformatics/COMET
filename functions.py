@@ -2,7 +2,8 @@ import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import BiopythonWarning
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+from counter import counter
 import gzip
 import io
 from itertools import batched
@@ -343,8 +344,10 @@ class WebApp:
 
 
     def jobInit(self, form, job):
+        self.jobParams['Job ID'] = form['jobID']
+        self.jobParams['Job'] = job
+
         # Initialize directories
-        self.jobParams['jobID'] = form['jobID']
         # self.pathDir = os.path.join('dset', f"{form['enzymeName']}-{form['jobID']}")
         self.pathDir = os.path.join('dset', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
@@ -1276,16 +1279,6 @@ class WebApp:
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
         def splitData(data, matrix):
-            def counter(args):
-                batch, columns, index = args
-                matrixLocal = pd.DataFrame(0, index=index, columns=columns)
-                for k, v in batch.items():  # batch is a dict
-                    for i, a in enumerate(k, start=1):
-                        col = f'R{i}'
-                        if col in matrixLocal.columns and a in matrixLocal.index:  # was matrix.index
-                            matrixLocal.loc[a, col] += v
-                return matrixLocal
-
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
@@ -1293,11 +1286,17 @@ class WebApp:
             args = [(dict(batch), matrix.columns.tolist(), matrix.index.tolist())
                     for batch in batches]
 
-            with ThreadPoolExecutor(max_workers=cores) as executor:
+            with ProcessPoolExecutor(max_workers=cores) as executor:
                 results = list(executor.map(counter, args))
             return sum(results)
 
+        start = time.time()
         countMatrix = splitData(substrates, countMatrix)
+        end = time.time()
+        runtime = (end - start) / 60
+        runtime = round(runtime, 3)
+        self.log(f'Counts evaluated in: {runtime} min')
+        print(f'Counts evaluated in: {runtime} min')
         self.log(f'Counts:\n{countMatrix}')
 
         for pos in countMatrix.columns:

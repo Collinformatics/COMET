@@ -375,7 +375,7 @@ function getFigures() {
                     };
                 }
             });
-    }, 1000); // poll every 1 second
+    }, 5000); // poll: 1000 = 1 second
 }
 
 function getFiguresCOMET() {
@@ -464,7 +464,7 @@ function getFiguresCOMET() {
                     };
                 }
                 });
-    }, 1000); // poll every 1 second
+    }, 1000); // poll: 1000 = 1 second
 }
 
 function addFigure(container, label, fig, fig2 = null) {
@@ -588,17 +588,3 @@ function updateMinS() {
         console.error('Error:', error);
     });
 }
-
-//// Poll until done, then show results
-//function pollStatus() {
-//    fetch('/comet/status')
-//        .then(r => r.json())
-//        .then(data => {
-//            if (data.done) {
-//                console.log('polling');
-//            } else {
-//                setTimeout(pollStatus, 1000);  // check again in 1s
-//            }
-//        });
-//}
-//pollStatus();
