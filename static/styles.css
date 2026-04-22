@@ -122,6 +122,10 @@ p {
     width: fit-content;       /* only take up needed space */
 }
 
+.highlight {
+    color: var(--orange)
+}
+
 .help {
     display: flex;
     align-items:
@@ -288,6 +292,10 @@ button:hover {
     font-weight: normal;
     align-items: center;
     padding-left: var(--padForm); /* Pad each form input label */
+}.form-group .label-w {
+    color: var(--white);
+    font-weight: normal;
+    align-items: center;
 }.input-form {
     color: var(--textColorLabel);
     background-color: var(--colorForm);

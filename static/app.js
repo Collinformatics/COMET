@@ -18,6 +18,7 @@ function createAAContainer(containerId) {
 
         const label = document.createElement('label');
         label.style.color = '#FFF';
+        label.style.marginLeft = '1px';
         label.appendChild(document.createTextNode(`R${i}`));
 
         const checkbox = document.createElement('input');
@@ -31,7 +32,7 @@ function createAAContainer(containerId) {
         const aaGroup = document.createElement('div');
         aaGroup.style.display = 'none';
         aaGroup.style.flexWrap = 'wrap';
-        aaGroup.style.marginLeft = '16px';
+        aaGroup.style.marginLeft = '18px';
 
 
         aminoAcids.forEach(aa => {

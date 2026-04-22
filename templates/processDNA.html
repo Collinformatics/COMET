@@ -30,12 +30,11 @@
         <div class="box">
             <h2>Process DNA</h2>
             <p>
-                This program extracts DNA sequences found between two flanking sequences.
+                <span class="highlight">Extract</span> and <span class="highlight">translate</span> substrate DNA found between two flanking sequences on the 5' and 3' sides.<br>
                 If the extracted DNA sequence matches the specified sequence length then the
                 sequence will be translated. Sequences not containing a stop codon or
                 unknown AA will be saved.<br><br>
-                Uploaded files must be formatted as FASTQ or FASTA.<br>
-                Output files can be used for filtering.
+                Output files can be used for <span class="highlight">Filter AA</span> and <span class="highlight">Filter Motif</span>.
             </p>
 
             <!-- Forms -->
@@ -65,14 +64,14 @@
                             </div>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="fileExp">Forward Read:</label>
+                            <label class="label-w" for="fileExp">Forward Read:</label>
                             <input type="file" id="fileExp" name="fileExp"
                                    accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
                                    value="data/variantsExp.fastq"
                                    multiple>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="fileExpRev">Reverse Read:</label>
+                            <label class="label-w" for="fileExpRev">Reverse Read:</label>
                             <input type="file" id="fileExpRev" name="fileExpRev"
                                    accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
                                    multiple>
@@ -92,14 +91,14 @@
                             </div>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="fileBg">Forward Read:</label>
+                            <label class="label-w" for="fileBg">Forward Read:</label>
                             <input type="file" id="fileBg" name="fileBg"
                                    accept=".fasta,.fasta.gz,.fa,.fa.gz,.fastq,.fastq.gz,.fq,.fq.gz"
                                    value="data/variantsBg.fastq"
                                    multiple>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="fileBgRev">Reverse Read:</label>
+                            <label class="label-w" for="fileBgRev">Reverse Read:</label>
                             <input type="file" id="fileBgRev" name="fileBgRev"
                                    accept=".fasta,.fasta.gz,.fa,.fa.gz,.fastq,.fastq.gz,.fq,.fq.gz"
                                    multiple>
@@ -118,12 +117,12 @@
                             </div>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="seq5Prime">5':</label>
+                            <label class="label-w" for="seq5Prime">5':</label>
                             <input type="text" id="seq5Prime"
                                    name="seq5Prime" value="AAAGGCAGT">
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="seq3Prime">3':</label>
+                            <label class="label-w" for="seq3Prime">3':</label>
                             <input type="text" id="seq3Prime"
                                    name="seq3Prime" value="GGTGGAAGT">
                         </div>
