@@ -43,7 +43,9 @@ Processing DNA:
 
 # Troubleshooting:
 
-Unterminated processes can result in the website not starting correctly. Two possible solutions are:
+Unterminated processes can result in the website not starting correctly.
+
+Two possible solutions are:
 
 1) Automated Fix:
 
@@ -54,3 +56,14 @@ Unterminated processes can result in the website not starting correctly. Two pos
     If you host the website at a port other than 9090, add the port to the command:
     
         ./killServer.sh <port>
+
+2) Manual Fix:
+
+    List Open Files at port 9090 to find relevant process IDs:
+
+        lsof -i :9090
+
+    Kill these processes:
+
+        kill <process ID>
+
