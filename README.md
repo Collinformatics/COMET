@@ -43,12 +43,14 @@ Processing DNA:
 
 # Troubleshooting:
 
-Unterminated processes can result in the website not starting correctly.
+Unterminated processes can result in the website not starting correctly. Two possible solutions are:
 
-To fix this problem, execute this command to terminate the python processes:
+1) Automated Fix:
 
-    ./killServer.sh
+    To fix this problem, execute this command to terminate the python processes:
+    
+        ./killServer.sh
 
-If you host the website at a port other than 9090, add the port to the command:
-
-    ./killServer.sh <port>
+    If you host the website at a port other than 9090, add the port to the command:
+    
+        ./killServer.sh <port>
