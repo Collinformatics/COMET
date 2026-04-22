@@ -142,6 +142,7 @@ class WebApp:
         self.orange = '#FA8128'
         self.orangeBurnt = '#BF5700'
 
+        pd.set_option('display.max_columns', None)
         pd.options.display.float_format = '{:,.3f}'.format
 
 
@@ -379,7 +380,7 @@ class WebApp:
                  '=================================')
 
         # Record job params
-        self.log(f'Job ID: {self.jobParams['jobID']}')
+        self.log(f'Job ID: {self.jobParams['Job ID']}')
         self.log(f'Job: {job}')
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
@@ -1040,16 +1041,12 @@ class WebApp:
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
                         break
+                self.log('\n')
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
-            if filterMotifs:
-                self.subsExpAll = self.subsExp
-                # Count AAs #
-                self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
-                             datasetType=self.datasetTypes['Exp'])
         if queuesBgLog:
-            self.log('\nLoading Substrate Counts: Background')
+            self.log('Loading Substrate Counts: Background')
         if queuesBg:
             for idx, q in enumerate(queuesBg):
                 counts = q.get()
@@ -1070,11 +1067,14 @@ class WebApp:
 
         # Plot figures
         if filterMotifs:
+            self.subsExpAll = self.subsExp
+            # Count AAs #
+            self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
+                         datasetType=self.datasetTypes['Exp'])
             self.selectMotifPos()
         else:
             self.evalEnrichment()
         self.jobDone = True
-
 
     def filterSubs(self, plotEntropy=False, saveData=True):
         self.log('\n\n============================== Filter Substrates '
@@ -1122,16 +1122,17 @@ class WebApp:
                 if keepSub:
                     # print('  keep')
                     subs[substrate] = count
-            print(f'N Subs: {len(subs.keys())}')
             self.subsExp = subs
+        self.countExpTotal = sum(self.subsExp.values())
+        self.countExpUnique = len(self.subsExp.keys())
         self.subsExp = dict(sorted(
             self.subsExp.items(), key=lambda item: item[1], reverse=True)
         )
 
         # Log substrates
         self.log(f'\nFiltered Substrates:\n'
-                 f'     Total: {sum(self.subsExp.values()):,}\n'
-                 f'    Unique: {len(self.subsExp.keys()):,}\n')
+                 f'     Total: {self.countExpTotal:,}\n'
+                 f'    Unique: {self.countExpUnique:,}\n')
         self.log('Substrates:')
         for i, (substrate, count) in enumerate(self.subsExp.items()):
             self.log(f'    {substrate}, {count:,}')
@@ -1295,8 +1296,8 @@ class WebApp:
         end = time.time()
         runtime = (end - start) / 60
         runtime = round(runtime, 3)
-        self.log(f'Counts evaluated in: {runtime} min')
-        print(f'Counts evaluated in: {runtime} min')
+        self.log(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
+        print(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
         self.log(f'Counts:\n{countMatrix}')
 
         for pos in countMatrix.columns:
@@ -1422,7 +1423,6 @@ class WebApp:
         self.rfExp = pd.DataFrame(
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
         )
-        print(f'Counts -> RF:\n{self.countsExp}')
         for pos in self.countsExp.columns:
             self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
         self.log(f'RF Experimental:\n{self.rfExp}')
