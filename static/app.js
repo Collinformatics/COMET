@@ -74,6 +74,60 @@ function updateFixedAA() {
 }
 
 
+// Combine substrate profiles
+function createProfileContainer(containerId = 'profileContainer') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const nProfiles = parseInt(document.getElementById('nProfiles').value);
+    const seqLength = parseInt(document.getElementById('seqLength').value);
+    const motifLength = parseInt(document.getElementById('motifLength').value);
+    container.innerHTML = '';
+
+    // Header label
+    container.innerHTML = `
+            <div class="help">
+                <label>Experimental Data:</label>
+                <div class="help-icon">?
+                    <span class="help-tooltip">
+                        Substrate files obtained from "Filter Motif".<br>
+                        Acceptable file extension: .pkl
+                    </span>
+                </div>
+            </div>
+    `;
+
+    for (let i = 1; i <= nProfiles; i++) {
+        if (i > seqLength-motifLength) {
+            break;
+        }
+
+        const wrapper1 = document.createElement('div');
+        wrapper1.className = 'form-wrapper';
+        wrapper1.innerHTML = `
+            <label class="label-sub" for="fileExp${i}">Profile ${i}:</label>
+            <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".pkl">
+        `;
+        container.appendChild(wrapper1);
+
+        const wrapper2 = document.createElement('div');
+        wrapper2.className = 'form-wrapper';
+        wrapper2.style.marginBottom = '1px';
+        wrapper2.innerHTML = `
+            <label class="label-sub" for="fileExp${i}">Motif Index:</label>
+            <input type="number" id="idxStart${i}" value="${i}"
+                   min="1" max="${seqLength-motifLength}" style="width: 60px;"
+                   required>
+        `;
+        container.appendChild(wrapper2);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => createProfileContainer());
+function updateNumProfiles() {
+    createProfileContainer();
+}
+
 
 async function processForm(formData) {
     const json = {}; // Dont send files as a JSON

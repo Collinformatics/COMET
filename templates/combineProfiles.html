@@ -46,24 +46,25 @@
                         </div>
                     </div>
 
-                    <!-- Experimental dataset -->
+                    <!-- Profiles -->
                     <div class="form-group">
                         <div class="help">
-                            <label>Experimental Data:</label>
+                            <label for="nProfiles">Number of Profiles:</label>
                             <div class="help-icon">?
                                 <span class="help-tooltip">
-                                    Experimental substrates.<br>
-                                    Acceptable file extension: .pkl
+                                    Combine N number of profiles.
                                 </span>
                             </div>
                         </div>
                         <div class="form-wrapper">
-                            <label class="label-sub" for="fileExp">Substrates:</label>
-                            <input type="file" id="fileExp" name="fileExp"
-                                   accept=".pkl"
-                                   value="data/variantsExp.fastq"
-                                   multiple>
+                            <input type="number" id="nProfiles" name="nProfiles"
+                               value="2" min="2" style="width: 60px;"
+                               onchange="updateNumProfiles()"
+                               required>
                         </div>
+                    </div>
+                    <div class="form-group">        <!-- same parent as static inputs -->
+                        <div id="profileContainer"></div>
                     </div>
 
                     <!-- Background dataset -->
@@ -107,7 +108,7 @@
                     <!-- Motif Length -->
                     <div class="form-group">
                         <div class="help">
-                            <label for="seqLength">Motif Length:</label>
+                            <label for="motifLength">Motif Length:</label>
                             <div class="help-icon">?
                                 <span class="help-tooltip">
                                     Number of AAs in the motif.
@@ -117,6 +118,7 @@
                         <div class="form-wrapper">
                             <input type="number" id="motifLength" name="motifLength"
                                    value="6" min="1" style="width: 60px;"
+                                   onchange="updateNumProfiles()"
                                    required>
                         </div>
                     </div>
