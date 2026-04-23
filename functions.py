@@ -1,7 +1,6 @@
 import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio import BiopythonWarning
 from concurrent.futures import ProcessPoolExecutor
 from counter import counter
 import gzip
@@ -12,7 +11,6 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import os.path
 import pandas as pd
@@ -88,7 +86,7 @@ class WebApp:
         self.minESRel = -1
         self.motifFilter = False
         self.motifLen = 0
-        self.motifPos = pd.DataFrame()
+        self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
 
         # Params: Files
@@ -225,14 +223,15 @@ class WebApp:
         # Save to a memory buffer instead of disk
         buffer = io.BytesIO()
         plt.savefig(
-            buffer, format='png', bbox_inches='tight', dpi=self.figureResolution
+            buffer, format='png', bbox_inches='tight',
+            dpi=self.figureResolution
         )
         buffer.seek(0)
 
         # Encode as base64 for embedding in HTML
         figBase64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-        plt.close(fig)  # or fig.clear() to release memory
+        plt.close(fig) # or fig.clear() to release memory
         buffer.close()
 
         return figBase64
@@ -345,6 +344,7 @@ class WebApp:
 
 
     def jobInit(self, form, job):
+        self.jobDone = False
         self.jobParams['Job ID'] = form['jobID']
         self.jobParams['Job'] = job
 
@@ -386,6 +386,7 @@ class WebApp:
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
         self.seqLength = int(form['seqLength'])
+        self.motifLen = self.seqLength
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
 
@@ -429,6 +430,8 @@ class WebApp:
             print(f'Job: {job}')
             self.iteration = 0
             self.motifFilter = True
+            self.minS = 0.65
+            self.motifPos = {}
         elif job == 'Combine Motifs':
             print(f'Job: {job}')
             self.motifLen = form['motifLength']
@@ -436,25 +439,21 @@ class WebApp:
             print('ERROR: What Script Is Running')
             sys.exit()
 
-        # Add: Min counts
-        if self.fileExp:
-            print(f'File Exp: {type(self.fileExp)}\n'
-                  f'* {self.fileExp}')
-        if self.fileExpRev:
-            print(f'File Exp Rev: {type(self.fileExpRev)}\n'
-                  f'* {self.fileExpRev}')
-        if self.fileBg:
-            print(f'File Bg: {type(self.fileBg)}\n'
-                  f'* {self.fileBg}')
-        if self.fileBgRev:
-            print(f'File Bg Rev: {type(self.fileBgRev)}\n'
-                  f'* {self.fileBgRev}')
+        # if self.fileExp:
+        #     print(f'File Exp: {type(self.fileExp)}\n'
+        #           f'* {self.fileExp}')
+        # if self.fileExpRev:
+        #     print(f'File Exp Rev: {type(self.fileExpRev)}\n'
+        #           f'* {self.fileExpRev}')
+        # if self.fileBg:
+        #     print(f'File Bg: {type(self.fileBg)}\n'
+        #           f'* {self.fileBg}')
+        # if self.fileBgRev:
+        #     print(f'File Bg Rev: {type(self.fileBgRev)}\n'
+        #           f'* {self.fileBgRev}')
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
-        # self.fixAA['R4'] = ['C', 'G', 'H', 'K', 'T'] ## Delete me
-        # self.getDatasetTag() ## Delete me
-        # print(f'\nFix AA Tag: fixR4: {self.fixAA}')
 
 
     def log(self, txt=None):
@@ -982,7 +981,6 @@ class WebApp:
 
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
-            print('\nFilter Motif')
             self.jobInit(form, job='Filter Motif')
         else:
             self.jobInit(form, job='Filter AA')
@@ -1062,24 +1060,26 @@ class WebApp:
         self.motifLen = len(next(iter(self.subsExp)))
         print(f'Motif Length: {self.motifLen}')
 
-        # Filter AAs
-        self.filterSubs(plotEntropy=True)
-
         # Plot figures
         if filterMotifs:
             self.subsExpAll = self.subsExp
-            # Count AAs #
+            self.filterSubs(plotEntropy=True)
             self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
                          datasetType=self.datasetTypes['Exp'])
             self.selectMotifPos()
         else:
+            self.filterSubs(plotEntropy=True)
             self.evalEnrichment()
-        self.jobDone = True
+            self.jobDone = True
+
 
     def filterSubs(self, plotEntropy=False, saveData=True):
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
         self.log(f'Dataset tag: {self.datasetTag}')
+        print(f'Filter:\n'
+              f'* Fix: {self.fixAA}\n'
+              f'* Exc: {self.exclAA}')
         if self.fixAA or self.exclAA:
             totalSubs = 0
             for count in self.subsExp.values():
@@ -1095,32 +1095,28 @@ class WebApp:
                 substrates = self.subsExp
 
             subs = {}
-            print(f'Filter: {self.fixAA}')
-            # print(f'\nFilters:\n* Fix: {self.fixAA}\n* Excl: {self.exclAA}\n')
             for substrate, count in substrates.items():
-                # print(f'Substrate: {substrate}')
                 keepSub = True
                 for posExcl, exclAA in self.exclAA.items():
-                    if not isinstance(exclAA, list):
-                        exclAA = list(exclAA)
-                    idx = int(posExcl.replace('R', '')) - 1
-                    if substrate[idx] in exclAA:
-                        keepSub = False
-                        break
+                    if exclAA:
+                        if not isinstance(exclAA, list):
+                            exclAA = list(exclAA)
+                        idx = int(posExcl.replace('R', '')) - 1
+                        if substrate[idx] in exclAA:
+                            keepSub = False
+                            break
                 if not keepSub:
                     continue
 
                 for posFix, fixAA in self.fixAA.items():
-                    if not isinstance(fixAA, list):
-                        fixAA = list(fixAA)
-                    idx = int(posFix.replace('R', '')) - 1
-                    # print(f'* Pos: {posFix} {substrate[idx]} {fixAA}')
-                    if substrate[idx] not in fixAA:
-                        keepSub = False
-                        # print(f'  Drop - {posFix} {substrate[idx]}')
-                        break
+                    if fixAA:
+                        if not isinstance(fixAA, list):
+                            fixAA = list(fixAA)
+                        idx = int(posFix.replace('R', '')) - 1
+                        if substrate[idx] not in fixAA:
+                            keepSub = False
+                            break
                 if keepSub:
-                    # print('  keep')
                     subs[substrate] = count
             self.subsExp = subs
         self.countExpTotal = sum(self.subsExp.values())
@@ -1156,7 +1152,6 @@ class WebApp:
 
 
     def filterMotifs(self, form):
-        self.jobDone = False
         self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
@@ -1235,6 +1230,9 @@ class WebApp:
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
         self.figures['subProfile'] = self.plotEnrichmentScores(dataType='Enrichment',
                                                                subProfile=True)
+
+        ## ***** Make the figures show up in the webpage *****
+
         self.jobDone = True
 
 
@@ -1267,9 +1265,10 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
-        self.log(f'\nSaving Substrates:\n     {path}')
-        with open(path, 'wb') as file:
-            pk.dump(substrates, file)
+        if not os.path.exists(path):
+            self.log(f'\nSaving Substrates:\n     {path}')
+            with open(path, 'wb') as file:
+                pk.dump(substrates, file)
 
 
     def countAA(self, substrates, countMatrix, datasetType, saveData=True):
@@ -1278,6 +1277,8 @@ class WebApp:
         self.log(f'Dataset: {datasetType}')
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
+
+        print(f'Substrates: {len(substrates.keys()):,}')
 
         def splitData(data, matrix):
             cores = os.cpu_count()
@@ -1289,7 +1290,7 @@ class WebApp:
 
             with ProcessPoolExecutor(max_workers=cores) as executor:
                 results = list(executor.map(counter, args))
-            return sum(results)
+            return sum(results[1:], results[0])
 
         start = time.time()
         countMatrix = splitData(substrates, countMatrix)
@@ -1319,11 +1320,12 @@ class WebApp:
                             msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
-        print(f'Saving Counts: {saveData}\n     {saveTag}')
         if saveData:
             path = os.path.join(self.pathData, saveTag)
-            # self.log(f'\nSaving Counts:\n     {path}')
-            countMatrix.to_csv(path)
+            if not os.path.exists(path):
+                print(f'Saving Counts: {saveData}\n     {saveTag}')
+                # self.log(f'\nSaving Counts:\n     {path}')
+                countMatrix.to_csv(path)
 
         return countMatrix
 
@@ -1475,11 +1477,6 @@ class WebApp:
 
 
     def evalEnrichment(self, releasedCounts=False):
-        self.log('\n\n======================== Calculate: Enrichment Score '
-                 '=========================')
-        self.log(f'Enrichment Scores:\n'
-                 f'     log₂(RF Experimental / RF Background)\n')
-
         def evalMatrix(data):
             stacks = pd.DataFrame(0.0, index=data.columns,
                                   columns=['+Stack', '-Stack'])
@@ -1496,92 +1493,103 @@ class WebApp:
             self.log(f'Stack Heights:\n{stacks}')
 
 
-        # Calculate: Enrichment scores
-        matrix = pd.DataFrame(0.0, index=self.rfExp.index,
-                              columns=self.rfExp.columns)
-        if len(self.rfBg.columns) == 1:
-            # Eval: ES
-            for pos in self.rfExp.columns:
-                for AA in self.rfExp.index:
-                    rf = self.rfExp.loc[AA, pos]
-                    if rf == 0:
-                        matrix.loc[AA, pos] = -np.inf
-                    else:
-                        rfBg = self.rfBg.loc[AA, self.rfBg.columns[0]]
-                        matrix.loc[AA, pos] = np.log2(rf / rfBg)
-        else:
-            if len(self.rfBg.columns) != len(self.rfExp.columns):
-                self.log(f'ERROR: The number of columns in the Initial Sort '
-                      f'({len(self.rfBg.columns)}) needs to equal to the '
-                      f'number of columns in the Final Sort '
-                      f'({len(self.rfExp.columns)})\n'
-                      f'     Initial: {self.rfBg.columns}\n'
-                      f'       Final: {self.rfExp.columns}\n\n')
-                sys.exit(1)
+        def calcHeights(data):
+            # Calculate: Letter heights
+            heights = pd.DataFrame(0, index=data.index,
+                                   columns=data.columns, dtype=float)
+            for idxColumn in heights.columns:
+                heights.loc[:, idxColumn] = (
+                        data.loc[:, idxColumn] * self.entropy.loc[idxColumn,
+                        self.entropy.columns[0]]
+                )
 
-            # Eval: ES
-            for pos in self.rfExp.columns:
-                for AA in self.rfExp.index:
-                    rf = self.rfExp.loc[AA, pos]
-                    if rf == 0:
-                        matrix.loc[AA, pos] = -np.inf
-                    else:
-                        matrix.loc[AA, pos] = np.log2(rf / self.rfBg.loc[AA, pos])
-        self.eMap = matrix
+            # Calculate: Max positive
+            columnTotals = []
+            for pos in heights.columns:
+                totalPos = 0
+                for value in heights.loc[:, pos]:
+                    if value > 0:
+                        totalPos += value
+                columnTotals.append(totalPos)
+            yMax = max(columnTotals)
+
+            # Adjust values
+            for column in heights.columns:
+                if heights.loc[:, column].isna().any():
+                    nValues = heights[column].notna().sum()
+                    if nValues > 0:
+                        self.log(
+                            f'{len(heights[column]) - nValues} NaN values at: {column}')
+                    heights.loc[heights[column].notna(), column] = yMax / nValues
+                    heights.loc[:, column] = heights.loc[:, column].fillna(0)
+            self.eMapScaled = heights.copy()
+            self.log(f'Residue Heights: {self.datasetTag}\n'
+                     f'{heights}\n')
+            return heights
+
+
         if releasedCounts:
+            self.log('\n\n============================= Substrate Profile '
+                     '==============================')
+            matrix = self.substrateProfile
             self.log(f'Enrichment Score: Released Counts\n'
                   f'{matrix.round(self.roundVal)}\n')
             self.log(f'RF Experimental:\n{self.rfExp}\n\n'
                      f'RF Background:\n{self.rfBg}\n')
         else:
+            self.log('\n\n======================== Calculate: Enrichment Score '
+                     '=========================')
+            self.log(f'Enrichment Scores:\n'
+                     f'     log₂(RF Experimental / RF Background)\n')
+
+            # Calculate: Enrichment scores
+            matrix = pd.DataFrame(0.0, index=self.rfExp.index,
+                                  columns=self.rfExp.columns)
+            if len(self.rfBg.columns) == 1:
+                # Eval: ES
+                for pos in self.rfExp.columns:
+                    for AA in self.rfExp.index:
+                        rf = self.rfExp.loc[AA, pos]
+                        if rf == 0:
+                            matrix.loc[AA, pos] = -np.inf
+                        else:
+                            rfBg = self.rfBg.loc[AA, self.rfBg.columns[0]]
+                            matrix.loc[AA, pos] = np.log2(rf / rfBg)
+            else:
+                if len(self.rfBg.columns) != len(self.rfExp.columns):
+                    self.log(f'ERROR: The number of columns in the Initial Sort '
+                          f'({len(self.rfBg.columns)}) needs to equal to the '
+                          f'number of columns in the Final Sort '
+                          f'({len(self.rfExp.columns)})\n'
+                          f'     Initial: {self.rfBg.columns}\n'
+                          f'       Final: {self.rfExp.columns}\n\n')
+                    sys.exit(1)
+
+                # Eval: ES
+                for pos in self.rfExp.columns:
+                    for AA in self.rfExp.index:
+                        rf = self.rfExp.loc[AA, pos]
+                        if rf == 0:
+                            matrix.loc[AA, pos] = -np.inf
+                        else:
+                            matrix.loc[AA, pos] = np.log2(rf / self.rfBg.loc[AA, pos])
+            self.eMap = matrix
             self.log(f'Enrichment Score: {self.datasetTag}\n'
                   f'{matrix.round(self.roundVal)}\n')
 
-        # Evaluate stack heights
-        evalMatrix(matrix.replace([np.inf, -np.inf], 0))
+            # Evaluate stack heights
+            evalMatrix(matrix.replace([np.inf, -np.inf], 0))
 
 
-        self.log('\n\n===================== Calculate: Scaled Enrichment Score '
-                 '=====================')
-        if releasedCounts:
-            self.log(f'Scale Enrichment Scores: Released Counts\n'
-                  f'     Enrichment Scores * ΔS\n')
-        else:
+            self.log('\n\n===================== Calculate: Scaled Enrichment Score '
+                     '=====================')
             self.log(f'Scale Enrichment Scores:\n'
                   f'     Enrichment Scores * ΔS\n')
 
-        # Calculate: Letter heights
-        heights = pd.DataFrame(0, index=matrix.index,
-                               columns=matrix.columns, dtype=float)
-        for indexColumn in heights.columns:
-            heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
-                                           self.entropy.loc[indexColumn,
-                                           self.entropy.columns[0]])
+            heights = calcHeights(matrix)
 
-        # Calculate: Max positive
-        columnTotals = []
-        for pos in heights.columns:
-            totalPos = 0
-            for value in heights.loc[:, pos]:
-                if value > 0:
-                    totalPos += value
-            columnTotals.append(totalPos)
-        yMax = max(columnTotals)
-
-        # Adjust values
-        for column in heights.columns:
-            if heights.loc[:, column].isna().any():
-                nValues = heights[column].notna().sum()
-                if nValues > 0:
-                    self.log(f'{len(heights[column]) - nValues} NaN values at: {column}')
-                heights.loc[heights[column].notna(), column] = yMax / nValues
-                heights.loc[:, column] = heights.loc[:, column].fillna(0)
-        self.eMapScaled = heights.copy()
-        self.log(f'Residue Heights: {self.datasetTag}\n'
-                 f'{heights}\n')
-
-        # Evaluate stack heights
-        evalMatrix(heights.replace([np.inf, -np.inf], 0))
+            # Evaluate stack heights
+            evalMatrix(heights.replace([np.inf, -np.inf], 0))
 
         x = {
             'eMap': False, 'eLogo': False, 'eLogoMin': False, 'eMapSc': False,
@@ -1634,9 +1642,12 @@ class WebApp:
         normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
         cMap = [colorBar(normalize(value)) for value in self.entropy[self.entropy.columns[0]].astype(float)]
 
+        print(f'Plotting entropy: {self.motifFilter}')
+
         # Plotting the entropy values as a bar graph
         fig, ax = plt.subplots(figsize=self.figSize)
         if self.motifFilter:
+            print(f'Min ∆S: {self.minS}')
             plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
         plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
@@ -1684,7 +1695,8 @@ class WebApp:
             spine.set_linewidth(self.lineThickness)
 
         # File path
-        figName = f'entropy-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+        figName = (f'entropy-{self.enzymeName}-{self.getSaveTag()}-'
+                   f'{self.motifLen}AA.png')
         if self.motifFilter:
             figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
@@ -1965,7 +1977,7 @@ class WebApp:
             print(f'Dont save, dataset tag: {self.datasetTag}\n')
             sys.exit()
         figName = (f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA'
-                   f'{totalWords}_Words.png')
+                   f'-{totalWords}_Words.png')
         if self.motifFilter:
             figName = figName.replace('wordcloud',
                                       f'wordcloud_{self.iteration}')
