@@ -171,6 +171,7 @@ def results():
 
 @app.route(f'/<filename>')
 def getFigure(filename):
+    print(f'Get Figure: {webapp.pathFigs}, {filename}')
     return send_from_directory(webapp.pathFigs, filename)
 
 
@@ -236,8 +237,10 @@ def updateMinS():
     webapp.minS = float(json.get('minS'))
     webapp.selectMotifPos()
     webapp.figures['entropy'] = webapp.plotEntropy()
-    print(f'MinS: {webapp.minS}, {list(webapp.motifPos.items())}')
-    return jsonify(list(webapp.motifPos.items()))
+    return jsonify({
+        'motifPos': list(webapp.motifPos.items()),
+        'entropy': webapp.figures['entropy']
+    })
 
 
 @app.route('/motifPos')

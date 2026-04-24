@@ -305,7 +305,7 @@ class WebApp:
     def getSaveTag(self, saveTag=''):
         # Evaluate filters
         if self.motifFilter:
-            tag = 'COMET'
+            tag = self.datasetTagMotif.replace(' ', '')
         else:
             tag = self.datasetTag
             tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
@@ -1039,12 +1039,16 @@ class WebApp:
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
                         break
-                self.log('\n')
+                self.log(f'\nTotal Substrates: {sum(self.subsExp.values())}\n'
+                         f'Unique Substrates: {len(self.subsExp.keys())}')
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
         if queuesBgLog:
-            self.log('Loading Substrate Counts: Background')
+            if self.subsExp:
+                self.log('\nLoading Substrate Counts: Background')
+            else:
+                self.log('Loading Substrate Counts: Background')
         if queuesBg:
             for idx, q in enumerate(queuesBg):
                 counts = q.get()
@@ -1077,23 +1081,26 @@ class WebApp:
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
         self.log(f'Dataset tag: {self.datasetTag}')
-        print(f'Filter:\n'
+        print(f'Filter Substrates:\n'
               f'* Fix: {self.fixAA}\n'
               f'* Exc: {self.exclAA}')
+        print(f'Motif Filter: {self.motifFilter}')
+
+        # Select data
+        if self.motifFilter:
+            substrates = self.subsExpAll
+        else:
+            substrates = self.subsExp
+
+        totalSubs = 0
+        for count in substrates.values():
+            totalSubs += count
+        totalSubsUnique = len(substrates.keys())
+        self.log(f'\nUnfiltered Substrates:\n'
+                 f'     Total: {totalSubs:,}\n'
+                 f'    Unique: {totalSubsUnique:,}')
+
         if self.fixAA or self.exclAA:
-            totalSubs = 0
-            for count in self.subsExp.values():
-                totalSubs += count
-            totalSubsUnique = len(self.subsExp.keys())
-            self.log(f'\nUnfiltered Substrates:\n'
-                     f'     Total: {totalSubs:,}\n'
-                     f'    Unique: {totalSubsUnique:,}')
-
-            if self.motifFilter:
-                substrates = self.subsExpAll
-            else:
-                substrates = self.subsExp
-
             subs = {}
             for substrate, count in substrates.items():
                 keepSub = True
@@ -1214,19 +1221,28 @@ class WebApp:
         motifFilter = self.fixAA
         print(f'Filter:\n* {motifFilter}')
         print('Substrate Profile:')
+        posMinor = []
         for posRel in self.motifPos.keys():
-            print(f'* Release: {posRel}')
+            print(f'PosRel: {posRel}')
+            self.fixAA = {}
             filter = []
             for pos in self.motifPos.keys():
+                # print(f'* Release: {posRel}')
                 if pos != posRel:
                     filter.append(pos)
-                for posFix in filter:
-                    evalAAs(posFix, self.minESRel)
+                    # print(f'Add to Filter: {filter}')
+            for posFix in filter:
+                evalAAs(posFix, self.minESRel)
 
             self.filterSubs(saveData=False)
+            self.evalEnrichment(releasedCounts=True)#, skipFigs=True)
+            print(f'Profile: {posRel}\n* Fix: {self.fixAA}\n{self.eMap.loc[:, posRel]}')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
+            print(f'Profile:\n{self.substrateProfile}\n')
+        print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
+                print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
         self.figures['subProfile'] = self.plotEnrichmentScores(dataType='Enrichment',
                                                                subProfile=True)
@@ -1265,10 +1281,11 @@ class WebApp:
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
-        if not os.path.exists(path):
-            self.log(f'\nSaving Substrates:\n     {path}')
-            with open(path, 'wb') as file:
-                pk.dump(substrates, file)
+        print(f'Saving substrates to {path}')
+        # if not os.path.exists(path):
+        #     self.log(f'\nSaving Substrates:\n     {path}')
+        #     with open(path, 'wb') as file:
+        #         pk.dump(substrates, file)
 
 
     def countAA(self, substrates, countMatrix, datasetType, saveData=True):
@@ -1320,12 +1337,12 @@ class WebApp:
                             msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
-        if saveData:
-            path = os.path.join(self.pathData, saveTag)
-            if not os.path.exists(path):
-                print(f'Saving Counts: {saveData}\n     {saveTag}')
-                # self.log(f'\nSaving Counts:\n     {path}')
-                countMatrix.to_csv(path)
+        path = os.path.join(self.pathData, saveTag)
+        print(f'Saving Counts: {path}')
+        # if saveData:
+        #     if not os.path.exists(path):
+        #         # self.log(f'\nSaving Counts:\n     {path}')
+        #         countMatrix.to_csv(path)
 
         return countMatrix
 
@@ -1476,7 +1493,7 @@ class WebApp:
         self.figures['wLogo'] = self.plotWebLogo()
 
 
-    def evalEnrichment(self, releasedCounts=False):
+    def evalEnrichment(self, releasedCounts=False, skipFigs=False):
         def evalMatrix(data):
             stacks = pd.DataFrame(0.0, index=data.columns,
                                   columns=['+Stack', '-Stack'])
@@ -1527,6 +1544,14 @@ class WebApp:
                      f'{heights}\n')
             return heights
 
+
+        print(f'Release Counts: {releasedCounts}')
+        if releasedCounts:
+            print(f'Substrates: {len(self.subsExp.keys())}')
+            for i, (k, v) in self.subsExp.items():
+                print(f'{k}: {v:,}')
+                if i > 50:
+                    break
 
         if releasedCounts:
             self.log('\n\n============================= Substrate Profile '
@@ -1590,6 +1615,9 @@ class WebApp:
 
             # Evaluate stack heights
             evalMatrix(heights.replace([np.inf, -np.inf], 0))
+
+        if skipFigs:
+            return
 
         x = {
             'eMap': False, 'eLogo': False, 'eLogoMin': False, 'eMapSc': False,

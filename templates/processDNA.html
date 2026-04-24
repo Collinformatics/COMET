@@ -14,13 +14,13 @@
             <!-- Header Buttons -->
             <div class="container-header">
                 <div class="button-group">
-                    <button class="buttonHeader" onclick="pageHome()">Home</button>
                     <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
                     <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
                     <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
                     <button class="buttonHeader" onclick="pageCombineProfiles()">Combine Profiles</button>
                 </div>
                 <div class="button-group-r">
+                    <button class="buttonHeader" onclick="pageHome()">Help</button>
                     <button class="buttonHeader" onclick="pageResources()">Resources</button>
                 </div>
             </div>
@@ -93,14 +93,14 @@
                         <div class="form-wrapper">
                             <label class="label-w" for="fileBg">Forward Read:</label>
                             <input type="file" id="fileBg" name="fileBg"
-                                   accept=".fasta,.fasta.gz,.fa,.fa.gz,.fastq,.fastq.gz,.fq,.fq.gz"
+                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
                                    value="data/variantsBg.fastq"
                                    multiple>
                         </div>
                         <div class="form-wrapper">
                             <label class="label-w" for="fileBgRev">Reverse Read:</label>
                             <input type="file" id="fileBgRev" name="fileBgRev"
-                                   accept=".fasta,.fasta.gz,.fa,.fa.gz,.fastq,.fastq.gz,.fq,.fq.gz"
+                                   accept=".fasta,.fa,.fasta.gz,.fa.gz,.fastq,.fq,.gz"
                                    multiple>
                         </div>
                     </div>

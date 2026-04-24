@@ -15,13 +15,14 @@
             <!-- Header Buttons -->
             <div class="container-header">
                 <div class="button-group">
-                    <button class="buttonHeader" onclick="pageHome()">Home</button>
+
                     <button class="buttonHeader" onclick="pageProcessDNA()">Process DNA</button>
                     <button class="buttonHeader" onclick="pageFilterAA()">Filter AA</button>
                     <button class="buttonHeader" onclick="pageFilterMotif()">Filter Motif</button>
                     <button class="buttonHeader" onclick="pageCombineProfiles()">Combine Profiles</button>
                 </div>
                 <div class="button-group-r">
+                    <button class="buttonHeader" onclick="pageHome()">Help</button>
                     <button class="buttonHeader" onclick="pageResources()">Resources</button>
                 </div>
             </div>
@@ -42,7 +43,7 @@
                             <label for="minES">Minimum ES: Filter</label>
                             <div class="help-icon">?
                                 <span class="help-tooltip">
-                                    Minimum ES for a favorable AA when identifying the initial motif filter.
+                                    Minimum ES of a favorable AA when identifying the initial motif filter.
                                 </span>
                             </div>
                         </div>
@@ -59,7 +60,7 @@
                             <label for="minESRel">Minimum ES: Release Filter</label>
                             <div class="help-icon">?
                                 <span class="help-tooltip">
-                                    Minimum ES for a favorable AA when refining the motif filter.
+                                    Minimum ES of a favorable AA when refining the motif filter.
                                 </span>
                             </div>
                         </div>
@@ -80,7 +81,6 @@
                                 </span>
                             </div>
                         </div>
-                        <label>Minimum ∆S:</label>
                         <div class="form-wrapper">
                             <input type="number" id="minS" name="minS"
                                    value="{{ minS }}" min="0" max="4.32" step="0.01"
@@ -89,17 +89,9 @@
                         </div>
                     </div>
 
-                    <div class="form-group" id="motifPos">
-                        <label for="motifPos">Motif Positions:</label>
-                        {% if motifPos %}
-                            {% for pos, val in motifPos %}
-                                <p class="p3">{{ pos }}: ∆S=
-                                    <span class="param-value">{{"%.2f"|format(val) }}</span>
-                                </p>
-                            {% endfor %}
-                        {% else %}
-                            <p class="p3">No positions selected.</p>
-                        {% endif %}
+                    <div class="form-group" id="motifPosContainer">
+                        <label>Motif Positions:</label>
+                        <p class="p3" id="motifPosDefault">No positions selected.</p>
                     </div>
 
                     <!-- Execute -->
@@ -111,7 +103,12 @@
             <!-- Container where JS will insert images -->
             <div id="figures-container" class="figures-container"></div>
             <script>
-                document.addEventListener('DOMContentLoaded', getFigures);
+                document.addEventListener('DOMContentLoaded', () => {
+                    pollMotifPos();
+                    getFigures(true);
+                    // call after a short delay to ensure img is rendered
+                    setTimeout(() => updateHbar({{ minS }}), 1500);
+                });
             </script>
         </div>
         <div class=ft>

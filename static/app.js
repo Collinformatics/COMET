@@ -486,11 +486,6 @@ function getFigures(setS=false) {
             }
         });
 
-        console.log('Set S:', setS)
-        if (setS) {
-            pollMotifPos(); // poll motif positions every tick
-        }
-
         // Only stop polling when job is done
         fetch('/jobStatus')
             .then(r => r.json())
@@ -519,36 +514,24 @@ function getFigures(setS=false) {
 
 
 function updateMinS() {
-    const minS = document.getElementById('minS').value;
+    const minS = parseFloat(document.getElementById('minS').value);
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     fetch('/updateMinS', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken  // add this
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         body: JSON.stringify({ minS: minS })
     })
     .then(r => r.json())
     .then(data => {
-        console.log('updateMinS response:', data);
-        updateMotifPosDisplay(data);
-
-//        // Immediately refresh figures
-//        fetch('/checkFigures')
-//            .then(r => r.json())
-//            .then(figData => {
-//                const container = document.getElementById('figures-container');
-//                if (figData.entropy) {
-//                    const img = document.querySelector('img[data-label="Entropy"]');
-//                    if (img) {
-//                        console.log('Time', '?t=' + Date.now());
-//                        img.src = figData.entropy + '?t=' + Date.now();
-//                    }
-//                }
-//            });
+        updateMotifPosDisplay(data.motifPos);
+        // force re-fetch the updated entropy figure
+        const container = document.getElementById('figures-container');
+        if (data.entropy && container) {
+            addFigure(container, 'Entropy', data.entropy + '?t=' + Date.now());
+        }
     });
 }
+
 
 function updateMotifPosDisplay(data) {
     const container = document.getElementById('motifPosContainer');
