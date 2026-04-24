@@ -67,7 +67,7 @@ def run():
 def home():
     # return render_template('home.html')
     return render_template(
-        'filterAA.html', csrf_token=generate_csrf()
+        'filterMotif.html', csrf_token=generate_csrf()
     )
 
 
@@ -102,6 +102,63 @@ def pCombineProfiles():
 @app.route('/resources')
 def resources():
     return render_template('resources.html',)
+
+
+@app.route('/evalFormDNA', methods=['POST'])
+def evalDNA():
+    # Process the dset
+    # webapp.evalDNA(parseForm())
+    # print('Job Done: Eval DNA')
+    thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
+    thread.start()
+    time.sleep(2)
+    return render_template(
+        'results.html', parameters=webapp.jobParams
+    )
+
+
+@app.route('/evalFormFilterAA', methods=['POST'])
+def filterSubs():
+    # Parse the form
+    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
+    thread.start()
+    time.sleep(2)
+    return render_template(
+        'results.html', parameters=webapp.jobParams
+    )
+
+
+@app.route('/evalFormFilterMotif', methods=['POST'])
+def filterMotif():
+    # Parse the form
+    # webapp.evalSubs(parseForm(), True)
+    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),True,))
+    thread.start()
+    time.sleep(2)
+    return render_template(
+        'setEntropy.html', parameters=webapp.jobParams,
+        minS=webapp.minS, motifPos=list(webapp.motifPos.items())
+    )
+
+
+@app.route('/evalFormCombineMotif', methods=['POST'])
+def combineMotif():
+    print('Combine Profiles')
+    # Parse the form
+    thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
+    thread.start()
+    time.sleep(2)
+    return render_template(
+        'setEntropy.html', parameters=webapp.jobParams
+    )
+
+
+@app.route('/jobSummary')
+def jobSummary():
+    print('Job Summary')
+    return render_template(
+        'results.html', parameters=webapp.jobParams()
+    )
 
 
 @app.route('/results')
@@ -148,51 +205,6 @@ def download():
     )
 
 
-@app.route('/jobSummary')
-def jobSummary():
-    print('Job Summary')
-    return render_template(
-        'results.html', parameters=webapp.jobParams()
-    )
-
-
-@app.route('/evalFormDNA', methods=['POST'])
-def evalDNA():
-    # Process the dset
-    # webapp.evalDNA(parseForm())
-    # print('Job Done: Eval DNA')
-    thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
-    thread.start()
-    time.sleep(2)
-    return render_template(
-        'results.html', parameters=webapp.jobParams
-    )
-
-
-@app.route('/evalFormFilterAA', methods=['POST'])
-def filterSubs():
-    # Parse the form
-    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
-    thread.start()
-    time.sleep(2)
-    return render_template(
-        'results.html', parameters=webapp.jobParams
-    )
-
-
-@app.route('/evalFormFilterMotif', methods=['POST'])
-def filterMotif():
-    # Parse the form
-    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
-    thread.start()
-    time.sleep(2)
-    print('Job Done: Filter Motif')
-    return render_template(
-        'setEntropy.html', parameters=webapp.jobParams,
-        minS=webapp.minS, motifPos=list(webapp.motifPos.items())
-    )
-
-
 @app.route('/updateFig', methods=['POST'])
 def updateFig():
     json = request.get_json()
@@ -218,6 +230,21 @@ def setEntropy():
     )
 
 
+@app.route('/updateMinS', methods=['POST'])
+def updateMinS():
+    json = request.get_json()
+    webapp.minS = float(json.get('minS'))
+    webapp.selectMotifPos()
+    webapp.figures['entropy'] = webapp.plotEntropy()
+    print(f'MinS: {webapp.minS}, {list(webapp.motifPos.items())}')
+    return jsonify(list(webapp.motifPos.items()))
+
+
+@app.route('/motifPos')
+def motifPos():
+    return jsonify(list(webapp.motifPos.items()))
+
+
 @app.route('/comet', methods=['POST'])
 def comet():
     thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
@@ -232,7 +259,8 @@ def comet():
 # Add a status flag to your webapp object
 @app.route('/jobStatus')
 def jobStatus():
-    return {'jobStatus': webapp.jobDone}  # a bool you set in filterMotifs()
+    # print(f'Job Status: {webapp.jobDone}')
+    return {'jobStatus': webapp.jobDone}
 
 
 @app.route('/evalProfiles', methods=['POST'])

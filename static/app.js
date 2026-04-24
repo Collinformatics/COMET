@@ -133,6 +133,37 @@ function updateNumProfiles() {
 }
 
 
+async function download() {
+    const dirName = 'comet.zip';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const response = await fetch('/download', {
+        body: JSON.stringify({}),
+        headers: { 'X-CSRFToken': csrfToken },
+        method: 'POST'
+    });
+
+    const blob = await response.blob();
+
+    // Extract filename from Content-Disposition header
+    let filename = 'comet.zip';
+    const disposition = response.headers.get('Content-Disposition');
+    if (disposition) {
+        const match = disposition.match(/filename[^;=\n]*=([^;\n]*)/);
+        if (match && match[1]) {
+            filename = match[1].trim().replace(/['"]/g, '');
+        }
+    }
+    console.log('File Name:', filename);
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+
 async function processForm(formData) {
     const json = {}; // Dont send files as a JSON
     const selectedFixPositions = [];
@@ -345,185 +376,42 @@ async function buttonFilterSubs(filter) {
     }
 }
 
-// Get figures
-function getFigures() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const container = document.getElementById("figures-container");
-    if (!container) return;
-    const displayed = new Map();  // track what's already shown
 
-    const interval = setInterval(() => {
-       // new Flask route returning JSON with filenames
-        fetch('/checkFigures', {
-            method: 'GET',
-            headers: { 'X-CSRFToken': csrfToken },
-            credentials: 'same-origin'
-        })
-        .then(res => res.json())
-        // Verify if one figure is ready
-        .then(data => {
-            console.log('checkFigures comet response:', data);
-            if (data.entropy || data.subProfile || data.eMap || data.eMapSc ||
-                data.eLogo || data.eLogoMin || data.wLogo || data.words ||
-                data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
-                container.innerHTML = ''; // Clear loading message
+async function buttonCombineProfiles() {
+    // Disable to prevent double click
+    const button = document.querySelector('.button');
+    button.disabled = true;
+    button.textContent = 'Processing';
 
-                if (data.entropy) {
-                    addFigure(container, "Entropy", data.entropy);
-                }
-                if (data.subProfile) {
-                    addFigure(container, "Substrate Profile", data.subProfile);
-                }
-                if (data.eMap) {
-                    addFigure(container, "Enrichment Map", data.eMap);
-                }
-                if (data.eMapSc) {
-                    addFigure(container, "Scaled Enrichment Map", data.eMapSc);
-                }
-                if (data.eLogo && data.eLogoMin) {
-                    addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
-                } else {
-                    if (data.eLogo) {
-                        addFigure(container, "Enrichment Logo", data.eLogo);
-                    }
-                    if (data.eLogoMin) {
-                        addFigure(container, "Enrichment Logo", data.eLogoMin);
-                    }
-                }
-                if (data.wLogo) {
-                    addFigure(container, "WebLogo", data.wLogo);
-                }
-                if (data.words) {
-                    addFigure(container, "Word Cloud", data.words);
-                }
-                if (data.barCounts) {
-                    addFigure(container, "Substrate Counts", data.barCounts);
-                }
-                if (data.barRF) {
-                    addFigure(container, "Substrate Frequency", data.barRF);
-                }
-                if (data.exp_counts) {
-                    addFigure(container, "Experimental Counts", data.exp_counts);
-                }
-                if (data.bg_counts) {
-                    addFigure(container, "Background Counts", data.bg_counts);
-                }
-            }
-        });
-        // Only stop polling when job is done
-        fetch('/jobStatus')
-            .then(r => r.json())
-            .then(status => {
-                console.log('Status:', status.jobStatus);
-                if (status.jobStatus) {
-                    clearInterval(interval);
-                    // Append download button to the box
-                    const containerBtn = document.getElementById("button-container");
-                    if (containerBtn) {
-                        const box = document.querySelector('.box');
-                        const buttonWrapper = document.createElement('div');
-                        buttonWrapper.className = 'button-wrapper';
-                        const button = document.createElement('button');
-                        button.className = 'button';
-                        button.textContent = 'Download';
-                        button.onclick = download;
-                        buttonWrapper.appendChild(button);
-                        document.getElementById('button-container').appendChild(buttonWrapper);
-                        //container.appendChild(buttonWrapper);
-                    };
-                }
-            });
-    }, 1000); // poll: 1000 = 1 second
+    // Process form
+    const form = document.getElementById("filterSubs");
+    const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+    const formData = new FormData(form);
+    formData.delete('csrf_token');
+    console.log('Data:\n', formData);
+
+    // POST the raw formData to Flask
+    fetch('/evalFormCombineMotif', {
+        body: formData,  // Send the actual FormData object, not a JSON
+        headers: { 'X-CSRFToken': csrfToken },
+        method: 'POST'
+    })
+    .then(response => {
+        if (response.ok) {
+            // Redirect
+            console.log('Redirect:');
+            window.location.href = '/results';
+        } else {
+            console.log("ERROR: Combining profiles.");
+            alert("ERROR: Combining profiles.");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("An error occurred.");
+    });
 }
 
-function getFiguresCOMET() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const container = document.getElementById("figures-container");
-    if (!container) return;
-
-    const interval = setInterval(() => {
-       // new Flask route returning JSON with filenames
-        fetch('/checkFigures', {
-            method: 'GET',
-            headers: { 'X-CSRFToken': csrfToken },
-            credentials: 'same-origin'
-        })
-        .then(res => res.json())
-        // Verify if one figure is ready
-        .then(data => {
-            console.log('checkFigures comet response:', data);
-            if (data.entropy || data.eMap || data.eMapSc || data.eLogo || data.eLogoMin ||
-            data.wLogo || data.words || data.barCounts || data.barRF || data.exp_counts ||
-            data.bg_counts) {
-                container.innerHTML = ''; // Clear loading message
-
-                if (data.entropy) {
-                    addFigure(container, "Entropy", data.entropy);
-                }
-                if (data.subProfile) {
-                    addFigure(container, "Substrate Profile", data.subProfile);
-                }
-                if (data.eMap) {
-                    addFigure(container, "Enrichment Map", data.eMap);
-                }
-                if (data.eMapSc) {
-                    addFigure(container, "Scaled Enrichment Map", data.eMapSc);
-                }
-                if (data.eLogo && data.eLogoMin) {
-                    addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
-                } else {
-                    if (data.eLogo) {
-                        addFigure(container, "Enrichment Logo", data.eLogo);
-                    }
-                    if (data.eLogoMin) {
-                        addFigure(container, "Enrichment Logo", data.eLogoMin);
-                    }
-                }
-                if (data.wLogo) {
-                    addFigure(container, "WebLogo", data.wLogo);
-                }
-                if (data.words) {
-                    addFigure(container, "Word Cloud", data.words);
-                }
-                if (data.barCounts) {
-                    addFigure(container, "Substrate Counts", data.barCounts);
-                }
-                if (data.barRF) {
-                    addFigure(container, "Substrate Frequency", data.barRF);
-                }
-                if (data.exp_counts) {
-                    addFigure(container, "Experimental Counts", data.exp_counts);
-                }
-                if (data.bg_counts) {
-                    addFigure(container, "Background Counts", data.bg_counts);
-                }
-            }
-        });
-
-        // Only stop polling when job is done
-        fetch('/jobStatus')
-            .then(r => r.json())
-            .then(status => {
-                if (status.done) {
-                    clearInterval(interval);
-                    // Append download button to the box
-                    const containerBtn = document.getElementById("button-container");
-                    if (containerBtn) {
-                        const box = document.querySelector('.box');
-                        const buttonWrapper = document.createElement('div');
-                        buttonWrapper.className = 'button-wrapper';
-                        const button = document.createElement('button');
-                        button.className = 'button';
-                        button.textContent = 'Download';
-                        button.onclick = download;
-                        buttonWrapper.appendChild(button);
-                        document.getElementById('button-container').appendChild(buttonWrapper);
-                        //container.appendChild(buttonWrapper);
-                    };
-                }
-                });
-    }, 1000); // poll: 1000 = 1 second
-}
 
 function addFigure(container, label, fig, fig2 = null) {
     const p = document.createElement('p');
@@ -551,98 +439,137 @@ function addFigure(container, label, fig, fig2 = null) {
     }
 }
 
-async function download() {
-    const dirName = 'comet.zip';
+
+// Get figures
+function getFigures(setS=false) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const response = await fetch('/download', {
-        body: JSON.stringify({}),
-        headers: { 'X-CSRFToken': csrfToken },
-        method: 'POST'
-    });
+    const container = document.getElementById("figures-container");
+    if (!container) return;
+    const displayed = new Map();  // track what's already shown
 
-    const blob = await response.blob();
+    const interval = setInterval(() => {
+       // new Flask route returning JSON with filenames
+        fetch('/checkFigures', {
+            method: 'GET',
+            headers: { 'X-CSRFToken': csrfToken },
+            credentials: 'same-origin'
+        })
+        .then(res => res.json())
+        // Verify if one figure is ready
+        .then(data => {
+            console.log('checkFigures comet response:', data);
+            if (data.entropy || data.subProfile || data.eMap || data.eMapSc ||
+                data.eLogo || data.eLogoMin || data.wLogo || data.words ||
+                data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
+                container.innerHTML = ''; // Clear loading message
 
-    // Extract filename from Content-Disposition header
-    let filename = 'comet.zip';
-    const disposition = response.headers.get('Content-Disposition');
-    if (disposition) {
-        const match = disposition.match(/filename[^;=\n]*=([^;\n]*)/);
-        if (match && match[1]) {
-            filename = match[1].trim().replace(/['"]/g, '');
+                if (data.entropy) addFigure(container, "Entropy", data.entropy);
+                if (data.subProfile) addFigure(container, "Substrate Profile", data.subProfile);
+                if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
+                if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
+                if (data.eLogo && data.eLogoMin) {
+                    addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
+                } else {
+                    if (data.eLogo) {
+                        addFigure(container, "Enrichment Logo", data.eLogo);
+                    }
+                    if (data.eLogoMin) {
+                        addFigure(container, "Enrichment Logo", data.eLogoMin);
+                    }
+                }
+                if (data.wLogo) addFigure(container, "WebLogo", data.wLogo);
+                if (data.words) addFigure(container, "Word Cloud", data.words);
+                if (data.barCounts) addFigure(container, "Substrate Counts", data.barCounts);
+                if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
+                if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
+                if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
+            }
+        });
+
+        console.log('Set S:', setS)
+        if (setS) {
+            pollMotifPos(); // poll motif positions every tick
         }
-    }
-    console.log('File Name:', filename);
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+        // Only stop polling when job is done
+        fetch('/jobStatus')
+            .then(r => r.json())
+            .then(status => {
+                console.log('Status:', status.jobStatus);
+                if (status.jobStatus) {
+                    clearInterval(interval);
+                    // Append download button to the box
+                    const containerBtn = document.getElementById("button-container");
+                    if (containerBtn) {
+                        const box = document.querySelector('.box');
+                        const buttonWrapper = document.createElement('div');
+                        buttonWrapper.className = 'button-wrapper';
+                        const button = document.createElement('button');
+                        button.className = 'button';
+                        button.textContent = 'Download';
+                        button.onclick = download;
+                        buttonWrapper.appendChild(button);
+                        document.getElementById('button-container').appendChild(buttonWrapper);
+                        //container.appendChild(buttonWrapper);
+                    };
+                }
+            });
+    }, 1000); // poll: 1000 = 1 second
 }
 
-function updateMinS() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const minS = document.getElementById('minS').value;
-    const minES = document.getElementById('minES').value;
-    const minESRel = document.getElementById('minESRel').value;
-    console.log('Sending entropy value:', minS); // Debugging statement
-    const data = JSON.stringify({
-        minS: minS,
-        minES: minES,
-        minESRel: minESRel
-    })
 
-    fetch('/updateFig', {
+function updateMinS() {
+    const minS = document.getElementById('minS').value;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    fetch('/updateMinS', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': csrfToken  // add this
         },
-        body: data
+        body: JSON.stringify({ minS: minS })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.json();
-    })
+    .then(r => r.json())
     .then(data => {
-        if (data.status === 'success') {
-            console.log('Success:', data);
+        console.log('updateMinS response:', data);
+        updateMotifPosDisplay(data);
 
-            // update the entropy image
-            const imgs = document.querySelectorAll('img');
-            imgs.forEach(img => {
-                if (img.src.includes('entropy')) {
-                    img.src = img.src.split('?')[0] + '?t=' + Date.now();
-                }
-            });
-
-            // Update motifPos list
-            const motifContainer = document.getElementById('motifPos');
-            if (motifContainer) {
-                const label = motifContainer.querySelector('label');
-                motifContainer.innerHTML = '';
-                motifContainer.appendChild(label);
-
-                if (data.motifPos && data.motifPos.length > 0) {
-                    data.motifPos.forEach(([pos, val]) => {
-                        const p = document.createElement('p');
-                        p.className = 'p3';
-                        p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
-                        motifContainer.appendChild(p);
-                    });
-                } else {
-                    const p = document.createElement('p');
-                    p.className = 'p3';
-                    p.textContent = 'No positions selected.';
-                    motifContainer.appendChild(p);
-                }
-            }
-        }
-    })
-    .catch((error) => {
-        console.error('Error:', error);
+//        // Immediately refresh figures
+//        fetch('/checkFigures')
+//            .then(r => r.json())
+//            .then(figData => {
+//                const container = document.getElementById('figures-container');
+//                if (figData.entropy) {
+//                    const img = document.querySelector('img[data-label="Entropy"]');
+//                    if (img) {
+//                        console.log('Time', '?t=' + Date.now());
+//                        img.src = figData.entropy + '?t=' + Date.now();
+//                    }
+//                }
+//            });
     });
+}
+
+function updateMotifPosDisplay(data) {
+    const container = document.getElementById('motifPosContainer');
+    if (!container) return;
+    // remove old entries
+    container.querySelectorAll('.motif-pos-entry').forEach(el => el.remove());
+      // console.log('Len:', data.length)
+    if (data.length > 0) {
+        const def = document.getElementById('motifPosDefault');
+        if (def) def.style.display = 'none';
+        data.forEach(([pos, val]) => {
+            const p = document.createElement('p');
+            p.className = 'p3 motif-pos-entry';
+            p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
+            container.appendChild(p);
+        });
+    }
+}
+
+function pollMotifPos() {
+    fetch('/motifPos')
+        .then(r => r.json())
+        .then(data => updateMotifPosDisplay(data));
 }

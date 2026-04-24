@@ -74,6 +74,7 @@ h1 {
 
 h2 {
     color: var(--white);
+    text-shadow: 0px 0px 15px var(--orange);
     font-size: var(--textSizeHeader);
     margin: 10px;
     padding: var(--padSize) var(--padSize) 0 var(--padSize);
@@ -152,7 +153,7 @@ p {
     color: white;
     background-color: var(--colorBody);
     border: 1px solid var(--pink);
-    font-size: 12px;
+    font-size: 14px;
     border-radius: var(--radForm);
     position: absolute;
     left: 100%;
