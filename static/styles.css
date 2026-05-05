@@ -60,7 +60,7 @@
 body {
     background-color: var(--colorBody);
     font-family: 'Segoe UI', sans-serif;
-    margin: 0px;
+    margin: 0;
 }
 
 h1 {
@@ -68,13 +68,13 @@ h1 {
     background-color: var(--colorHeader);
     font-size: var(--textSizeHeader);
     text-align: center;
-    margin: 0px;
+    margin: 0;
     padding: 15px;
 }
 
 h2 {
     color: var(--white);
-    text-shadow: 0px 0px 5px var(--orangeburnt);
+    text-shadow: 0 0 5px var(--orangeburnt);
     font-size: var(--textSizeHeader);
     margin: 10px;
     padding: var(--padSize) var(--padSize) 0 var(--padSize);
@@ -85,19 +85,18 @@ p {
     font-size: var(--textSize);
     width: fit-content;
     align-self: flex-start;
-    margin: 0px var(--margin) 10px var(--margin);
+    margin: 0 var(--margin) 10px var(--margin);
     padding: var(--padSize);
 
 }.p2 {
     color: var(--orange);
     font-size: calc(var(--textSize) + var(--textSizeInc));
     font-weight: bold;
-    text-align: left;
     text-align: center; /* center inline content */
     display: block;     /* ensure it's block-level */
     margin: 10px auto;  /* center the block horizontally */
-    margin-bottom: 0px;
-    padding: 0px 0px calc(var(--marginFormVertical) / 2) 0px;
+    margin-bottom: 0;
+    padding: 0 0 calc(var(--marginFormVertical) / 2) 0;
 }.p3 { /* Job Parameters */
     color: var(--textColor);
     font-size: var(--textSizeResults);
@@ -200,7 +199,7 @@ p {
     height: var(--headerHeight);
     display: flex; /* make horizontal buttons */
     flex-direction: row;
-    margin: 0px auto;
+    margin: 0 auto;
 }.buttonHeader {
     background-color: var(--colorHeader);
     color: var(--orangeburnt);
@@ -210,10 +209,10 @@ p {
     font-size: var(--buttonFontSize);
     cursor: pointer;
     border: none;
-    margin: 0px;
+    margin: 0;
     white-space: nowrap; /* ⬅ prevents label from wrapping */
     padding: 10px;
-    border-radius: 0px;
+    border-radius: 0;
 }.buttonHeader:hover {
     color: var(--white);
     background-color: var(--colorHeader);
@@ -271,17 +270,16 @@ button:hover {
 .box-form {
     background-color: var(--colorBody);
     width: 100%;
-    padding-top: 0px;
-    margin: 0px var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
-    padding: calc(var(--marginFormVertical) / 2) 0px calc(var(--marginFormVertical) / 2) 0px;
+    margin: 0 var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
+    padding: calc(var(--marginFormVertical) / 2) 0 calc(var(--marginFormVertical) / 2) 0;
 }.form-group {
     font-size: var(--textSize);
     display: flex;
     flex-direction: column;   /* Stack label and input */
     align-items: flex-start;  /* Align to the left */
-    margin: 0px 0px var(--marginBottom) 0px;
-    gap: 0px;
-    min-width: 0px;
+    margin: 0 0 var(--marginBottom) 0;
+    gap: 0;
+    min-width: 0;
     padding-bottom: var(--padForm); /* Pad each form input */
 }.form-group label {
     color: var(--textColorLabel);
@@ -301,7 +299,7 @@ button:hover {
     color: var(--textColorLabel);
     background-color: var(--colorForm);
     outline: 2px solid var(--borderColor);
-    margin: 0px var(--margin) 0px var(--margin);
+    margin: 0 var(--margin) 0 var(--margin);
     border-radius: var(--radForm);
     min-width: 200px;
     padding: 20px; /* ## Pad the input form */
@@ -320,7 +318,7 @@ button:hover {
     padding-top: 1px;
 }.box-button {
     background-color: var(--colorForm);
-    padding: var(--marginFormVertical) 0px 0px 0px;
+    padding: var(--marginFormVertical) 0 0 0;
 }
 input[type="text"],
 input[type="number"],
@@ -340,7 +338,7 @@ input[type="url"] {
 .button {
     color: var(--textColor);
     outline: none;
-    margin: 0px;
+    margin: 0;
     border: none;
     cursor: pointer;
     position: relative;
@@ -395,20 +393,18 @@ input[type="url"] {
     font-size: var(--buttonFontSizeFt);
     border-top: 2px solid var(--orangeburnt);
     line-height: 1.2;
-    gap: 0px;
+    gap: 0;
     width: 100%; /* ensure it's not collapsed */
-    margin-top: 0px;
+    margin-top: 0;
     margin-bottom: 60px;
-    padding: var(--marginFooter) 0px 0px 0px;
+    padding: var(--marginFooter) 0 0 0;
 }.ft span {
     display: block; /* forces span to its own line */
     margin-left: var(--marginFooter);
-    align-items: left;
 }.ft a {
     text-decoration: none;
     display: block; /* forces a to its own line */
     margin-left: var(--marginFooter); /* matches span */
-    align-items: left;
 }
 
 /* footer button */
@@ -421,9 +417,9 @@ input[type="url"] {
     border: none;
     white-space: nowrap; /* ⬅ prevents label from wrapping */
     display: block;     /* ← add this, removes inline spacing */
-    padding: 0px;
-    margin: 0px;
-    border-radius: 0px;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
 }.btn:hover {
     color: var(--orange);
     background-color: var(--colorBody);

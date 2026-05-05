@@ -317,7 +317,6 @@ async function buttonFilterSubs(filter) {
         .then(response => {
             if (response.ok) {
                 // Redirect
-                console.log('Redirect:');
                 window.location.href = '/results';
             } else {
                 console.log("ERROR: Filtering substrates.");
@@ -339,7 +338,6 @@ async function buttonFilterSubs(filter) {
         .then(response => {
             if (response.ok) {
                 // Redirect
-                console.log('Redirect:');
                 window.location.href = '/setEntropy';
             } else {
                 console.log("ERROR: Filtering motif.");
@@ -360,7 +358,6 @@ async function buttonFilterSubs(filter) {
         .then(response => {
             if (response.ok) {
                 // Redirect
-                console.log('Redirect:');
                 window.location.href = '/results';
             } else {
                 console.log("ERROR: Running COMET.");
@@ -441,75 +438,77 @@ function addFigure(container, label, fig, fig2 = null) {
 
 
 // Get figures
-function getFigures(setS=false) {
+function getFigures(pollFigs=true, setS=false) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const container = document.getElementById("figures-container");
     if (!container) return;
     const displayed = new Map();  // track what's already shown
 
-    const interval = setInterval(() => {
-       // new Flask route returning JSON with filenames
-        fetch('/checkFigures', {
-            method: 'GET',
-            headers: { 'X-CSRFToken': csrfToken },
-            credentials: 'same-origin'
-        })
-        .then(res => res.json())
-        // Verify if one figure is ready
-        .then(data => {
-            console.log('checkFigures comet response:', data);
-            if (data.entropy || data.subProfile || data.eMap || data.eMapSc ||
-                data.eLogo || data.eLogoMin || data.wLogo || data.words ||
-                data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
-                container.innerHTML = ''; // Clear loading message
+    if (pollFigs) {
+        const interval = setInterval(() => {
+           // new Flask route returning JSON with filenames
+            fetch('/checkFigures', {
+                method: 'GET',
+                headers: { 'X-CSRFToken': csrfToken },
+                credentials: 'same-origin'
+            })
+            .then(res => res.json())
+            // Verify if one figure is ready
+            .then(data => {
+                //console.log('checkFigures comet response:', data);
+                if (data.entropy || data.subProfile || data.eMap || data.eMapSc ||
+                    data.eLogo || data.eLogoMin || data.wLogo || data.words ||
+                    data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
+                    container.innerHTML = ''; // Clear loading message
 
-                if (data.entropy) addFigure(container, "Entropy", data.entropy);
-                if (data.subProfile) addFigure(container, "Substrate Profile", data.subProfile);
-                if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
-                if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
-                if (data.eLogo && data.eLogoMin) {
-                    addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
-                } else {
-                    if (data.eLogo) {
-                        addFigure(container, "Enrichment Logo", data.eLogo);
+                    if (data.entropy) addFigure(container, 'Entropy', data.entropy);
+                    if (data.subProfile) addFigure(container, "Substrate Profile", data.subProfile);
+                    if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
+                    if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
+                    if (data.eLogo && data.eLogoMin) {
+                        addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
+                    } else {
+                        if (data.eLogo) {
+                            addFigure(container, "Enrichment Logo", data.eLogo);
+                        }
+                        if (data.eLogoMin) {
+                            addFigure(container, "Enrichment Logo", data.eLogoMin);
+                        }
                     }
-                    if (data.eLogoMin) {
-                        addFigure(container, "Enrichment Logo", data.eLogoMin);
-                    }
-                }
-                if (data.wLogo) addFigure(container, "WebLogo", data.wLogo);
-                if (data.words) addFigure(container, "Word Cloud", data.words);
-                if (data.barCounts) addFigure(container, "Substrate Counts", data.barCounts);
-                if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
-                if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
-                if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
-            }
-        });
-
-        // Only stop polling when job is done
-        fetch('/jobStatus')
-            .then(r => r.json())
-            .then(status => {
-                console.log('Status:', status.jobStatus);
-                if (status.jobStatus) {
-                    clearInterval(interval);
-                    // Append download button to the box
-                    const containerBtn = document.getElementById("button-container");
-                    if (containerBtn) {
-                        const box = document.querySelector('.box');
-                        const buttonWrapper = document.createElement('div');
-                        buttonWrapper.className = 'button-wrapper';
-                        const button = document.createElement('button');
-                        button.className = 'button';
-                        button.textContent = 'Download';
-                        button.onclick = download;
-                        buttonWrapper.appendChild(button);
-                        document.getElementById('button-container').appendChild(buttonWrapper);
-                        //container.appendChild(buttonWrapper);
-                    };
+                    if (data.wLogo) addFigure(container, "WebLogo", data.wLogo);
+                    if (data.words) addFigure(container, "Word Cloud", data.words);
+                    if (data.barCounts) addFigure(container, "Substrate Counts", data.barCounts);
+                    if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
+                    if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
+                    if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
                 }
             });
-    }, 1000); // poll: 1000 = 1 second
+
+            // Only stop polling when job is done
+            fetch('/jobStatus')
+                .then(r => r.json())
+                .then(status => {
+                    // console.log('Status:', status.jobStatus);
+                    if (status.jobStatus) {
+                        clearInterval(interval);
+                        // Append download button to the box
+                        const containerBtn = document.getElementById("button-container");
+                        if (containerBtn) {
+                            const box = document.querySelector('.box');
+                            const buttonWrapper = document.createElement('div');
+                            buttonWrapper.className = 'button-wrapper';
+                            const button = document.createElement('button');
+                            button.className = 'button';
+                            button.textContent = 'Download';
+                            button.onclick = download;
+                            buttonWrapper.appendChild(button);
+                            document.getElementById('button-container').appendChild(buttonWrapper);
+                            //container.appendChild(buttonWrapper);
+                        };
+                    }
+                });
+        }, 1000); // poll: 1000 = 1 second
+    }
 }
 
 
@@ -527,7 +526,23 @@ function updateMinS() {
         // force re-fetch the updated entropy figure
         const container = document.getElementById('figures-container');
         if (data.entropy && container) {
-            addFigure(container, 'Entropy', data.entropy + '?t=' + Date.now());
+
+            //
+            // Open the specific cache version and delete the image
+//            caches.open('v1').then((cache) => {
+//                console.log('Here')
+//                cache.delete(data.entropy).then((response) => {
+//                    if (response) {
+//                        console.log('Image deleted from cache');
+//                    } else {
+//                        console.log('Image not found in cache');
+//                    }
+//                });
+//            });
+            //
+            //
+
+            addFigure(container, 'Entropy', data.entropy); // + '?t=' + Date.now());
         }
     });
 }
