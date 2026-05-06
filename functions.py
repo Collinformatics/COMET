@@ -45,6 +45,7 @@ class WebApp:
     def __init__(self):
         # Params: Job
         self.jobDone = False
+        self.setS = False
         self.jobParams = {}
         self.datasetTag = ''
         self.datasetTagMotif = ''
@@ -349,8 +350,10 @@ class WebApp:
         self.jobParams['Job'] = job
 
         # Initialize directories
-        # self.pathDir = os.path.join('dset', f"{form['enzymeName']}-{form['jobID']}")
-        self.pathDir = os.path.join('dset', form['enzymeName'])
+        self.pathDir = os.path.join('dset', f"{form['enzymeName']}")
+        # self.pathDir = os.path.join('dset', f"{form['enzymeName']}-"
+        #                                     f"{time.strftime("%Y_%m_%d-%H:%M:%S")}-"
+        #                                     f"{form['jobID']}")
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 'figures')
         self.pathLog = os.path.join(self.pathDir, 'log.txt')
@@ -982,6 +985,7 @@ class WebApp:
     def evalSubs(self, form, filterMotifs=False):
         if filterMotifs:
             self.jobInit(form, job='Filter Motif')
+            self.setS = True
         else:
             self.jobInit(form, job='Filter AA')
         self.log('\n\n================================== Load Data '
@@ -1074,7 +1078,7 @@ class WebApp:
         else:
             self.filterSubs(plotEntropy=True)
             self.evalEnrichment()
-            self.jobDone = True
+        self.jobDone = True
 
 
     def filterSubs(self, plotEntropy=False, saveData=True):
@@ -1159,6 +1163,7 @@ class WebApp:
 
 
     def filterMotifs(self, form):
+        self.jobDone = False
         self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
@@ -1248,7 +1253,6 @@ class WebApp:
                                                                subProfile=True)
 
         ## ***** Make the figures show up in the webpage *****
-
         self.jobDone = True
 
 
@@ -1263,6 +1267,8 @@ class WebApp:
             S = round(float(self.entropy.loc[pos, self.entropy.columns[0]]), 2)
             if S >= self.minS:
                 self.motifPos[pos] = S
+        if not self.motifPos:
+            self.motifPos = {False: 'No Positions Selected'}
         # print(f'Motif Pos:\n{self.motifPos}')
 
 
@@ -1476,8 +1482,14 @@ class WebApp:
             self.entropy.loc[indexColumn, self.entropy.columns[0]] = self.entropyMax - S
         self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
 
+        if self.setS:
+            self.selectMotifPos()
+
         if plotFig:
             self.figures['entropy'] = self.plotEntropy()
+            if self.setS:
+                self.jobDone = True
+                self.setS = False
 
 
     def calculateWebLogo(self):
@@ -1674,9 +1686,9 @@ class WebApp:
 
         # Plotting the entropy values as a bar graph
         fig, ax = plt.subplots(figsize=self.figSize)
-        if self.motifFilter:
-            print(f'Min ∆S: {self.minS}')
-            plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
+        # if self.motifFilter:
+        #     print(f'Min ∆S: {self.minS}')
+        #     plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
         plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)

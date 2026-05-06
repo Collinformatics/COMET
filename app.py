@@ -141,15 +141,15 @@ def filterMotif():
     )
 
 
-@app.route('/evalFormCombineMotif', methods=['POST'])
-def combineMotif():
+@app.route('/evalProfiles', methods=['POST'])
+def combineProfiles():
     print('Combine Profiles')
-    # Parse the form
     thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
     thread.start()
     time.sleep(2)
     return render_template(
-        'setEntropy.html', parameters=webapp.jobParams
+        'combineProfiles.html', parameters=webapp.jobParams,
+        motifPos=list(webapp.motifPos.items())
     )
 
 
@@ -171,14 +171,25 @@ def results():
 
 @app.route(f'/<filename>')
 def getFigure(filename):
-    print(f'Get Figure: {webapp.pathFigs}, {filename}')
-    return send_from_directory(webapp.pathFigs, filename)
+    response = send_from_directory(webapp.pathFigs, filename)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.route('/checkFigures')
 def checkFigures():
     return jsonify(webapp.figures)
 
+
+"""
+Archive:  comet.zip
+  End-of-central-directory signature not found.  Either this file is not
+  a zipfile, or it constitutes one disk of a multi-part archive.  In the
+  latter case the central directory and zipfile comment will be found on
+  the last disk(s) of this archive.
+unzip:  cannot find zipfile directory in one of comet.zip or
+        comet.zip.zip, and cannot find comet.zip.ZIP, period.
+"""
 
 @app.route('/download', methods=['POST'])
 def download():
@@ -259,22 +270,10 @@ def comet():
     )
 
 
-# Add a status flag to your webapp object
 @app.route('/jobStatus')
 def jobStatus():
-    # print(f'Job Status: {webapp.jobDone}')
+    print(f'Job Status: {webapp.jobDone}')
     return {'jobStatus': webapp.jobDone}
-
-
-@app.route('/evalProfiles', methods=['POST'])
-def combineProfiles():
-    thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
-    thread.start()
-    time.sleep(2)
-    return render_template(
-        'combineProfiles.html', parameters=webapp.jobParams,
-        motifPos=list(webapp.motifPos.items())
-    )
 
 
 # Run the app

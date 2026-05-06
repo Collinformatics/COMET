@@ -134,7 +134,6 @@ function updateNumProfiles() {
 
 
 async function download() {
-    const dirName = 'comet.zip';
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const response = await fetch('/download', {
         body: JSON.stringify({}),
@@ -301,14 +300,14 @@ async function buttonFilterSubs(filter) {
     console.log('Data:\n', formData);
 
     // Evaluate the form
-    if (filter != 'comet') {
+    if (filter !== 'comet') {
         jobID = await processForm(formData);
         console.log('jobID', jobID);
         formData.append('jobID', jobID);
     }
 
     // POST the raw formData to Flask
-    if (filter == 'aa') {
+    if (filter === 'aa') {
         fetch('/evalFormFilterAA', {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
@@ -327,7 +326,7 @@ async function buttonFilterSubs(filter) {
             console.error('Error:', error);
             alert("An error occurred.");
         });
-    } else if (filter == 'motif') {
+    } else if (filter === 'motif') {
         console.log('Run: Eval Motif');
 
         fetch('/evalFormFilterMotif', {
@@ -348,7 +347,7 @@ async function buttonFilterSubs(filter) {
             console.error('Error:', error);
             alert("An error occurred.");
         });
-    } else if (filter == 'comet') {
+    } else if (filter === 'comet') {
         console.log('Run: COMET');
         fetch('/comet', {
             body: formData,  // Send the actual FormData object, not a JSON
@@ -438,11 +437,10 @@ function addFigure(container, label, fig, fig2 = null) {
 
 
 // Get figures
-function getFigures(pollFigs=true, setS=false) {
+function getFigures(setS=false, pollFigs=true) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const container = document.getElementById("figures-container");
     if (!container) return;
-    const displayed = new Map();  // track what's already shown
 
     if (pollFigs) {
         const interval = setInterval(() => {
@@ -512,6 +510,104 @@ function getFigures(pollFigs=true, setS=false) {
 }
 
 
+function getEntropyFigure(pollFigs=true) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const container = document.getElementById("figures-container");
+    if (!container) return;
+
+    if (pollFigs) {
+        const interval = setInterval(() => {
+           // new Flask route returning JSON with filenames
+            fetch('/checkFigures', {
+                method: 'GET',
+                headers: { 'X-CSRFToken': csrfToken },
+                credentials: 'same-origin'
+            })
+            .then(res => res.json())
+            // Verify if one figure is ready
+            .then(data => {
+                if (data.entropy) {
+                    addFigure(container, 'Entropy', data.entropy);
+                    // updateMotifPosDisplay(data);
+
+                    // Call updateMinS with current minS value
+                    const minSInput = document.getElementById('minS');
+                    const minS = parseFloat(minSInput.value);
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+                    fetch('/updateMinS', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ minS: minS })
+                    })
+                    .then(res => res.json())
+                    .then(updatedData => {
+                        // Update UI with new motif positions and entropy
+                        updateMotifPosDisplay(updatedData);
+                    })
+                    .catch(err => console.error('Error updating minS:', err));
+                }
+            });
+
+            // Only stop polling when job is done
+            fetch('/jobStatus')
+                .then(r => r.json())
+                .then(status => {
+                    // console.log('Status:', status.jobStatus);
+                    if (status.jobStatus) {
+                        clearInterval(interval);
+                        // Append download button to the box
+                        const containerBtn = document.getElementById("button-container");
+                        if (containerBtn) {
+                            const box = document.querySelector('.box');
+                            const buttonWrapper = document.createElement('div');
+                            buttonWrapper.className = 'button-wrapper';
+                            const button = document.createElement('button');
+                            button.className = 'button';
+                            button.textContent = 'Download';
+                            button.onclick = download;
+                            buttonWrapper.appendChild(button);
+                            document.getElementById('button-container').appendChild(buttonWrapper);
+                            //container.appendChild(buttonWrapper);
+                        }
+                    }
+                });
+        }, 1000); // poll: 1000 = 1 second
+    }
+}
+
+function updateMotifPosDisplay(data) {
+    const container = document.getElementById('motifPosContainer');
+    if (!container) return;
+    // remove old entries
+    container.querySelectorAll('.motif-pos-entry').forEach(el => el.remove());
+      // console.log('Len:', data.length)
+    const motifPos = data.motifPos;
+    console.log('Motif:', motifPos);
+    const minS = document.getElementById('minS').value;
+    console.log('Min S:', minS);
+    if (motifPos.length > 0) {
+        const def = document.getElementById('motifPosDefault');
+        console.log('Min ∆S:', motifPos.minS)
+        if (def) def.style.display = 'none';
+        motifPos.forEach(([pos, val]) => {
+            const p = document.createElement('p');
+            p.className = 'p3 motif-pos-entry';
+            if (pos) {
+                p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
+            } else {
+                p.innerHTML = `${val}`;
+            }
+            container.appendChild(p);
+        });
+    }
+}
+
+
 function updateMinS() {
     const minS = parseFloat(document.getElementById('minS').value);
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -522,49 +618,29 @@ function updateMinS() {
     })
     .then(r => r.json())
     .then(data => {
-        updateMotifPosDisplay(data.motifPos);
-        // force re-fetch the updated entropy figure
-        const container = document.getElementById('figures-container');
-        if (data.entropy && container) {
-
-            //
-            // Open the specific cache version and delete the image
-//            caches.open('v1').then((cache) => {
-//                console.log('Here')
-//                cache.delete(data.entropy).then((response) => {
-//                    if (response) {
-//                        console.log('Image deleted from cache');
-//                    } else {
-//                        console.log('Image not found in cache');
-//                    }
-//                });
-//            });
-            //
-            //
-
-            addFigure(container, 'Entropy', data.entropy); // + '?t=' + Date.now());
-        }
+        updateMotifPosDisplay(data);
     });
 }
 
 
-function updateMotifPosDisplay(data) {
-    const container = document.getElementById('motifPosContainer');
-    if (!container) return;
-    // remove old entries
-    container.querySelectorAll('.motif-pos-entry').forEach(el => el.remove());
-      // console.log('Len:', data.length)
-    if (data.length > 0) {
-        const def = document.getElementById('motifPosDefault');
-        if (def) def.style.display = 'none';
-        data.forEach(([pos, val]) => {
-            const p = document.createElement('p');
-            p.className = 'p3 motif-pos-entry';
-            p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
-            container.appendChild(p);
-        });
-    }
-}
+// function updateMotifPosDisplay(data) {
+//     const container = document.getElementById('motifPosContainer');
+//     if (!container) return;
+//     // remove old entries
+//     container.querySelectorAll('.motif-pos-entry').forEach(el => el.remove());
+//       // console.log('Len:', data.length)
+//     if (data.length > 0) {
+//         const def = document.getElementById('motifPosDefault');
+//         console.log('Min ∆S:', data.minS)
+//         if (def) def.style.display = 'none';
+//         data.forEach(([pos, val]) => {
+//             const p = document.createElement('p');
+//             p.className = 'p3 motif-pos-entry';
+//             p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
+//             container.appendChild(p);
+//         });
+//     }
+// }
 
 function pollMotifPos() {
     fetch('/motifPos')
