@@ -1167,6 +1167,7 @@ class WebApp:
         self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
+        print(f'Filter Motifs: {self.motifFilter}\n')
         self.minS = float(form['minS'])
         self.log(f'Minimum ∆S: {self.minS}')
         self.minES = float(form['minES'])
@@ -1241,16 +1242,25 @@ class WebApp:
 
             self.filterSubs(saveData=False)
             self.evalEnrichment(releasedCounts=True)#, skipFigs=True)
-            print(f'Profile: {posRel}\n* Fix: {self.fixAA}\n{self.eMap.loc[:, posRel]}')
+            print(f'Release: {posRel}\n* Fix: {self.fixAA}\n{self.eMap.loc[:, posRel]}')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
             print(f'Profile:\n{self.substrateProfile}\n')
+        self.motifFilter = False
+
         print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
                 print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
-        self.figures['subProfile'] = self.plotEnrichmentScores(dataType='Enrichment',
-                                                               subProfile=True)
+        self.figures['eMapProfile'] = (
+            self.plotEnrichmentScores(dataType='Enrichment', subProfile=True)
+        )
+        self.figures['eMapScProfile'] = (
+            self.plotEnrichmentScores(dataType='Scaled Enrichment', subProfile=True)
+        )
+        self.plotEnrichmentLogo(subProfile=True)
+        self.calculateWebLogo(subProfile=True)
+        self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp, subProfile=True)
 
         ## ***** Make the figures show up in the webpage *****
         self.jobDone = True
@@ -1258,6 +1268,9 @@ class WebApp:
 
     def combineProfiles(self, form):
         self.jobInit(form, job='Combine Motifs')
+        print('Combine Profiles:')
+        for k, v in form.items():
+            print(f'* {k}: {v}')
 
 
     def selectMotifPos(self):
@@ -1307,7 +1320,7 @@ class WebApp:
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
-            print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
+            # print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
             args = [(dict(batch), matrix.columns.tolist(), matrix.index.tolist())
                     for batch in batches]
 
@@ -1492,7 +1505,7 @@ class WebApp:
                 self.setS = False
 
 
-    def calculateWebLogo(self):
+    def calculateWebLogo(self, subProfile=False):
         # Evaluate weblogo
         self.rfExpScaled = pd.DataFrame(
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
@@ -1502,7 +1515,10 @@ class WebApp:
                     self.rfExp.loc[:, pos] *
                     self.entropy.loc[pos, self.entropy.columns[0]]
             )
-        self.figures['wLogo'] = self.plotWebLogo()
+        if subProfile:
+            self.figures['wLogoProfile'] = self.plotWebLogo()
+        else:
+            self.figures['wLogo'] = self.plotWebLogo()
 
 
     def evalEnrichment(self, releasedCounts=False, skipFigs=False):
@@ -1560,9 +1576,9 @@ class WebApp:
         print(f'Release Counts: {releasedCounts}')
         if releasedCounts:
             print(f'Substrates: {len(self.subsExp.keys())}')
-            for i, (k, v) in self.subsExp.items():
+            for i, (k, v) in enumerate(self.subsExp.items()):
                 print(f'{k}: {v:,}')
-                if i > 50:
+                if i > 10:
                     break
 
         if releasedCounts:
@@ -1668,13 +1684,13 @@ class WebApp:
 
         # Map entropy values to colors using the colormap
         colors = [(0, 'navy'),
-                  (0.3/self.entropyMax, 'navy'),
-                  (0.7/self.entropyMax, 'dodgerblue'),
-                  (0.97/self.entropyMax, 'white'),
-                  (0.98/self.entropyMax, 'white'),
-                  (1.0/self.entropyMax, 'white'),
-                  (1.65/self.entropyMax, 'red'),
-                  (3/self.entropyMax, 'firebrick'),
+                  (0.3 / self.entropyMax, 'navy'),
+                  (0.7 / self.entropyMax, 'dodgerblue'),
+                  (0.97 / self.entropyMax, 'white'),
+                  (0.98 / self.entropyMax, 'white'),
+                  (1.0 / self.entropyMax, 'white'),
+                  (1.65 / self.entropyMax, 'red'),
+                  (3 / self.entropyMax, 'firebrick'),
                   (1, 'darkred')]
         colorBar = LinearSegmentedColormap.from_list('custom_colormap', colors)
 
@@ -1866,7 +1882,7 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentLogo(self):
+    def plotEnrichmentLogo(self, subProfile=False):
         # Define: Figure title
         title = f'{self.enzymeName}'
 
@@ -1952,6 +1968,8 @@ class WebApp:
                 figName = figName.replace('eLogo', f'eLogo_{self.iteration}')
             if limitYAxis:
                 figName = figName.replace('eLogo-', 'eLogo_yMin-')
+            if subProfile:
+                figName = figName.replace('eLogo', 'eLogo_SubProfile')
             path = os.path.join(self.pathFigs, figName)
             # self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
@@ -1966,7 +1984,10 @@ class WebApp:
             return figName
 
         # Plot figure
-        self.figures['eLogo'] = plotLogo(data) # Full y-axis
+        if subProfile: # Full y-axis
+            self.figures['eLogoProfile'] = plotLogo(data)
+        else:
+            self.figures['eLogo'] = plotLogo(data)
 
         # Adjust yMin to fit the largest negative AA
         yMin = 0
@@ -1974,10 +1995,12 @@ class WebApp:
             for row in data.index:
                 if data.loc[row, col] < yMin:
                     yMin = data.loc[row, col]
-        self.figures['eLogoMin'] = plotLogo(data, limitYAxis=True) # Limited y-axis
+        if subProfile: # Limited y-axis
+            self.figures['eLogoMinProfile'] = plotLogo(data, limitYAxis=True)
+        else:
+            self.figures['eLogoMin'] = plotLogo(data, limitYAxis=True)
 
-
-    def plotWordCloud(self, substrates):
+    def plotWordCloud(self, substrates, subProfile=False):
         # Limit the number of words
         subs = {}
         iteration = 0
@@ -2021,6 +2044,8 @@ class WebApp:
         if self.motifFilter:
             figName = figName.replace('wordcloud',
                                       f'wordcloud_{self.iteration}')
+        if subProfile:
+            figName = figName.replace('wordcloud', f'wordcloud_subProfile')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving Wordcloud:\n     {path}')
 
@@ -2034,7 +2059,7 @@ class WebApp:
 
         return figName
 
-    def plotWebLogo(self):
+    def plotWebLogo(self, subProfile=False):
         # Define: Figure title
         title = f'{self.enzymeName}'
 
@@ -2104,6 +2129,8 @@ class WebApp:
         figName = f'webLogo-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
         if self.motifFilter:
             figName = figName.replace('webLogo', f'webLogo_{self.iteration}')
+        if subProfile:
+            figName = figName.replace('webLogo', f'webLogo_SubProfile')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving WebLogo:\n     {path}')
 

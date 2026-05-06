@@ -454,13 +454,31 @@ function getFigures(setS=false, pollFigs=true) {
             // Verify if one figure is ready
             .then(data => {
                 //console.log('checkFigures comet response:', data);
-                if (data.entropy || data.subProfile || data.eMap || data.eMapSc ||
+                if (data.entropy || data.eMap || data.eMapSc ||
                     data.eLogo || data.eLogoMin || data.wLogo || data.words ||
-                    data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
+                    data.barCounts || data.barRF || data.exp_counts || data.bg_counts ||
+                    data.subProfileEM || data.subProfileELogo) {
                     container.innerHTML = ''; // Clear loading message
 
                     if (data.entropy) addFigure(container, 'Entropy', data.entropy);
-                    if (data.subProfile) addFigure(container, "Substrate Profile", data.subProfile);
+
+                    // Figures: Substrate profile
+                    if (data.eMapProfile) addFigure(container, "Substrate Profile: Enrichment Map", data.eMapProfile);
+                    if (data.eMapScProfile) addFigure(container, "Substrate Profile: Scaled Enrichment Map", data.eMapScProfile);
+                    if (data.eLogoProfile && data.eLogoMinProfile) {
+                        addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoProfile, data.eLogoMinProfile);
+                    } else {
+                        if (data.eLogoProfile) {
+                            addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoProfile);
+                        }
+                        if (data.eLogoMinProfile) {
+                            addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoMinProfile);
+                        }
+                    }
+                    if (data.wLogoProfile) addFigure(container, "Substrate Profile: WebLogo", data.wLogoProfile);
+                    if (data.wordsProfile) addFigure(container, "Substrate Profile: Word Cloud", data.wordsProfile);
+
+                    // Figures
                     if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
                     if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
                     if (data.eLogo && data.eLogoMin) {
