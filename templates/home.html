@@ -20,7 +20,7 @@
                     <button class="buttonHeader" onclick="pageCombineProfiles()">Combine Profiles</button>
                 </div>
                 <div class="button-group-r">
-                    <button class="buttonHeader" onclick="pageHome()">Help</button>
+                    <button class="buttonHeader" onclick="pageHome()">README</button>
                     <button class="buttonHeader" onclick="pageResources()">Resources</button>
                 </div>
             </div>
@@ -29,7 +29,7 @@
 
         <!-- Body -->
         <div class="box">
-            <h2>Your Name</h2>
+            <h2>Read Me</h2>
             <div class="box-form">
                 <p>
                     This website will allow you to process enzyme profiling data.<br><br>
@@ -37,10 +37,32 @@
                      — Extract protein sequences from FASTQ or FASTA files.<br>
                      — Evaluate amino acid (AA) enrichment in an experimental (Exp) dataset
                     relative to a background (Bg) set.<br>
-                     — Use Shannon Entropy to filter the Exp dataset.
+                     — Filter randomized sequences to find recognition motifs.
                 </p>
                 <br><br>
 
+
+                <div class="input-form">
+                    <p class="pL">
+                    <b>Equations:</b>
+                    </p>
+                    <p>
+                        By comparing the probability of finding a given residue in the Exp and Bg
+                        datasets, the Enrichment Score (ES) of each residue can be evaluated.
+                    </p>
+                    <p class="pE"> <!-- Equation -->
+                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
+                    </p>
+                    <p>
+                        The AA probabilities in the Exp set are used to determine the change in
+                        entropy (∆S) at a given position in the sequence.
+                    </p>
+                    <p class="pE">
+                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
+                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))
+                    </p>
+                </div>
+                <br><br>
 
                 <div class="input-form">
                     <p class="pL"> <!-- Paragraph label -->
@@ -76,27 +98,27 @@
                 </div>
                 <br><br>
 
-                <div class="input-form">
-                    <p class="pL">
-                    <b>Equations:</b>
-                    </p>
-                    <p>
-                        By comparing the probability of finding a given residue in the Exp and Bg
-                        datasets, the Enrichment Score (ES) of each residue can be evaluated.
-                    </p>
-                    <p class="pE"> <!-- Equation -->
-                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
-                    </p>
-                    <p>
-                        The AA probabilities in the Exp set are used to determine the change in
-                        entropy (∆S) at a given position in the sequence.
-                    </p>
-                    <p class="pE">
-                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
-                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))
-                    </p>
-                </div>
-                <br><br>
+<!--                <div class="input-form">-->
+<!--                    <p class="pL">-->
+<!--                    <b>Equations:</b>-->
+<!--                    </p>-->
+<!--                    <p>-->
+<!--                        By comparing the probability of finding a given residue in the Exp and Bg-->
+<!--                        datasets, the Enrichment Score (ES) of each residue can be evaluated.-->
+<!--                    </p>-->
+<!--                    <p class="pE"> &lt;!&ndash; Equation &ndash;&gt;-->
+<!--                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)-->
+<!--                    </p>-->
+<!--                    <p>-->
+<!--                        The AA probabilities in the Exp set are used to determine the change in-->
+<!--                        entropy (∆S) at a given position in the sequence.-->
+<!--                    </p>-->
+<!--                    <p class="pE">-->
+<!--                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) - -->
+<!--                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))-->
+<!--                    </p>-->
+<!--                </div>-->
+<!--                <br><br>-->
 
                 <div class="input-form">
                     <p class="pL">

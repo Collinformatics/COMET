@@ -21,7 +21,7 @@
                     <button class="buttonHeader" onclick="pageCombineProfiles()">Combine Profiles</button>
                 </div>
                 <div class="button-group-r">
-                    <button class="buttonHeader" onclick="pageHome()">Help</button>
+                    <button class="buttonHeader" onclick="pageHome()">README</button>
                     <button class="buttonHeader" onclick="pageResources()">Resources</button>
                 </div>
             </div>
@@ -50,7 +50,9 @@
             <!-- Container where JS will insert images -->
             <div id="figures-container" class="figures-container"></div>
             <script>
-                document.addEventListener('DOMContentLoaded', () => getFigures());
+                document.addEventListener('DOMContentLoaded', () => {
+                    getFigures();
+                });
             </script>
         </div>
         <div class=ft>
