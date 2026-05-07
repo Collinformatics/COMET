@@ -437,7 +437,7 @@ function addFigure(container, label, fig, fig2 = null) {
 
 
 // Get figures
-function getFigures(setS=false, pollFigs=true) {
+function getFigures(pollFigs=true) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const container = document.getElementById("figures-container");
     if (!container) return;
@@ -454,15 +454,11 @@ function getFigures(setS=false, pollFigs=true) {
             // Verify if one figure is ready
             .then(data => {
                 //console.log('checkFigures comet response:', data);
-                if (data.entropy || data.eMap || data.eMapSc ||
-                    data.eLogo || data.eLogoMin || data.wLogo || data.words ||
-                    data.barCounts || data.barRF || data.exp_counts || data.bg_counts ||
-                    data.subProfileEM || data.subProfileELogo) {
-                    container.innerHTML = ''; // Clear loading message
-
-                    if (data.entropy) addFigure(container, 'Entropy', data.entropy);
+                if (data.entropyProfile) {
+                    container.innerHTML = ''; // Clear figures
 
                     // Figures: Substrate profile
+                    if (data.entropyProfile) addFigure(container, "Substrate Profile: Entropy", data.entropyProfile);
                     if (data.eMapProfile) addFigure(container, "Substrate Profile: Enrichment Map", data.eMapProfile);
                     if (data.eMapScProfile) addFigure(container, "Substrate Profile: Scaled Enrichment Map", data.eMapScProfile);
                     if (data.eLogoProfile && data.eLogoMinProfile) {
@@ -477,8 +473,14 @@ function getFigures(setS=false, pollFigs=true) {
                     }
                     if (data.wLogoProfile) addFigure(container, "Substrate Profile: WebLogo", data.wLogoProfile);
                     if (data.wordsProfile) addFigure(container, "Substrate Profile: Word Cloud", data.wordsProfile);
+                } else if (
+                    data.entropy || data.eMap || data.eMapSc ||
+                    data.eLogo || data.eLogoMin || data.wLogo || data.words ||
+                    data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
+                    container.innerHTML = ''; // Clear loading message
 
                     // Figures
+                    if (data.entropy) addFigure(container, 'Entropy', data.entropy);
                     if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
                     if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
                     if (data.eLogo && data.eLogoMin) {
@@ -579,19 +581,16 @@ function getEntropyFigure(pollFigs=true) {
                     if (status.jobStatus) {
                         clearInterval(interval);
                         // Append download button to the box
-                        const containerBtn = document.getElementById("button-container");
-                        if (containerBtn) {
-                            const box = document.querySelector('.box');
-                            const buttonWrapper = document.createElement('div');
-                            buttonWrapper.className = 'button-wrapper';
-                            const button = document.createElement('button');
-                            button.className = 'button';
-                            button.textContent = 'Download';
-                            button.onclick = download;
-                            buttonWrapper.appendChild(button);
-                            document.getElementById('button-container').appendChild(buttonWrapper);
-                            //container.appendChild(buttonWrapper);
-                        }
+                        const buttonContainer = document.getElementById("button-container");
+                        const buttonWrapper = document.createElement('div');
+                        buttonWrapper.className = 'button-wrapper';
+                        const button = document.createElement('button');
+                        button.className = 'button button-filter';
+                        button.textContent = 'Filter';
+                        button.onclick = () => buttonFilterSubs('comet');
+                        buttonWrapper.appendChild(button);
+                        buttonContainer.appendChild(buttonWrapper);
+
                     }
                 });
         }, 1000); // poll: 1000 = 1 second
