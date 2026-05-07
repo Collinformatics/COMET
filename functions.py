@@ -272,7 +272,7 @@ class WebApp:
         if self.motifFilter and not self.datasetTagMotif:
             self.datasetTagMotif = f'Register {self.datasetTag.replace(f'Fix ', '')}'
             self.jobParams['Dataset Tag'] = self.datasetTagMotif
-        else:
+        if not self.jobParams['Dataset Tag']:
             self.jobParams['Dataset Tag'] = self.datasetTag
         if log:
             self.log(f'Filter: {self.datasetTag}')
@@ -1151,7 +1151,6 @@ class WebApp:
         self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
                  '================================')
-        print(f'Filter Motifs: {self.motifFilter}\n')
         self.minS = float(form['minS'])
         self.log(f'Minimum ∆S: {self.minS}')
         self.minES = float(form['minES'])
@@ -1202,7 +1201,7 @@ class WebApp:
         self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
                                              columns=self.eMap.columns)
         print('Substrate Profile:') ##
-        l = len(self.motifPos.keys())
+        l = len(self.motifPos.keys()) - 1
         for i, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
             self.fixAA = {}
