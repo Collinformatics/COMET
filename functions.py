@@ -84,7 +84,7 @@ class WebApp:
         self.iteration = 0
         self.minS = 0.65
         self.minES = 0
-        self.minESRel = -1
+        self.minESRel = -0.5
         self.motifFilter = False
         self.motifLen = 0
         self.motifPos = {}
@@ -332,6 +332,21 @@ class WebApp:
         self.getDatasetTag(log=True)
 
 
+    def getFileName(self, tag, subProfile=False, tag2=''):
+        if subProfile:
+            figName = f'{tag}-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
+        else:
+            if self.datasetTag is None:
+                print(f'Dont save, dataset tag: {self.datasetTag}\n')
+                sys.exit()
+            figName = f'{tag}-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+            if self.motifFilter:
+                figName = figName.replace(tag, f'{tag}-{self.iteration}')
+        if tag2:
+            figName = figName.replace('.png', f'{tag2}.png')
+        return figName
+
+
     def initDataStructures(self):
         # Initialize data structures
         self.fileExp = []
@@ -434,6 +449,8 @@ class WebApp:
             self.iteration = 0
             self.motifFilter = True
             self.minS = 0.65
+            self.minES = 0
+            self.minESRel = -0.5
             self.motifPos = {}
         elif job == 'Combine Motifs':
             print(f'Job: {job}')
@@ -759,8 +776,6 @@ class WebApp:
             substrates, totalSeqs, totalSubsExtracted = processDNA(
                 datapoint, totalSeqs, totalSubsExtracted, substrates, useQS
             )
-            # if len(substrates.keys()) > 100: ## Delete me
-            #     break
         extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
         return substrates
 
@@ -1068,20 +1083,21 @@ class WebApp:
         self.jobDone = True
 
 
-    def filterSubs(self, plotEntropy=False, saveData=True):
+    def filterSubs(self, plotEntropy=False, saveData=True, allSubs=False, p=False):
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
         self.log(f'Dataset tag: {self.datasetTag}')
-        print(f'Filter Substrates:\n'
-              f'* Fix: {self.fixAA}\n'
-              f'* Exc: {self.exclAA}')
-        print(f'Motif Filter: {self.motifFilter}')
+        if p:
+            for posFix, fixAA in self.fixAA.items():
+                print(f'Fix {posFix}: {fixAA}')
 
         # Select data
-        if self.motifFilter:
+        if allSubs:
             substrates = self.subsExpAll
+            print(f'All Substrates: {len(substrates.keys()):,}')
         else:
             substrates = self.subsExp
+            print(f'Exp Substrates: {len(substrates.keys()):,}')
 
         totalSubs = 0
         for count in substrates.values():
@@ -1090,6 +1106,7 @@ class WebApp:
         self.log(f'\nUnfiltered Substrates:\n'
                  f'     Total: {totalSubs:,}\n'
                  f'    Unique: {totalSubsUnique:,}')
+
 
         if self.fixAA or self.exclAA:
             subs = {}
@@ -1119,6 +1136,8 @@ class WebApp:
             self.subsExp = subs
         self.countExpTotal = sum(self.subsExp.values())
         self.countExpUnique = len(self.subsExp.keys())
+        if p:
+            print(f'Unique Substrates: {self.countExpUnique:,}')
         self.subsExp = dict(sorted(
             self.subsExp.items(), key=lambda item: item[1], reverse=True)
         )
@@ -1161,7 +1180,7 @@ class WebApp:
         self.log(f'Minimum ES: {self.minES}')
         self.minESRel = float(form['minESRel'])
         self.log(f'Minimum ES Release: {self.minESRel}')
-        self.selectMotifPos()  ##
+        self.selectMotifPos()
         self.log('\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
@@ -1170,7 +1189,7 @@ class WebApp:
             for aa in self.eMap.index:
                 if self.eMap.loc[aa, position] >= minES:
                     self.fixAA[position].append(aa)
-            # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
+            print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
 
         # Apply Filter
@@ -1193,25 +1212,22 @@ class WebApp:
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
             self.getDatasetTag()
-            self.filterSubs()
+            self.filterSubs(allSubs=True)
             self.evalEnrichment()
 
             # Refilter
             evalAAs(posRel, self.minESRel)
             self.getDatasetTag()
-            self.filterSubs()
+            self.filterSubs(allSubs=True)
             self.evalEnrichment()
 
 
         # Release filter
         self.fixAA = {}
         eMap = self.eMap.copy()
-        self.substrateProfile = pd.DataFrame(0.0, index=self.countsBg.index,
-                                             columns=self.countsBg.columns)
-        motifFilter = self.fixAA
-        print(f'Filter:\n* {motifFilter}')
-        print('Substrate Profile:')
-        posMinor = []
+        self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
+                                             columns=self.eMap.columns)
+        print('Substrate Profile:') ##
         for posRel in self.motifPos.keys():
             print(f'PosRel: {posRel}')
             self.fixAA = {}
@@ -1223,20 +1239,22 @@ class WebApp:
                     # print(f'Add to Filter: {filter}')
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
-
-            self.filterSubs(saveData=False)
-            self.evalEnrichment(releasedCounts=True)#, skipFigs=True)
-            print(f'Release: {posRel}\n* Fix: {self.fixAA}\n{self.eMap.loc[:, posRel]}')
+            print(f'{self.eMap}\n')
+            self.filterSubs(saveData=False, allSubs=True, p=True)
+            self.evalEnrichment(releasedCounts=True, p=True)#, skipFigs=True)
+            print(f'Release Pos: {posRel}\n* Fix: {self.fixAA}\n')
+            print(f'{self.eMap}\n')
+            print(f'{self.eMap.loc[:, posRel]}\n')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
             print(f'Profile:\n{self.substrateProfile}\n')
-        self.motifFilter = False
 
         print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
                 print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
-        self.calculateEntropy(plotFig=True)
+        self.motifFilter = False
+        self.calculateEntropy(plotFig=True, subProfile=True)
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
 
         # Plot profile
@@ -1304,8 +1322,6 @@ class WebApp:
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
-        print(f'Substrates: {len(substrates.keys()):,}')
-
         def splitData(data, matrix):
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
@@ -1334,6 +1350,8 @@ class WebApp:
 
         # File path
         saveTag = None
+        # if subProfile:
+        #     saveTag = ''
         if self.datasetTag is None:
             print(f'Dont save, dataset tag: {self.datasetTag}\n')
             sys.exit()
@@ -1548,7 +1566,7 @@ class WebApp:
         return heights
 
 
-    def evalEnrichment(self, releasedCounts=False, skipFigs=False):
+    def evalEnrichment(self, releasedCounts=False, skipFigs=False, p=False):
         def evalMatrix(data):
             stacks = pd.DataFrame(0.0, index=data.columns,
                                   columns=['+Stack', '-Stack'])
@@ -1564,15 +1582,13 @@ class WebApp:
                 stacks.loc[pos, '-Stack'] = totalNeg
             self.log(f'Stack Heights:\n{stacks}')
 
+        print(f'Release Counts: {releasedCounts}') ##
+        print(f'RF Experimental:\n{self.rfExp}\n')
+        # print(f'RF Background:\n{self.rfBg}\n')
 
-        print(f'Release Counts: {releasedCounts}')
+        matrix = pd.DataFrame(0.0, index=self.rfExp.index,
+                              columns=self.rfExp.columns)
         if releasedCounts:
-            print(f'Substrates: {len(self.subsExp.keys()):,}')
-            for i, (k, v) in enumerate(self.subsExp.items()):
-                print(f'{k}: {v:,}')
-                if i > 10:
-                    break
-
             self.log('\n\n============================= Substrate Profile '
                      '==============================')
             matrix = self.substrateProfile
@@ -1688,9 +1704,10 @@ class WebApp:
 
         # Map entropy values to colors using the colormap
         normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
-        cMap = [colorBar(normalize(value)) for value in self.entropy[self.entropy.columns[0]].astype(float)]
-
-        print(f'Plotting entropy: {self.motifFilter}')
+        cMap = [
+            colorBar(normalize(value))
+            for value in self.entropy[self.entropy.columns[0]].astype(float)
+        ]
 
         # Plotting the entropy values as a bar graph
         fig, ax = plt.subplots(figsize=self.figSize)
@@ -1700,7 +1717,8 @@ class WebApp:
         plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
+        plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis,
+                   rotation=0, labelpad=15)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.tight_layout()
 
@@ -1743,16 +1761,9 @@ class WebApp:
             spine.set_linewidth(self.lineThickness)
 
         # File path
-        if subProfile:
-            figName = f'entropy-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
-        else:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            figName = (f'entropy-{self.enzymeName}-{self.getSaveTag()}-'
-                       f'{self.motifLen}AA.png')
-            # if self.motifFilter:
-            #     figName = figName.replace('entropy', 'entropyMin')
+        figName = self.getFileName('entropy', subProfile)
+        # if self.motifFilter:
+        #     figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
 
         # Encode the figure
@@ -1863,15 +1874,7 @@ class WebApp:
             spine.set_linewidth(self.lineThickness)
 
         # File path
-        if subProfile:
-            figName = f'eMap-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
-        else:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            figName = f'eMap-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
-            if self.motifFilter and not subProfile:
-                figName = figName.replace('eMap', f'eMap-{self.iteration}')
+        figName = self.getFileName('eMap', subProfile)
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
@@ -1923,7 +1926,7 @@ class WebApp:
         yMin = min(columnTotals[1])
 
 
-        def plotLogo(matrix, limitYAxis=False):
+        def plotLogo(matrix, tag, limitYAxis=False):
             # Plot the sequence motif
             fig, ax = plt.subplots(figsize=self.figSize)
             motif = logomaker.Logo(matrix.transpose(), ax=ax, color_scheme=self.colorsAA,
@@ -1970,15 +1973,7 @@ class WebApp:
                              linewidth=self.lineThickness)
 
             # File path
-            if subProfile:
-                figName = f'eLogo-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
-            else:
-                if self.datasetTag is None:
-                    print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                    sys.exit()
-                figName = f'eLogo-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
-                if self.motifFilter:
-                    figName = figName.replace('eLogo', f'eLogo-{self.iteration}')
+            figName = self.getFileName('eLogo', subProfile)
             if limitYAxis:
                 figName = figName.replace('eLogo', 'eLogo_yMin')
             path = os.path.join(self.pathFigs, figName)
@@ -2048,18 +2043,8 @@ class WebApp:
         fig.set_size_inches(self.figSize)
 
         # File path
-        if subProfile:
-            figName = f'wordcloud-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
-        else:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            figName = (
-                f'wordcloud-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA'
-                f'-{totalWords}_Words.png')
-            if self.motifFilter:
-                figName = figName.replace('wordcloud',
-                                          f'wordcloud_{self.iteration}')
+        figName = self.getFileName('wordcloud', subProfile,
+                                   f'-{totalWords}_Words')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving Wordcloud:\n     {path}')
 
@@ -2138,15 +2123,7 @@ class WebApp:
                          linewidth=self.lineThickness)
 
         # File path
-        if subProfile:
-            figName = f'webLogo-SubProfile-{self.enzymeName}-{self.motifLen}AA.png'
-        else:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            figName = f'webLogo-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
-            if self.motifFilter:
-                figName = figName.replace('webLogo', f'webLogo_{self.iteration}')
+        figName = self.getFileName('webLogo', subProfile)
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving WebLogo:\n     {path}')
 
