@@ -49,6 +49,7 @@ class WebApp:
         self.jobParams = {}
         self.datasetTag = ''
         self.datasetTagMotif = ''
+        self.subProfile = False
 
         # Params: Dataset
         self.enzymeName = ''
@@ -239,7 +240,7 @@ class WebApp:
         return figBase64
 
 
-    def getDatasetTag(self, subProfile=False, log=False):
+    def getDatasetTag(self, log=False):
         self.fixAA = dict(sorted(self.fixAA.items()))
         self.exclAA = dict(sorted(self.exclAA.items()))
         tagFix = 'Fix '
@@ -268,40 +269,13 @@ class WebApp:
             self.datasetTag = tagExcl
         else:
             self.datasetTag = 'Unfiltered'
-        if self.motifFilter and  not self.datasetTagMotif:
-            self.datasetTagMotif = f'Motif - {self.datasetTag}'
+        if self.motifFilter and not self.datasetTagMotif:
+            self.datasetTagMotif = f'Register {self.datasetTag.replace(f'Fix ', '')}'
             self.jobParams['Dataset Tag'] = self.datasetTagMotif
         else:
             self.jobParams['Dataset Tag'] = self.datasetTag
         if log:
             self.log(f'Filter: {self.datasetTag}')
-
-        # Initialize: Save tags
-        self.saveTagExp = {
-            'subs': f'{self.enzymeName}-Subs_Exp-{self.datasetTag}-'
-                    f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl',
-            'counts': f'{self.enzymeName}-AA_Counts_Exp-{self.datasetTag}-'
-                      f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv'
-        }
-        self.saveTagBg = {
-            'subs': f'{self.enzymeName}-Subs_Bg-{self.datasetTag}-'
-                    f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl',
-            'counts': f'{self.enzymeName}-AA_Counts_Bg-{self.datasetTag}-'
-                      f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv',
-        }
-        if subProfile:
-            datasetTag = self.datasetTagMotif.replace('Motif - ', '')
-            for tag, path in self.saveTagExp.items():
-                path = path.replace(
-                    f'{self.enzymeName}', f'{self.enzymeName}-SubProfile'
-                ).replace(
-                    f'{self.datasetTag}', f'{datasetTag}'
-                )
-                self.saveTagExp[tag] = path
-            print(f'Tag:\n{self.saveTagExp}')
-
-        self.saveTagFig = (f'{self.enzymeName}-Fig-{self.datasetTag}-'
-                           f'Min_Counts_{self.minCounts}-{self.seqLength}AA')
 
 
     def getSaveTag(self, saveTag=''):
@@ -332,19 +306,30 @@ class WebApp:
         self.getDatasetTag(log=True)
 
 
-    def getFileName(self, tag, subProfile=False, tag2=''):
-        if subProfile:
+    def getFileNameFig(self, tag, tag2=''):
+        if self.subProfile:
             figName = f'{tag}-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
         else:
             if self.datasetTag is None:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
             figName = f'{tag}-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
-            if self.motifFilter:
+            if self.motifFilter and 'entropy' not in tag.lower():
                 figName = figName.replace(tag, f'{tag}-{self.iteration}')
         if tag2:
             figName = figName.replace('.png', f'{tag2}.png')
         return figName
+    
+    
+    def getFileName(self, ftype='Subs', datasetType='Exp'):
+        if self.subProfile:
+            tag = self.datasetTagMotif.replace(' ', '_')
+        else:
+            tag = self.datasetTag.replace(' ', '_')
+        fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
+                    f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv')
+        print(f'File Name: {fileName}')
+        return fileName
 
 
     def initDataStructures(self):
@@ -444,11 +429,13 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-        # elif job == 'Filter AA':
-        #     print(f'Job: {job}')
+        elif job == 'Filter AA':
+            print(f'Job: {job}')
         elif job == 'Filter Motif':
+            self.motifFilter = True
             self.iteration = 0
             self.minS = 0.65
+            self.jobParams['Minimum ∆S'] = self.minS
             self.minES = 0
             self.minESRel = -0.5
             self.motifPos = {}
@@ -507,7 +494,7 @@ class WebApp:
     def processSubs(self, substrates, datasetType, filteredAA):
         self.log('\n\n================================= Substrates '
                  '=================================')
-        self.log(f'Dataset: {datasetType}')
+        self.log(f'Dataset: {self.datasetTypes[datasetType]}')
 
         # Inspect sequences
         if not filteredAA:
@@ -534,7 +521,7 @@ class WebApp:
         # Count AAs
         countMatrix = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.log('\nSubstrate Totals:')
-        if datasetType == self.datasetTypes['Exp']:
+        if datasetType == 'Exp':
             self.subsExp = substrates
             self.countExpTotal = sum(substrates.values())
             self.countExpUnique = len(substrates.keys())
@@ -544,7 +531,7 @@ class WebApp:
             # Record job params
             self.jobParams['Total Experimental Substrates'] = f'{self.countExpTotal:,}'
             self.jobParams['Unique Experimental Substrates'] = f'{self.countExpUnique:,}'
-        elif datasetType == self.datasetTypes['Bg']:
+        elif datasetType == 'Bg':
             self.subsBg = substrates
             self.countBgTotal = sum(substrates.values())
             self.countBgUnique = len(substrates.keys())
@@ -558,7 +545,7 @@ class WebApp:
             self.logErrorFn(function='processSubs()',
                             msg=f'Unknown dataset type: {datasetType}')
 
-        self.log(f'Top {self.printN:,} {datasetType} Sequences')
+        self.log(f'Top {self.printN:,} {self.datasetTypes[datasetType]} Sequences')
         for index, (sub, count) in enumerate(substrates.items()):
             if index >= self.printN:
                 break
@@ -570,10 +557,11 @@ class WebApp:
         # Count AAs
         countMatrix = self.countAA(substrates=substrates, countMatrix=countMatrix,
                                    datasetType=datasetType)
-        if datasetType == self.datasetTypes['Bg']:
+        if datasetType == 'Bg':
             self.countsBg = countMatrix
         else:
             self.countsExp = countMatrix
+
 
     def loadDNA(self, path, datasetType, queueData, queueLog, reverseRead):
         translate = True
@@ -920,9 +908,7 @@ class WebApp:
         # Make figures
         if self.subsExp:
             # Sort substrates and count AA
-            self.processSubs(substrates=self.subsExp,
-                             datasetType=self.datasetTypes['Exp'],
-                             filteredAA=False)
+            self.processSubs(substrates=self.subsExp, datasetType='Exp', filteredAA=False)
 
             # Plot counts
             self.figures['exp_counts'] = (
@@ -933,9 +919,7 @@ class WebApp:
             )
         if self.subsBg:
             # Sort substrates and count AA
-            self.processSubs(substrates=self.subsBg,
-                             datasetType=self.datasetTypes['Bg'],
-                             filteredAA=False)
+            self.processSubs(substrates=self.subsBg, datasetType='Bg', filteredAA=False)
 
             # Plot counts
             self.figures['bg_counts'] = (
@@ -1072,37 +1056,28 @@ class WebApp:
         print(f'Motif Length: {self.motifLen}')
 
         # Plot figures
+
         if filterMotifs:
             self.subsExpAll = self.subsExp
             self.filterSubs(plotEntropy=True)
-            self.countAA(substrates=self.subsExp, countMatrix=self.countsExp,
-                         datasetType=self.datasetTypes['Exp'])
             self.selectMotifPos()
         else:
             self.filterSubs(plotEntropy=True)
-
             self.evalEnrichment()
         self.jobDone = True
 
 
-    def filterSubs(self, plotEntropy=False, saveData=True,
-                   allSubs=False, p=False):
+    def filterSubs(self, plotEntropy=False, saveData=True, 
+                   allSubs=False):
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
         self.log(f'Dataset tag: {self.datasetTag}')
 
-        if p: # ==========================================================================
-            for posFix, fixAA in self.fixAA.items():
-                print(f'Fix {posFix}: {fixAA}')
-
         # Select data
         if allSubs:
             substrates = self.subsExpAll ##
-            print(f'All Substrates: {len(substrates.keys()):,}')
         else:
             substrates = self.subsExp
-            print(f'Exp Substrates: {len(substrates.keys()):,}')
-
         totalSubs = 0
         for count in substrates.values():
             totalSubs += count
@@ -1140,8 +1115,6 @@ class WebApp:
             self.subsExp = subs
         self.countExpTotal = sum(self.subsExp.values())
         self.countExpUnique = len(self.subsExp.keys())
-        if p:
-            print(f'Unique Substrates: {self.countExpUnique:,}')
         self.subsExp = dict(sorted(
             self.subsExp.items(), key=lambda item: item[1], reverse=True)
         )
@@ -1159,13 +1132,12 @@ class WebApp:
 
         # Save data
         if saveData:
-            self.saveSubstrates(substrates=self.subsExp,
-                                datasetType=self.datasetTypes['Exp'])
+            self.saveSubstrates(substrates=self.subsExp, datasetType='Exp')
 
         # Count AAs
         self.countsExp = self.countAA(
             substrates=self.subsExp, countMatrix=self.countsExp,
-            datasetType=self.datasetTypes['Exp'], saveData=saveData
+            datasetType='Exp', saveData=saveData
         )
         self.calculateRF()
         if saveData:
@@ -1174,7 +1146,7 @@ class WebApp:
 
     def filterMotifs(self, form):
         print(f'Set S: {self.setS}')
-        # self.jobDone = False
+        print(f'Job: {self.jobDone}')
         self.motifFilter = True
         self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
@@ -1198,12 +1170,9 @@ class WebApp:
             # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
 
-        i = 0
         # Apply Filter
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
-                i += 1
-                print(f'Idx: {i}')
                 evalAAs(pos, self.minES)
                 self.filterSubs()
                 self.evalEnrichment()
@@ -1218,15 +1187,11 @@ class WebApp:
                     filter.append(pos)
             for posFix in filter: # Release
                 evalAAs(posFix, self.minESRel)
-            i += 1
-            print(f'Idx: {i}')
             self.getDatasetTag()
             self.filterSubs(allSubs=True)
             self.evalEnrichment()
 
             # Refilter
-            i += 1
-            print(f'Idx: {i}')
             evalAAs(posRel, self.minESRel)
             self.getDatasetTag()
             self.filterSubs(allSubs=True)
@@ -1239,8 +1204,8 @@ class WebApp:
         self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
                                              columns=self.eMap.columns)
         print('Substrate Profile:') ##
-        for posRel in self.motifPos.keys():
-            i += 1
+        l = len(self.motifPos.keys())
+        for i, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
             self.fixAA = {}
             filter = []
@@ -1251,12 +1216,16 @@ class WebApp:
                     # print(f'Add to Filter: {filter}')
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
-            i += 1
-            print(f'Idx: {i}')
+            print('I:', i, 'l:',  l)
+            if i == l:
+                self.subProfile = True
+                self.filterSubs(saveData=False, allSubs=True)
+            else:
+                self.filterSubs(saveData=False, allSubs=True)
+            print(f'Substrate Profile: {self.subProfile}')
+            self.evalEnrichment(releasedCounts=True) # , skipFigs=True
             # print(f'{self.eMap}\n')
-            self.filterSubs(saveData=False, allSubs=True, p=True)
-            self.evalEnrichment(releasedCounts=True, p=True) # , skipFigs=True
-            # print(f'{self.eMap}\n')
+            # print(f'{self.eMap.loc[:, posRel]}\n')
             # print(f'{self.eMap.loc[:, posRel]}\n')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
             # print(f'Profile:\n{self.substrateProfile}\n')
@@ -1267,19 +1236,19 @@ class WebApp:
                 # print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
         self.motifFilter = False
-        self.calculateEntropy(plotFig=True, subProfile=True)
+        self.calculateEntropy(plotFig=True)
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
 
         # Plot profile
         self.figures['eMapProfile'] = (
-            self.plotEnrichmentScores(dataType='Enrichment', subProfile=True)
+            self.plotEnrichmentScores(dataType='Enrichment')
         )
         self.figures['eMapScProfile'] = (
-            self.plotEnrichmentScores(dataType='Scaled Enrichment', subProfile=True)
+            self.plotEnrichmentScores(dataType='Scaled Enrichment')
         )
-        self.plotEnrichmentLogo(subProfile=True)
-        self.calculateWebLogo(subProfile=True)
-        self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp, subProfile=True)
+        self.plotEnrichmentLogo()
+        self.calculateWebLogo()
+        self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
 
         self.jobDone = True
 
@@ -1303,22 +1272,15 @@ class WebApp:
         # print(f'Motif Pos:\n{self.motifPos}')
 
 
-    def saveSubstrates(self, substrates, datasetType):
-        saveTag = None
+    def saveSubstrates(self, substrates, datasetType='Exp'):
+        saveTag = self.getFileName(ftype='Subs', datasetType=datasetType)
         if self.datasetTag is None:
             print(f'Dont save, dataset tag: {self.datasetTag}\n')
             sys.exit()
-        if datasetType == self.datasetTypes['Exp']:
-            saveTag = self.getSaveTag(self.saveTagExp['subs'])
-        elif datasetType == self.datasetTypes['Bg']:
-            saveTag = self.getSaveTag(self.saveTagBg['subs'])
-        else:
-            self.logErrorFn(function='saveSubstrates()',
-                            msg=f'Unknown dataset type: {datasetType}')
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
-        print(f'Saving substrates to {path}')
+        print(f'Saving Substrates: {path}')
         # if not os.path.exists(path):
         #     self.log(f'\nSaving Substrates:\n     {path}')
         #     with open(path, 'wb') as file:
@@ -1327,11 +1289,10 @@ class WebApp:
 
     def countAA(self, substrates,
                 countMatrix,
-                datasetType, saveData=True,
-                subProfile=False):
+                datasetType, saveData=True):
         self.log('\n\n================================== Count AA '
                  '==================================')
-        self.log(f'Dataset: {datasetType}')
+        self.log(f'Dataset: {self.datasetTypes[datasetType]}')
         countMatrix.loc[:, :] = 0
         totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
 
@@ -1362,19 +1323,10 @@ class WebApp:
         self.log(f'\nCount Totals:\n{totalCounts}')
 
         # File path
-        saveTag = None
-        # if subProfile:
-        #     saveTag = ''
+        saveTag = self.getFileName(ftype='Counts', datasetType=datasetType)
         if self.datasetTag is None:
             print(f'Dont save, dataset tag: {self.datasetTag}\n')
             sys.exit()
-        if datasetType == self.datasetTypes['Exp']:
-            saveTag = self.getSaveTag(self.saveTagExp['counts'])
-        elif datasetType == self.datasetTypes['Bg']:
-            saveTag = self.getSaveTag(self.saveTagBg['counts'])
-        else:
-            self.logErrorFn(function='countAA()',
-                            msg=f'Unknown dataset type: {datasetType}')
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)
@@ -1500,7 +1452,7 @@ class WebApp:
             self.log(f'\nRF Background:\n{self.rfBg}')
 
 
-    def calculateEntropy(self, plotFig=True, subProfile=False):
+    def calculateEntropy(self, plotFig=True):
         self.log('\n\n============================= Calculate: Entropy '
                  '=============================')
         self.log(f'Filter: {self.datasetTag}\n')
@@ -1520,8 +1472,8 @@ class WebApp:
             self.selectMotifPos()
 
         if plotFig:
-            if subProfile:
-                self.figures['entropyProfile'] = self.plotEntropy(subProfile=True)
+            if self.subProfile:
+                self.figures['entropyProfile'] = self.plotEntropy()
             else:
                 self.figures['entropy'] = self.plotEntropy()
             if self.setS:
@@ -1530,7 +1482,7 @@ class WebApp:
                 self.setS = False
 
 
-    def calculateWebLogo(self, subProfile=False):
+    def calculateWebLogo(self):
         # Evaluate weblogo
         self.rfExpScaled = pd.DataFrame(
             0.0, index=self.countsExp.index, columns=self.countsExp.columns
@@ -1540,7 +1492,7 @@ class WebApp:
                     self.rfExp.loc[:, pos] *
                     self.entropy.loc[pos, self.entropy.columns[0]]
             )
-        if subProfile:
+        if self.subProfile:
             self.figures['wLogoProfile'] = self.plotWebLogo(subProfile=subProfile)
         else:
             self.figures['wLogo'] = self.plotWebLogo()
@@ -1580,7 +1532,7 @@ class WebApp:
         return heights
 
 
-    def evalEnrichment(self, releasedCounts=False, skipFigs=False, p=False):
+    def evalEnrichment(self, releasedCounts=False, skipFigs=False):
         def evalMatrix(data):
             stacks = pd.DataFrame(0.0, index=data.columns,
                                   columns=['+Stack', '-Stack'])
@@ -1640,14 +1592,14 @@ class WebApp:
         self.eMap = matrix
         self.log(f'Enrichment Score: {self.datasetTag}\n'
               f'{matrix.round(self.roundVal)}\n')
-        print('============================= Eval Enrichment '
-              '==============================')
-        print(f'RF Experimental:\n{self.rfExp}\n')
-        print(f'Substrate Profile:\n{self.substrateProfile}\n')
-        print(f'E Map:\n{self.eMap}\n')
-        print(f'Matrix:\n{matrix}\n')
-        for posFix, fixAA in self.fixAA.items():
-            print(f'Fix {posFix}: {fixAA}')
+        # print('============================= Eval Enrichment '
+        #       '==============================')
+        # print(f'RF Experimental:\n{self.rfExp}\n')
+        # print(f'Substrate Profile:\n{self.substrateProfile}\n')
+        # print(f'E Map:\n{self.eMap}\n')
+        # print(f'Matrix:\n{matrix}\n')
+        # for posFix, fixAA in self.fixAA.items():
+        #     print(f'Fix {posFix}: {fixAA}')
 
 
         # Evaluate stack heights
@@ -1695,7 +1647,7 @@ class WebApp:
             self.iteration += 1
 
 
-    def plotEntropy(self, subProfile=False):
+    def plotEntropy(self):
         # Set figure title
         title = self.enzymeName
 
@@ -1774,7 +1726,7 @@ class WebApp:
             spine.set_linewidth(self.lineThickness)
 
         # File path
-        figName = self.getFileName('entropy', subProfile)
+        figName = self.getFileNameFig('entropy')
         # if self.motifFilter:
         #     figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
@@ -1790,15 +1742,14 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentScores(self, dataType, subProfile=False):
+    def plotEnrichmentScores(self, dataType):
         # Select: Dataset
         scaleData = False
-        if subProfile:
+        if self.subProfile:
             if 'scaled' in dataType.lower():
                 scores = self.substrateProfileScl
             else:
                 scores = self.substrateProfile
-            print(f'SubProfile: {dataType}\n{scores}')
         else:
             if 'scaled' in dataType.lower():
                 scaleData = True
@@ -1887,7 +1838,7 @@ class WebApp:
             spine.set_linewidth(self.lineThickness)
 
         # File path
-        figName = self.getFileName('eMap', subProfile)
+        figName = self.getFileNameFig('eMap')
         if scaleData:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
@@ -1904,7 +1855,7 @@ class WebApp:
         return figName
 
 
-    def plotEnrichmentLogo(self, subProfile=False):
+    def plotEnrichmentLogo(self):
         # Define: Figure title
         title = f'{self.enzymeName}'
 
@@ -1914,7 +1865,7 @@ class WebApp:
         else:
             stackOrder = 'small_on_top'
         
-        if subProfile:
+        if self.subProfile:
             data = self.substrateProfileScl.copy().replace([np.inf, -np.inf], 0)
         else:
             data = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
@@ -1986,7 +1937,7 @@ class WebApp:
                              linewidth=self.lineThickness)
 
             # File path
-            figName = self.getFileName('eLogo', subProfile)
+            figName = self.getFileNameFig('eLogo')
             if limitYAxis:
                 figName = figName.replace('eLogo', 'eLogo_yMin')
             path = os.path.join(self.pathFigs, figName)
@@ -2003,7 +1954,7 @@ class WebApp:
             return figName
 
         # Plot figure
-        if subProfile: # Full y-axis
+        if self.subProfile: # Full y-axis
             self.figures['eLogoProfile'] = plotLogo(data)
         else:
             self.figures['eLogo'] = plotLogo(data)
@@ -2014,13 +1965,13 @@ class WebApp:
             for row in data.index:
                 if data.loc[row, col] < yMin:
                     yMin = data.loc[row, col]
-        if subProfile: # Limited y-axis
+        if self.subProfile: # Limited y-axis
             self.figures['eLogoMinProfile'] = plotLogo(data, limitYAxis=True)
         else:
             self.figures['eLogoMin'] = plotLogo(data, limitYAxis=True)
 
 
-    def plotWordCloud(self, substrates, subProfile=False):
+    def plotWordCloud(self, substrates):
         # Limit the number of words
         subs = {}
         iteration = 0
@@ -2056,8 +2007,7 @@ class WebApp:
         fig.set_size_inches(self.figSize)
 
         # File path
-        figName = self.getFileName('wordcloud', subProfile,
-                                   f'-{totalWords}_Words')
+        figName = self.getFileNameFig('wordcloud', f'-{totalWords}_Words')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving Wordcloud:\n     {path}')
 
@@ -2072,7 +2022,7 @@ class WebApp:
         return figName
 
 
-    def plotWebLogo(self, subProfile=False):
+    def plotWebLogo(self):
         # Define: Figure title
         title = f'{self.enzymeName}'
 
@@ -2136,7 +2086,7 @@ class WebApp:
                          linewidth=self.lineThickness)
 
         # File path
-        figName = self.getFileName('webLogo', subProfile)
+        figName = self.getFileNameFig('webLogo')
         path = os.path.join(self.pathFigs, figName)
         # self.log(f'\nSaving WebLogo:\n     {path}')
 

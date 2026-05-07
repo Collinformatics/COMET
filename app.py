@@ -131,7 +131,6 @@ def filterSubs():
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
     # Parse the form
-    # webapp.evalSubs(parseForm(), True)
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),True,))
     thread.start()
     time.sleep(2)
@@ -198,22 +197,23 @@ def download():
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(webapp.pathDir):
             for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, webapp.pathDir)
-                zf.write(file_path, arcname)
+                filePath = os.path.join(root, file)
+                arcname = os.path.relpath(filePath, webapp.pathDir)
+                print(f'File: {filePath}\narcname: {arcname}')
+                zf.write(filePath, arcname)
     memory_file.seek(0)
 
     # Define file tag
     if webapp.datasetTagMotif:
-        tag = webapp.datasetTagMotif
+        tag = webapp.datasetTagMotif.replace(' ', '_')
     else:
-        tag = webapp.datasetTag
+        tag = webapp.datasetTag.replace(' ', '_')
 
     return send_file(
         memory_file,
         mimetype='application/zip',
         as_attachment=True,
-        download_name=f'{webapp.enzymeName}-{tag}'
+        download_name=f'{webapp.enzymeName}-{tag}.zip'
     )
 
 
@@ -221,6 +221,7 @@ def download():
 def updateFig():
     json = request.get_json()
     webapp.minS = float(json.get('minS'))
+    webapp.jobParams['Minimum ∆S'] = webapp.minS
     webapp.minES = float(json.get('minES'))
     webapp.minESRel = float(json.get('minESRel'))
     webapp.selectMotifPos()
@@ -261,9 +262,11 @@ def motifPos():
 
 @app.route('/comet', methods=['POST'])
 def comet():
+    webapp.jobDone = False
+    print('COMET')
     thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
     thread.start()
-    time.sleep(2)
+    # time.sleep(2)
     return render_template(
         'results.html', parameters=webapp.jobParams,
         motifPos=list(webapp.motifPos.items())
@@ -272,7 +275,7 @@ def comet():
 
 @app.route('/jobStatus')
 def jobStatus():
-    print(f'Job Status: {webapp.jobDone}')
+    print(f'Job Done: {webapp.jobDone}')
     return {'jobStatus': webapp.jobDone}
 
 
