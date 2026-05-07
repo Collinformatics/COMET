@@ -240,7 +240,7 @@ class WebApp:
         return figBase64
 
 
-    def getDatasetTag(self, log=False):
+    def getDatasetTag(self, log=True):
         self.fixAA = dict(sorted(self.fixAA.items()))
         self.exclAA = dict(sorted(self.exclAA.items()))
         tagFix = 'Fix '
@@ -303,7 +303,7 @@ class WebApp:
                     self.fixAA[key.replace('fix', '')] = value
                 if 'excl' in key:
                     self.exclAA[key.replace('excl', '')] = value
-        self.getDatasetTag(log=True)
+        self.getDatasetTag()
 
 
     def getFileNameFig(self, tag, tag2=''):
@@ -1071,7 +1071,7 @@ class WebApp:
                    allSubs=False):
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
-        self.log(f'Dataset tag: {self.datasetTag}')
+        self.getDatasetTag()
 
         # Select data
         if allSubs:
@@ -1187,13 +1187,11 @@ class WebApp:
                     filter.append(pos)
             for posFix in filter: # Release
                 evalAAs(posFix, self.minESRel)
-            self.getDatasetTag()
             self.filterSubs(allSubs=True)
             self.evalEnrichment()
 
             # Refilter
             evalAAs(posRel, self.minESRel)
-            self.getDatasetTag()
             self.filterSubs(allSubs=True)
             self.evalEnrichment()
 
@@ -1223,7 +1221,7 @@ class WebApp:
             else:
                 self.filterSubs(saveData=False, allSubs=True)
             print(f'Substrate Profile: {self.subProfile}')
-            self.evalEnrichment(releasedCounts=True) # , skipFigs=True
+            self.evalEnrichment(releasedCounts=True, skipFigs=True)
             # print(f'{self.eMap}\n')
             # print(f'{self.eMap.loc[:, posRel]}\n')
             # print(f'{self.eMap.loc[:, posRel]}\n')
@@ -1617,14 +1615,14 @@ class WebApp:
         # Evaluate stack heights
         evalMatrix(heights.replace([np.inf, -np.inf], 0))
 
-        if skipFigs:
-            return
-
         x = {
             'eMap': False, 'eLogo': False, 'eLogoMin': False, 'eMapSc': False,
             'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False,
             'exp_counts': False, 'bg_counts': False
         }
+
+        if self.motifFilter:
+            self.iteration += 1
 
         # Plot: Enrichment Map
         self.figures['eMap'] = (
@@ -1637,14 +1635,14 @@ class WebApp:
         # Plot: Enrichment Logo
         self.plotEnrichmentLogo()
 
+        if skipFigs:
+            return
+
         # Plot: Weblogo
         self.calculateWebLogo()
 
         # Plot: Wordcloud
         self.figures['words'] = self.plotWordCloud(self.subsExp)
-
-        if self.motifFilter:
-            self.iteration += 1
 
 
     def plotEntropy(self):
