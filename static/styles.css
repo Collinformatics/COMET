@@ -6,7 +6,7 @@
     --orange: #FA8128;
     --orangeburnt: #BF5700;
     --green: #2ED813;
-    --greendark: #1DB202;
+    --greendark: #2DD11C; /* #1DB202; */
     --pink: #FF20FF;
 
     --colorBody: var(--black);
@@ -133,7 +133,7 @@ p {
 }
 .help-icon {
     color: white;
-    background-color: var(--green);
+    background-color: var(--greendark);
     font-size: 13px;
     font-weight: bold;
     position: relative;
