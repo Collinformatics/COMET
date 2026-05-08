@@ -1476,7 +1476,7 @@ class WebApp:
     def plotEntropy(self):
         # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
         else:
             title = self.enzymeName
 
@@ -1741,9 +1741,9 @@ class WebApp:
             else:
                 scores = self.eMap
 
-        # Define: Figure title
+        # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
         else:
             title = self.enzymeName
 
@@ -1843,9 +1843,9 @@ class WebApp:
 
 
     def plotEnrichmentLogo(self):
-        # Define: Figure title
+        # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
         else:
             title = self.enzymeName
 
@@ -1972,9 +1972,9 @@ class WebApp:
         substrates = subs
         totalWords = len(substrates)
 
-        # Define: Figure title
+        # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
         else:
             title = self.enzymeName
 
@@ -2015,9 +2015,9 @@ class WebApp:
 
 
     def plotWebLogo(self):
-        # Define: Figure title
+        # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
         else:
             title = self.enzymeName
 
