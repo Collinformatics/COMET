@@ -228,7 +228,7 @@ class WebApp:
 
 
     def encodeFig(self, fig):
-        # Save to a memory buffer instead of disk
+        # Save figure to a memory buffer instead of disk
         buffer = io.BytesIO()
         plt.savefig(
             buffer, format='png', bbox_inches='tight',
@@ -1089,7 +1089,7 @@ class WebApp:
         for count in substrates.values():
             totalSubs += count
         totalSubsUnique = len(substrates.keys())
-        self.log(f'\nUnfiltered Substrates:\n'
+        self.log(f'Unfiltered Substrates:\n'
                  f'     Total: {totalSubs:,}\n'
                  f'    Unique: {totalSubsUnique:,}')
 
@@ -1280,10 +1280,10 @@ class WebApp:
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
         print(f'Saving Substrates: {path}')
-        # if not os.path.exists(path):
-        #     self.log(f'\nSaving Substrates:\n     {path}')
-        #     with open(path, 'wb') as file:
-        #         pk.dump(substrates, file)
+        if not os.path.exists(path):
+            self.log(f'\nSaving Substrates:\n     {path}')
+            with open(path, 'wb') as file:
+                pk.dump(substrates, file)
 
 
     def countAA(self, substrates, countMatrix, datasetType):
@@ -1310,7 +1310,6 @@ class WebApp:
         end = time.time()
         runtime = (end - start) / 60
         runtime = round(runtime, 3)
-        self.log(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
         print(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
         self.log(f'\nCounts:\n{countMatrix}')
 
@@ -1325,10 +1324,10 @@ class WebApp:
 
             # Save the counts
             path = os.path.join(self.pathData, saveTag)
-            # print(f'Saving Counts: {path}')
-            # if not os.path.exists(path):
-            #     # self.log(f'\nSaving Counts:\n     {path}')
-            #     countMatrix.to_csv(path)
+            print(f'Saving Counts: {path}')
+            if not os.path.exists(path):
+                # self.log(f'\nSaving Counts:\n     {path}')
+                countMatrix.to_csv(path)
         return countMatrix
 
     def plotCounts(self, countedData, totalCounts, datasetType):
