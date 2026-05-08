@@ -272,10 +272,12 @@ class WebApp:
         if self.motifFilter and not self.datasetTagMotif:
             self.datasetTagMotif = f'Register {self.datasetTag.replace(f'Fix ', '')}'
             self.jobParams['Dataset Tag'] = self.datasetTagMotif
-        if not self.jobParams['Dataset Tag']:
+            if log:
+                self.log(f'Filter: {self.datasetTagMotif}')
+        elif 'Dataset Tag' not in self.jobParams.keys():
             self.jobParams['Dataset Tag'] = self.datasetTag
-        if log:
-            self.log(f'Filter: {self.datasetTag}')
+            if log:
+                self.log(f'Filter: {self.datasetTag}')
 
 
     def getSaveTag(self, saveTag=''):
@@ -792,8 +794,8 @@ class WebApp:
                     args=(file, self.datasetTypes['Exp'],
                           queueExp, queueLog, False,)
                 )
-                thread.start()
                 threads.append(thread)
+                thread.start()
         if self.fileExpRev:
             for file in self.fileExpRev:
                 queueExpRev = queue.Queue()
@@ -805,8 +807,8 @@ class WebApp:
                     args=(file, self.datasetTypes['Exp'],
                           queueExpRev, queueExpRevLog, True,)
                 )
-                thread.start()
                 threads.append(thread)
+                thread.start()
         if self.fileBg:
             for file in self.fileBg:
                 queueBg = queue.Queue()
@@ -818,8 +820,8 @@ class WebApp:
                     args=(file, self.datasetTypes['Bg'],
                           queueBg, queueLog, False,)
                 )
-                thread.start()
                 threads.append(thread)
+                thread.start()
         if self.fileBgRev:
             for file in self.fileBgRev:
                 queueBgRev = queue.Queue()
@@ -831,8 +833,8 @@ class WebApp:
                     args=(file, self.datasetTypes['Bg'],
                           queueBgRev, queueBgRevLog, True,)
                 )
-                thread.start()
                 threads.append(thread)
+                thread.start()
         # Wait for all threads to finish
         for thread in threads:
             thread.join()
@@ -979,11 +981,10 @@ class WebApp:
                  '=================================')
 
         # Load the data
+        self.subsBg, self.subsExp = {}, {}
         threads = []
-        queuesExp = []
-        queuesExpLog = []
-        queuesBg = []
-        queuesBgLog = []
+        queuesExp, queuesExpLog = [], []
+        queuesBg, queuesBgLog = [], []
         for file in self.fileExp:
             queueExp = queue.Queue()
             queueLog = queue.Queue()
@@ -1004,10 +1005,8 @@ class WebApp:
             )
             thread.start()
             threads.append(thread)
-
-        # Wait for all threads to finish
         for thread in threads:
-            thread.join()
+            thread.join() # Wait for all threads to finish
 
         # Process input
         if queuesExpLog:
@@ -1144,9 +1143,9 @@ class WebApp:
             self.calculateEntropy(plotFig=plotEntropy)
 
 
-    def filterMotifs(self, form):
+    def comet(self, form):
         print(f'Set S: {self.setS}')
-        print(f'Job: {self.jobDone}')
+        self.jobDone = False
         self.motifFilter = True
         self.evalEnrichment()
         self.log('\n\n================================ Filter Motif '
@@ -1167,7 +1166,6 @@ class WebApp:
                 if self.eMap.loc[aa, position] >= minES:
                     self.fixAA[position].append(aa)
             # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
-
 
         # Apply Filter
         for pos in self.motifPos.keys():
@@ -1200,7 +1198,7 @@ class WebApp:
         eMap = self.eMap.copy()
         self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
                                              columns=self.eMap.columns)
-        print('Substrate Profile:') ##
+        print('Release Filter:') ##
         l = len(self.motifPos.keys()) - 1
         for i, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
@@ -1742,17 +1740,11 @@ class WebApp:
     def plotEnrichmentScores(self, dataType):
         # Select: Dataset
         scaleData = False
-        if self.subProfile:
-            if 'scaled' in dataType.lower():
-                scores = self.substrateProfileScl
-            else:
-                scores = self.substrateProfile
+        if 'scaled' in dataType.lower():
+            scaleData = True
+            scores = self.eMapScaled
         else:
-            if 'scaled' in dataType.lower():
-                scaleData = True
-                scores = self.eMapScaled
-            else:
-                scores = self.eMap
+            scores = self.eMap
 
         # Define: Figure title
         title = f'{self.enzymeName}'
@@ -1768,6 +1760,7 @@ class WebApp:
         elif self.residueLabelType == 2:
             scores.index = [residue[2] for residue in self.residues]
 
+        print(f'Scores: {dataType}\n{scores}')
         # Define color bar limits
         if np.max(scores) >= np.min(scores):
             cBarMax = np.ceil(np.max(scores) * 10) / 10
