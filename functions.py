@@ -2,6 +2,9 @@ import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
 from concurrent.futures import ProcessPoolExecutor
+
+from wordcloud.tokenization import score
+
 from counter import counter
 import gzip
 import io
@@ -115,6 +118,7 @@ class WebApp:
         self.exclAA = {}
 
         # Params: Figures
+        self.figTag = ''
         self.numSamples = 50
         self.figureResolution = 600
         self.titleCombined = ''
@@ -328,6 +332,9 @@ class WebApp:
         if self.subProfile:
             tag = self.datasetTagMotif.replace(' ', '_')
         else:
+            if self.datasetTag is None:
+                print(f'Dont save, dataset tag: {self.datasetTag}\n')
+                sys.exit()
             tag = self.datasetTag.replace(' ', '_')
         fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
                     f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv')
@@ -1199,6 +1206,7 @@ class WebApp:
                                              columns=self.eMap.columns)
         print('Release Filter:') ##
         idxEnd = len(self.motifPos.keys()) - 1
+        self.figTag = 'Release Filter'
         for idx, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
             self.fixAA = {}
@@ -1207,12 +1215,10 @@ class WebApp:
                 # print(f'* Release: {posRel}')
                 if pos != posRel:
                     filter.append(pos)
-                    # print(f'Add to Filter: {filter}')
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
             print('I:', idx, 'l:',  idxEnd)
             if idx == idxEnd:
-                self.subProfile = True
                 self.saveData = True
                 self.filterSubs(allSubs=True, plotEntropy=True)
             else:
@@ -1220,16 +1226,19 @@ class WebApp:
             print(f'Substrate Profile: {self.subProfile}')
             self.evalEnrichment(releasedCounts=True, skipFigs=True)
             # print(f'{self.eMap}\n')
-            # print(f'{self.eMap.loc[:, posRel]}\n')
-            # print(f'{self.eMap.loc[:, posRel]}\n')
+            print(f'{self.eMap.loc[:, posRel]}\n')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
-            # print(f'Profile:\n{self.substrateProfile}\n')
+            print(f'Substrate Profile: {posRel}\n{self.substrateProfile}\n')
+        self.subProfile = True
+        self.figTag = 'Substrate Profile'
 
         print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
                 # print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
+                print(f'Remaining Pos: {pos}')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
+                print(f'Substrate Profile:\n{self.substrateProfile}\n')
         self.motifFilter = False
         self.calculateEntropy(plotFig=True)
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
@@ -1242,7 +1251,6 @@ class WebApp:
             self.plotEnrichmentScores(dataType='Scaled Enrichment')
         )
         self.plotEnrichmentLogo()
-        self.calculateWebLogo()
         self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
 
         self.jobDone = True
@@ -1269,9 +1277,6 @@ class WebApp:
 
     def saveSubstrates(self, substrates, datasetType='Exp'):
         saveTag = self.getFileName(ftype='Subs', datasetType=datasetType)
-        if self.datasetTag is None:
-            print(f'Dont save, dataset tag: {self.datasetTag}\n')
-            sys.exit()
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
@@ -1315,23 +1320,17 @@ class WebApp:
             totalCounts.loc[pos, 'Sum'] = counts
         self.log(f'\nCount Totals:\n{totalCounts}')
 
-        # File path
-        saveTag = self.getFileName(ftype='Counts', datasetType=datasetType)
-        if self.datasetTag is None:
-            print(f'Dont save, dataset tag: {self.datasetTag}\n')
-            sys.exit()
-
-        # Save the counts
-        path = os.path.join(self.pathData, saveTag)
-
         if self.saveData:
-            print(f'Saving Counts: {path}')
-            #     if not os.path.exists(path):
-            #         # self.log(f'\nSaving Counts:\n     {path}')
-            #         countMatrix.to_csv(path)
+            # File path
+            saveTag = self.getFileName(ftype='Counts', datasetType=datasetType)
 
+            # Save the counts
+            path = os.path.join(self.pathData, saveTag)
+            # print(f'Saving Counts: {path}')
+            # if not os.path.exists(path):
+            #     # self.log(f'\nSaving Counts:\n     {path}')
+            #     countMatrix.to_csv(path)
         return countMatrix
-
 
     def plotCounts(self, countedData, totalCounts, datasetType):
         countedData.index = self.AA
@@ -1543,8 +1542,7 @@ class WebApp:
             self.log(f'Stack Heights:\n{stacks}')
 
         matrix = pd.DataFrame(0.0, index=self.rfExp.index,
-                              columns=self.rfExp.columns)
-        print(f'Release Counts: {releasedCounts}')  ##
+                              columns=self.rfExp.columns) ##
         if releasedCounts:
             self.log('\n\n============================= Substrate Profile '
                      '==============================')
@@ -1643,7 +1641,10 @@ class WebApp:
 
     def plotEntropy(self):
         # Set figure title
-        title = self.enzymeName
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
 
         # Figure parameters
         yMax = self.entropyMax + 0.2
@@ -1741,12 +1742,21 @@ class WebApp:
         scaleData = False
         if 'scaled' in dataType.lower():
             scaleData = True
-            scores = self.eMapScaled
+            if self.subProfile:
+                scores = self.substrateProfileScl
+            else:
+                scores = self.eMapScaled
         else:
-            scores = self.eMap
+            if self.subProfile:
+                scores = self.substrateProfile
+            else:
+                scores = self.eMap
 
         # Define: Figure title
-        title = f'{self.enzymeName}'
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
 
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='EM')
@@ -1845,7 +1855,10 @@ class WebApp:
 
     def plotEnrichmentLogo(self):
         # Define: Figure title
-        title = f'{self.enzymeName}'
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
 
         # Set parameters
         if self.bigAAonTop:
@@ -1854,16 +1867,19 @@ class WebApp:
             stackOrder = 'small_on_top'
 
         # Rename columns for logomaker script
-        data = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
-        xticks = data.columns
-        data.columns = range(len(data.columns))
+        if self.subProfile:
+            scores = self.substrateProfileScl.copy().replace([np.inf, -np.inf], 0)
+        else:
+            scores = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
+        xticks = scores.columns
+        scores.columns = range(len(scores.columns))
 
         # Calculate: Max and min
         columnTotals = [[], []]
-        for indexColumn in data.columns:
+        for indexColumn in scores.columns:
             totalPos = 0
             totalNeg = 0
-            for value in data.loc[:, indexColumn]:
+            for value in scores.loc[:, indexColumn]:
                 if value > 0:
                     totalPos += value
                 elif value < 0:
@@ -1939,20 +1955,20 @@ class WebApp:
 
         # Plot figure
         if self.subProfile: # Full y-axis
-            self.figures['eLogoProfile'] = plotLogo(data)
+            self.figures['eLogoProfile'] = plotLogo(scores)
         else:
-            self.figures['eLogo'] = plotLogo(data)
+            self.figures['eLogo'] = plotLogo(scores)
 
         # Adjust yMin to fit the largest negative AA
         yMin = 0
-        for col in data.columns:
-            for row in data.index:
-                if data.loc[row, col] < yMin:
-                    yMin = data.loc[row, col]
+        for col in scores.columns:
+            for row in scores.index:
+                if scores.loc[row, col] < yMin:
+                    yMin = scores.loc[row, col]
         if self.subProfile: # Limited y-axis
-            self.figures['eLogoMinProfile'] = plotLogo(data, limitYAxis=True)
+            self.figures['eLogoMinProfile'] = plotLogo(scores, limitYAxis=True)
         else:
-            self.figures['eLogoMin'] = plotLogo(data, limitYAxis=True)
+            self.figures['eLogoMin'] = plotLogo(scores, limitYAxis=True)
 
 
     def plotWordCloud(self, substrates):
@@ -1968,7 +1984,10 @@ class WebApp:
         totalWords = len(substrates)
 
         # Define: Figure title
-        title = self.enzymeName
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
 
         # Create word cloud
         cmap = self.createCustomColorMap(colorType='Word Cloud')
@@ -2008,7 +2027,10 @@ class WebApp:
 
     def plotWebLogo(self):
         # Define: Figure title
-        title = f'{self.enzymeName}'
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
 
         # Set parameters
         if self.bigAAonTop:
