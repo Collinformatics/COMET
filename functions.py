@@ -328,8 +328,8 @@ class WebApp:
         return figName
     
     
-    def getFileName(self, ftype='Subs', datasetType='Exp'):
-        if self.subProfile:
+    def getFileName(self, ftype='Subs', datasetType='Exp', subProfile=False):
+        if subProfile:
             tag = self.datasetTagMotif.replace(' ', '_')
         else:
             if self.datasetTag is None:
@@ -1079,7 +1079,7 @@ class WebApp:
         self.jobDone = True
 
 
-    def filterSubs(self, allSubs=False, plotEntropy=False):
+    def filterSubs(self, allSubs=False, plotEntropy=False, subProfile=False):
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
         self.getDatasetTag()
@@ -1143,11 +1143,14 @@ class WebApp:
 
         # Save data
         if self.saveData:
-            self.saveSubstrates(substrates=self.subsExp, datasetType='Exp')
+            self.saveSubstrates(
+                substrates=self.subsExp, datasetType='Exp', subProfile=subProfile
+            )
 
         # Count AAs
         self.countsExp = self.countAA(
-            substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
+            substrates=self.subsExp, countMatrix=self.countsExp,
+            datasetType='Exp', subProfile=subProfile
         )
         self.calculateRF()
         self.calculateEntropy(plotFig=plotEntropy)
@@ -1182,7 +1185,7 @@ class WebApp:
             if pos not in self.fixAA.keys():
                 evalAAs(pos, self.minES)
                 self.filterSubs()
-                self.evalEnrichment()
+                self.evalEnrichment(skipFigs=True)
 
 
         # Refine Filter
@@ -1223,7 +1226,7 @@ class WebApp:
                 evalAAs(posFix, self.minESRel)
             if idx == idxEnd:
                 self.saveData = True
-                self.filterSubs(allSubs=True, plotEntropy=True)
+                self.filterSubs(allSubs=True, plotEntropy=True, subProfile=True)
             else:
                 self.filterSubs(allSubs=True)
             self.evalEnrichment(releasedCounts=True, skipFigs=True)
@@ -1236,8 +1239,8 @@ class WebApp:
         print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
-                # print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
-                print(f'Populate Pos: {pos}')
+                # print(f'Populate Pos: {pos}')
+                # print(f'{eMap.loc[:, pos]}\n')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
                 # print(f'Substrate Profile:\n{self.substrateProfile}\n')
         self.motifFilter = False
@@ -1278,8 +1281,8 @@ class WebApp:
         # print(f'Motif Pos:\n{self.motifPos}')
 
 
-    def saveSubstrates(self, substrates, datasetType='Exp'):
-        saveTag = self.getFileName(datasetType=datasetType)
+    def saveSubstrates(self, substrates, datasetType='Exp', subProfile=False):
+        saveTag = self.getFileName(datasetType=datasetType, subProfile=subProfile)
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
@@ -1290,7 +1293,8 @@ class WebApp:
                 pk.dump(substrates, file)
 
 
-    def countAA(self, substrates, countMatrix, datasetType):
+    def countAA(self, substrates, countMatrix,
+                datasetType, subProfile=False):
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {self.datasetTypes[datasetType]}')
@@ -1324,7 +1328,8 @@ class WebApp:
 
         if self.saveData:
             # File path
-            saveTag = self.getFileName(ftype='Counts', datasetType=datasetType)
+            saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
+                                       subProfile=subProfile)
 
             # Save the counts
             path = os.path.join(self.pathData, saveTag)
@@ -1720,7 +1725,7 @@ class WebApp:
         # Plot: Enrichment Logo
         self.plotEnrichmentLogo()
 
-        if skipFigs:
+        if skipFigs or self.motifFilter:
             return
 
         # Plot: Weblogo
