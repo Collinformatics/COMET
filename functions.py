@@ -1191,12 +1191,12 @@ class WebApp:
             for posFix in filter: # Release
                 evalAAs(posFix, self.minESRel)
             self.filterSubs(allSubs=True)
-            self.evalEnrichment()
+            self.evalEnrichment(skipFigs=True)
 
             # Refilter
             evalAAs(posRel, self.minESRel)
             self.filterSubs(allSubs=True)
-            self.evalEnrichment()
+            self.evalEnrichment(skipFigs=True)
 
 
         # Release filter
@@ -1237,9 +1237,9 @@ class WebApp:
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
                 # print(f'Substrate Profile:\n{self.substrateProfile}\n')
         self.motifFilter = False
-        self.calculateEntropy(plotFig=True)
         self.subProfile = True
         self.figTag = 'Substrate Profile'
+        self.calculateEntropy(plotFig=True)
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
 
         # Plot profile
@@ -1473,6 +1473,104 @@ class WebApp:
                 self.setS = False
 
 
+    def plotEntropy(self):
+        # Set figure title
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
+
+        # Figure parameters
+        yMax = self.entropyMax + 0.2
+        xMax = len(self.entropy.iloc[:, 0])
+
+        # Map entropy values to colors using the colormap
+        colors = [(0, 'navy'),
+                  (0.3 / self.entropyMax, 'navy'),
+                  (0.7 / self.entropyMax, 'dodgerblue'),
+                  (0.97 / self.entropyMax, 'white'),
+                  (0.98 / self.entropyMax, 'white'),
+                  (1.0 / self.entropyMax, 'white'),
+                  (1.65 / self.entropyMax, 'red'),
+                  (3 / self.entropyMax, 'firebrick'),
+                  (1, 'darkred')]
+        colorBar = LinearSegmentedColormap.from_list('custom_colormap', colors)
+
+        # Map entropy values to colors using the colormap
+        normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
+        cMap = [
+            colorBar(normalize(value))
+            for value in self.entropy[self.entropy.columns[0]].astype(float)
+        ]
+
+        # Plotting the entropy values as a bar graph
+        fig, ax = plt.subplots(figsize=self.figSize)
+        # if self.motifFilter:
+        #     print(f'Min ∆S: {self.minS}')
+        #     plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
+        plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
+                edgecolor='black', linewidth=self.lineThickness, width=0.8)
+        plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis,
+                   rotation=0, labelpad=15)
+        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        plt.tight_layout()
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks)
+
+        # Set x-ticks
+        xTicks = np.arange(0, xMax, 1)
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(self.entropy.index, rotation=0, ha='center')
+        for tick in ax.xaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set y-ticks
+        yTicks = range(0, 5)
+        yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}' for tick in yTicks]
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(yTickLabels)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set the edge thickness
+        for spine in ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
+        # Set axis limits
+        ax.set_xlim(-0.5, xMax-0.5)
+        ax.set_ylim(0, yMax)
+
+        # Colorbar
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
+        # File path
+        figName = self.getFileNameFig('entropy')
+        # if self.motifFilter:
+        #     figName = figName.replace('entropy', 'entropyMin')
+        path = os.path.join(self.pathFigs, figName)
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
+
+
     def calculateWebLogo(self):
         # Evaluate weblogo
         self.rfExpScaled = pd.DataFrame(
@@ -1600,18 +1698,9 @@ class WebApp:
                  '=====================')
         self.log(f'Scale Enrichment Scores:\n'
               f'     Enrichment Scores * ΔS\n')
-
         heights = self.scaleMatrix(matrix)
         self.eMapScaled = heights.copy()
-
-        # Evaluate stack heights
         evalMatrix(heights.replace([np.inf, -np.inf], 0))
-
-        x = {
-            'eMap': False, 'eLogo': False, 'eLogoMin': False, 'eMapSc': False,
-            'wLogo': False, 'words': False, 'barCounts': False, 'barRF': False,
-            'exp_counts': False, 'bg_counts': False
-        }
 
         if self.motifFilter:
             self.iteration += 1
@@ -1635,104 +1724,6 @@ class WebApp:
 
         # Plot: Wordcloud
         self.figures['words'] = self.plotWordCloud(self.subsExp)
-
-
-    def plotEntropy(self):
-        # Set figure title
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
-        else:
-            title = self.enzymeName
-
-        # Figure parameters
-        yMax = self.entropyMax + 0.2
-        xMax = len(self.entropy.iloc[:, 0])
-
-        # Map entropy values to colors using the colormap
-        colors = [(0, 'navy'),
-                  (0.3 / self.entropyMax, 'navy'),
-                  (0.7 / self.entropyMax, 'dodgerblue'),
-                  (0.97 / self.entropyMax, 'white'),
-                  (0.98 / self.entropyMax, 'white'),
-                  (1.0 / self.entropyMax, 'white'),
-                  (1.65 / self.entropyMax, 'red'),
-                  (3 / self.entropyMax, 'firebrick'),
-                  (1, 'darkred')]
-        colorBar = LinearSegmentedColormap.from_list('custom_colormap', colors)
-
-        # Map entropy values to colors using the colormap
-        normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
-        cMap = [
-            colorBar(normalize(value))
-            for value in self.entropy[self.entropy.columns[0]].astype(float)
-        ]
-
-        # Plotting the entropy values as a bar graph
-        fig, ax = plt.subplots(figsize=self.figSize)
-        # if self.motifFilter:
-        #     print(f'Min ∆S: {self.minS}')
-        #     plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
-        plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
-                edgecolor='black', linewidth=self.lineThickness, width=0.8)
-        plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis,
-                   rotation=0, labelpad=15)
-        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.tight_layout()
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks)
-
-        # Set x-ticks
-        xTicks = np.arange(0, xMax, 1)
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(self.entropy.index, rotation=0, ha='center')
-        for tick in ax.xaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-
-        # Set y-ticks
-        yTicks = range(0, 5)
-        yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}' for tick in yTicks]
-        ax.set_yticks(yTicks)
-        ax.set_yticklabels(yTickLabels)
-        for tick in ax.yaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-
-        # Set the edge thickness
-        for spine in ax.spines.values():
-            spine.set_linewidth(self.lineThickness)
-
-        # Set axis limits
-        ax.set_xlim(-0.5, xMax-0.5)
-        ax.set_ylim(0, yMax)
-
-        # Colorbar
-        sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
-        sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
-        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)
-        for tick in cbar.ax.yaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness)
-        for spine in cbar.ax.spines.values():
-            spine.set_linewidth(self.lineThickness)
-
-        # File path
-        figName = self.getFileNameFig('entropy')
-        # if self.motifFilter:
-        #     figName = figName.replace('entropy', 'entropyMin')
-        path = os.path.join(self.pathFigs, figName)
-
-        # Encode the figure
-        figBase64 = self.encodeFig(fig)
-        with open(path, "wb") as file:
-            file.write(base64.b64decode(figBase64))
-
-        # Close the figure to free memory
-        plt.close(fig)
-
-        return figName
 
 
     def plotEnrichmentScores(self, dataType):
