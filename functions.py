@@ -1200,13 +1200,13 @@ class WebApp:
 
 
         # Release filter
+        print('Release Filter:') ##
+        self.figTag = 'Release Filter'
         self.fixAA = {}
+        idxEnd = len(self.motifPos.keys()) - 1
         eMap = self.eMap.copy()
         self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
                                              columns=self.eMap.columns)
-        print('Release Filter:') ##
-        idxEnd = len(self.motifPos.keys()) - 1
-        self.figTag = 'Release Filter'
         for idx, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
             self.fixAA = {}
@@ -1217,30 +1217,29 @@ class WebApp:
                     filter.append(pos)
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
-            print('I:', idx, 'l:',  idxEnd)
             if idx == idxEnd:
                 self.saveData = True
                 self.filterSubs(allSubs=True, plotEntropy=True)
             else:
                 self.filterSubs(allSubs=True)
-            print(f'Substrate Profile: {self.subProfile}')
             self.evalEnrichment(releasedCounts=True, skipFigs=True)
             # print(f'{self.eMap}\n')
-            print(f'{self.eMap.loc[:, posRel]}\n')
+            # print(f'{self.eMap.loc[:, posRel]}\n')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
-            print(f'Substrate Profile: {posRel}\n{self.substrateProfile}\n')
-        self.subProfile = True
-        self.figTag = 'Substrate Profile'
+            # print(f'Substrate Profile: {posRel}\n{self.substrateProfile}\n')
 
+        # Populate non-motif pos
         print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
                 # print(f'Pos: {pos}\n{eMap.loc[:, pos]}\n')
-                print(f'Remaining Pos: {pos}')
+                print(f'Populate Pos: {pos}')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
-                print(f'Substrate Profile:\n{self.substrateProfile}\n')
+                # print(f'Substrate Profile:\n{self.substrateProfile}\n')
         self.motifFilter = False
         self.calculateEntropy(plotFig=True)
+        self.subProfile = True
+        self.figTag = 'Substrate Profile'
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
 
         # Plot profile
