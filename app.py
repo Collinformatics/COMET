@@ -106,9 +106,6 @@ def resources():
 
 @app.route('/evalFormDNA', methods=['POST'])
 def evalDNA():
-    # Process the dset
-    # webapp.evalDNA(parseForm())
-    # print('Job Done: Eval DNA')
     thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
     thread.start()
     time.sleep(2)
@@ -119,7 +116,6 @@ def evalDNA():
 
 @app.route('/evalFormFilterAA', methods=['POST'])
 def filterSubs():
-    # Parse the form
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
     thread.start()
     time.sleep(2)
@@ -130,7 +126,6 @@ def filterSubs():
 
 @app.route('/evalFormFilterMotif', methods=['POST'])
 def filterMotif():
-    # Parse the form
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),True,))
     thread.start()
     time.sleep(2)
@@ -262,11 +257,10 @@ def motifPos():
 
 @app.route('/comet', methods=['POST'])
 def comet():
-    webapp.jobDone = False
     print('COMET')
-    thread = threading.Thread(target=webapp.filterMotifs, args=(parseForm(),))
+    thread = threading.Thread(target=webapp.comet, args=(parseForm(),))
     thread.start()
-    # time.sleep(2)
+    time.sleep(1)
     return render_template(
         'results.html', parameters=webapp.jobParams,
         motifPos=list(webapp.motifPos.items())
@@ -275,7 +269,7 @@ def comet():
 
 @app.route('/jobStatus')
 def jobStatus():
-    print(f'Job Done: {webapp.jobDone}')
+    # print(f'Job Done: {webapp.jobDone}')
     return {'jobStatus': webapp.jobDone}
 
 

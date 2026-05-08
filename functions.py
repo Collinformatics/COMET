@@ -50,6 +50,7 @@ class WebApp:
         self.datasetTag = ''
         self.datasetTagMotif = ''
         self.subProfile = False
+        self.saveData = True
 
         # Params: Dataset
         self.enzymeName = ''
@@ -973,6 +974,7 @@ class WebApp:
     def evalSubs(self, form, filterMotifs=False):
         self.jobDone = False
         if filterMotifs:
+            self.saveData = False
             self.jobInit(form, job='Filter Motif')
             self.setS = True
         else:
@@ -1066,8 +1068,7 @@ class WebApp:
         self.jobDone = True
 
 
-    def filterSubs(self, plotEntropy=False, saveData=True, 
-                   allSubs=False):
+    def filterSubs(self, allSubs=False, plotEntropy=False):
         self.log('\n\n============================== Filter Substrates '
                  '=============================')
         self.getDatasetTag()
@@ -1130,17 +1131,15 @@ class WebApp:
                 break
 
         # Save data
-        if saveData:
+        if self.saveData:
             self.saveSubstrates(substrates=self.subsExp, datasetType='Exp')
 
         # Count AAs
         self.countsExp = self.countAA(
-            substrates=self.subsExp, countMatrix=self.countsExp,
-            datasetType='Exp', saveData=saveData
+            substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
         )
         self.calculateRF()
-        if saveData:
-            self.calculateEntropy(plotFig=plotEntropy)
+        self.calculateEntropy(plotFig=plotEntropy)
 
 
     def comet(self, form):
@@ -1199,8 +1198,8 @@ class WebApp:
         self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
                                              columns=self.eMap.columns)
         print('Release Filter:') ##
-        l = len(self.motifPos.keys()) - 1
-        for i, posRel in enumerate(self.motifPos.keys()):
+        idxEnd = len(self.motifPos.keys()) - 1
+        for idx, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
             self.fixAA = {}
             filter = []
@@ -1211,12 +1210,13 @@ class WebApp:
                     # print(f'Add to Filter: {filter}')
             for posFix in filter:
                 evalAAs(posFix, self.minESRel)
-            print('I:', i, 'l:',  l)
-            if i == l:
+            print('I:', idx, 'l:',  idxEnd)
+            if idx == idxEnd:
                 self.subProfile = True
-                self.filterSubs(saveData=False, allSubs=True)
+                self.saveData = True
+                self.filterSubs(allSubs=True, plotEntropy=True)
             else:
-                self.filterSubs(saveData=False, allSubs=True)
+                self.filterSubs(allSubs=True)
             print(f'Substrate Profile: {self.subProfile}')
             self.evalEnrichment(releasedCounts=True, skipFigs=True)
             # print(f'{self.eMap}\n')
@@ -1282,9 +1282,7 @@ class WebApp:
         #         pk.dump(substrates, file)
 
 
-    def countAA(self, substrates,
-                countMatrix,
-                datasetType, saveData=True):
+    def countAA(self, substrates, countMatrix, datasetType):
         self.log('\n\n================================== Count AA '
                  '==================================')
         self.log(f'Dataset: {self.datasetTypes[datasetType]}')
@@ -1325,11 +1323,12 @@ class WebApp:
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)
-        print(f'Saving Counts: {path}')
-        # if saveData:
-        #     if not os.path.exists(path):
-        #         # self.log(f'\nSaving Counts:\n     {path}')
-        #         countMatrix.to_csv(path)
+
+        if self.saveData:
+            print(f'Saving Counts: {path}')
+            #     if not os.path.exists(path):
+            #         # self.log(f'\nSaving Counts:\n     {path}')
+            #         countMatrix.to_csv(path)
 
         return countMatrix
 
@@ -1488,7 +1487,7 @@ class WebApp:
                     self.entropy.loc[pos, self.entropy.columns[0]]
             )
         if self.subProfile:
-            self.figures['wLogoProfile'] = self.plotWebLogo(subProfile=subProfile)
+            self.figures['wLogoProfile'] = self.plotWebLogo()
         else:
             self.figures['wLogo'] = self.plotWebLogo()
 
@@ -1760,7 +1759,6 @@ class WebApp:
         elif self.residueLabelType == 2:
             scores.index = [residue[2] for residue in self.residues]
 
-        print(f'Scores: {dataType}\n{scores}')
         # Define color bar limits
         if np.max(scores) >= np.min(scores):
             cBarMax = np.ceil(np.max(scores) * 10) / 10
@@ -1854,13 +1852,9 @@ class WebApp:
             stackOrder = 'big_on_top'
         else:
             stackOrder = 'small_on_top'
-        
-        if self.subProfile:
-            data = self.substrateProfileScl.copy().replace([np.inf, -np.inf], 0)
-        else:
-            data = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
-            
+
         # Rename columns for logomaker script
+        data = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
         xticks = data.columns
         data.columns = range(len(data.columns))
 
