@@ -1485,7 +1485,7 @@ class WebApp:
     def plotEntropy(self):
         # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -1725,7 +1725,7 @@ class WebApp:
         # Plot: Enrichment Logo
         self.plotEnrichmentLogo()
 
-        if skipFigs or self.motifFilter:
+        if skipFigs:
             return
 
         # Plot: Weblogo
@@ -1752,7 +1752,7 @@ class WebApp:
 
         # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -1854,7 +1854,7 @@ class WebApp:
     def plotEnrichmentLogo(self):
         # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -1983,7 +1983,7 @@ class WebApp:
 
         # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -2026,7 +2026,7 @@ class WebApp:
     def plotWebLogo(self):
         # Set figure title
         if self.figTag:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}\n{self.figTag}'
+            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
