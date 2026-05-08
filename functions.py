@@ -337,7 +337,11 @@ class WebApp:
                 sys.exit()
             tag = self.datasetTag.replace(' ', '_')
         fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
-                    f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv')
+                    f'MinCounts_{self.minCounts}-{self.seqLength}AA')
+        if ftype == 'Subs':
+            fileName += '.pkl'
+        else:
+            fileName += '.csv'
         print(f'File Name: {fileName}')
         return fileName
 
@@ -1275,7 +1279,7 @@ class WebApp:
 
 
     def saveSubstrates(self, substrates, datasetType='Exp'):
-        saveTag = self.getFileName(ftype='Subs', datasetType=datasetType)
+        saveTag = self.getFileName(datasetType=datasetType)
 
         # Save the substrates
         path = os.path.join(self.pathData, saveTag)
