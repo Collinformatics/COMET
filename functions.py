@@ -87,7 +87,7 @@ class WebApp:
 
         # Params: COMET
         self.iteration = 0
-        self.minS = 0.65
+        self.minS = 0.6
         self.minES = 0
         self.minESRel = -0.5
         self.motifFilter = False
@@ -1042,14 +1042,14 @@ class WebApp:
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
                         break
-                self.log(f'\nTotal Substrates: {sum(self.subsExp.values())}\n'
-                         f'Unique Substrates: {len(self.subsExp.keys())}')
+                self.log(f'\nTotal Substrates: {sum(self.subsExp.values()):,}\n'
+                         f'Unique Substrates: {len(self.subsExp.keys()):,}')
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
         if queuesBgLog:
             if self.subsExp:
-                self.log('\nLoading Substrate Counts: Background')
+                self.log('\n\nLoading Substrate Counts: Background')
             else:
                 self.log('Loading Substrate Counts: Background')
         if queuesBg:
@@ -1065,7 +1065,7 @@ class WebApp:
                                 msg='No background substrates were loaded')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
         self.motifLen = len(next(iter(self.subsExp)))
-        print(f'Motif Length: {self.motifLen}')
+        print(f'Motif Length: {self.motifLen} AA')
 
         # Plot figures
 

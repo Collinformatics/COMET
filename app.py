@@ -194,7 +194,7 @@ def download():
             for file in files:
                 filePath = os.path.join(root, file)
                 arcname = os.path.relpath(filePath, webapp.pathDir)
-                print(f'File: {filePath}\narcname: {arcname}')
+                # print(f'File: {filePath}\narcname: {arcname}')
                 zf.write(filePath, arcname)
     memory_file.seek(0)
 
