@@ -381,18 +381,18 @@ class WebApp:
         if self.pathFigs is not None:
             if not os.path.exists(self.pathFigs):
                 os.makedirs(self.pathFigs, exist_ok=True)
-            else:
-                # Clear figs
-                import shutil
-                # Remove everything inside the directory
-                for filename in os.listdir(self.pathFigs):
-                    path = os.path.join(self.pathFigs, filename)
-                    if os.path.isfile(path) or os.path.islink(path):
-                        os.unlink(path)  # delete file or link
-                    elif os.path.isdir(path):
-                        shutil.rmtree(path)  # delete subdirectory
-                # time.sleep(5)
-                os.makedirs(self.pathFigs, exist_ok=True)
+            # else:
+            #     # Clear figs
+            #     import shutil
+            #     # Remove everything inside the directory
+            #     for filename in os.listdir(self.pathFigs):
+            #         path = os.path.join(self.pathFigs, filename)
+            #         if os.path.isfile(path) or os.path.islink(path):
+            #             os.unlink(path)  # delete file or link
+            #         elif os.path.isdir(path):
+            #             shutil.rmtree(path)  # delete subdirectory
+            #     # time.sleep(5)
+            #     os.makedirs(self.pathFigs, exist_ok=True)
 
         self.log() # Clear the log
         self.log('================================ Job Summary '
@@ -1160,7 +1160,7 @@ class WebApp:
         print(f'Set S: {self.setS}')
         self.jobDone = False
         self.motifFilter = True
-        self.evalEnrichment()
+        self.evalEnrichment(skipFigs=True)
         self.log('\n\n================================ Filter Motif '
                  '================================')
         self.minS = float(form['minS'])
@@ -1711,9 +1711,6 @@ class WebApp:
         self.eMapScaled = heights.copy()
         evalMatrix(heights.replace([np.inf, -np.inf], 0))
 
-        if self.motifFilter:
-            self.iteration += 1
-
         # Plot: Enrichment Map
         self.figures['eMap'] = (
             self.plotEnrichmentScores(dataType='Enrichment')
@@ -1725,14 +1722,15 @@ class WebApp:
         # Plot: Enrichment Logo
         self.plotEnrichmentLogo()
 
-        if skipFigs:
-            return
+        if not skipFigs:
+            # Plot: Weblogo
+            self.calculateWebLogo()
 
-        # Plot: Weblogo
-        self.calculateWebLogo()
+            # Plot: Wordcloud
+            self.figures['words'] = self.plotWordCloud(self.subsExp)
 
-        # Plot: Wordcloud
-        self.figures['words'] = self.plotWordCloud(self.subsExp)
+        if self.motifFilter:
+            self.iteration += 1
 
 
     def plotEnrichmentScores(self, dataType):
