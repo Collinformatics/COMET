@@ -448,7 +448,7 @@ class WebApp:
         elif job == 'Filter Motif':
             self.motifFilter = True
             self.iteration = 0
-            self.minS = 0.65
+            self.minS = 0.6
             self.jobParams['Minimum ∆S'] = self.minS
             self.minES = 0
             self.minESRel = -0.5
