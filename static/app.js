@@ -119,7 +119,7 @@ function createProfileContainer(containerId = 'profileContainer') {
         wrapper2.style.marginBottom = '1px';
         wrapper2.innerHTML = `
             <label class="label-w" for="fileExp${i}">Motif Index:</label>
-            <input type="number" id="idxStart${i}" value="${i}"
+            <input type="number" id="idxStart${i}" name="idxStart${i}" value="${i}"
                    min="1" max="${seqLength-motifLength}" style="width: 60px;"
                    required>
         `;
@@ -365,6 +365,14 @@ async function buttonCombineProfiles() {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
+
+    // Process the input form
+    for (const [key, value] of formData.entries()) {
+        console.log(key, value);
+        if (key.includes('idxStart')) {
+            console.log('* Idx');
+        }
+    }
 
     // Evaluate the form
     jobID = await processForm(formData); // ##

@@ -108,7 +108,7 @@ def resources():
 def evalDNA():
     thread = threading.Thread(target=webapp.evalDNA, args=(parseForm(),))
     thread.start()
-    time.sleep(2)
+    time.sleep(1)
     return render_template(
         'results.html', parameters=webapp.jobParams
     )
@@ -118,7 +118,7 @@ def evalDNA():
 def filterSubs():
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),))
     thread.start()
-    time.sleep(2)
+    time.sleep(1)
     return render_template(
         'results.html', parameters=webapp.jobParams
     )
@@ -128,7 +128,7 @@ def filterSubs():
 def filterMotif():
     thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),True,))
     thread.start()
-    time.sleep(2)
+    time.sleep(1)
     return render_template(
         'setEntropy.html', parameters=webapp.jobParams,
         minS=webapp.minS, motifPos=list(webapp.motifPos.items())
@@ -139,7 +139,7 @@ def filterMotif():
 def combineProfiles():
     thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
     thread.start()
-    time.sleep(2)
+    time.sleep(1)
     return render_template(
         'combineProfiles.html', parameters=webapp.jobParams,
         motifPos=list(webapp.motifPos.items())
