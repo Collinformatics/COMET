@@ -109,7 +109,7 @@ function createProfileContainer(containerId = 'profileContainer') {
         wrapper1.className = 'form-wrapper';
         wrapper1.innerHTML = `
             <label class="label-w" for="fileExp${i}">Profile ${i}:</label>
-            <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".pkl">
+            <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".pkl" required>
         `;
         container.appendChild(wrapper1);
 

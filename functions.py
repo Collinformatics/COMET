@@ -57,7 +57,7 @@ class WebApp:
 
         # Params: Dataset
         self.enzymeName = ''
-        self.seqLength = False
+        self.seqLength = 0
         self.minCounts = 1
         self.printN = 10
         self.roundVal = 3
@@ -91,12 +91,12 @@ class WebApp:
         self.minES = 0
         self.minESRel = -0.5
         self.motifFilter = False
-        self.motifLen = 0
         self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
         self.substrateProfileScl = pd.DataFrame()
 
         # Params: Combined Profiles
+        self.combineRegisters = False
         self.idxMotif = {}
         self.profiles = []
 
@@ -319,12 +319,12 @@ class WebApp:
 
     def getFileNameFig(self, tag, tag2=''):
         if self.subProfile:
-            figName = f'{tag}-subProfile-{self.enzymeName}-{self.motifLen}AA.png'
+            figName = f'{tag}-subProfile-{self.enzymeName}-{self.seqLength}AA.png'
         else:
             if self.datasetTag is None:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
-            figName = f'{tag}-{self.enzymeName}-{self.getSaveTag()}-{self.motifLen}AA.png'
+            figName = f'{tag}-{self.enzymeName}-{self.getSaveTag()}-{self.seqLength}AA.png'
             if self.motifFilter and 'entropy' not in tag.lower():
                 figName = figName.replace(tag, f'{tag}-{self.iteration}')
         if tag2:
@@ -361,6 +361,7 @@ class WebApp:
         self.subsBg = {}
         self.idxMotif = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
+        print(f'Axis Label: {self.xAxisLabel}')
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
 
@@ -411,14 +412,8 @@ class WebApp:
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
         self.seqLength = int(form['seqLength'])
-        self.motifLen = self.seqLength
         self.jobParams['Substrate Length'] = self.seqLength
         self.log(f'Substrate Length: {self.seqLength}')
-
-        # Initialize params
-        self.initDataStructures()
-        self.figures = {}
-        self.motifFilter = False
 
 
         def addFile(data, value):
@@ -461,13 +456,19 @@ class WebApp:
             self.motifPos = {}
         elif job == 'Combine Motifs':
             print(f'Job: {job}')
-            self.motifLen = int(form['motifLength'])
+            self.combineRegisters = True
+            self.seqLength = int(form['motifLength'])
             for key in form.keys():
                 if 'idxStart' in key:
                     self.idxMotif[key] = int(form[key]) - 1 ##
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
+
+        # Initialize params
+        self.initDataStructures()
+        self.figures = {}
+        self.motifFilter = False
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
@@ -1063,7 +1064,6 @@ class WebApp:
                         self.log(f'    {substrate}, {count:,}')
                         if i >= self.printN:
                             break
-                    self.log('')
                 self.getMotifs()
             else:
                 self.logErrorFn(function='loadSubstrates()',
@@ -1085,7 +1085,7 @@ class WebApp:
                 self.logErrorFn(function='loadCounts()',
                                 msg='No background substrates were loaded')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
-        print(f'Motif Length: {self.motifLen} AA')
+        print(f'Motif Length: {self.seqLength} AA')
 
         # Plot figures
 
@@ -1289,7 +1289,7 @@ class WebApp:
         for idx, profile in enumerate(self.profiles): ##
             # print(f'\nProfile {idx}, {list(self.idxMotif.keys())[idx]}')
             idxN = self.idxMotif[list(self.idxMotif.keys())[idx]]
-            idxC = idxN + self.motifLen
+            idxC = idxN + self.seqLength
             # print(f'Profile ({idx}): {idxN}-{idxC}')
             for i, (substrate, count) in enumerate(profile.items()):
                 motifs[substrate[idxN:idxC]] = count
@@ -1297,16 +1297,23 @@ class WebApp:
                 if i >= self.printN:
                     break
 
-        self.log('Motifs:')
+        self.log('\nMotifs:')
         for i, (motif, count) in enumerate(motifs.items()):
-            self.log(f'* {motif}: {count}')
+            self.log(f'* {motif}: {count:,}')
             if i >= self.printN:
                 break
+        self.subsExp = motifs
 
 
 
     def combineProfiles(self):
-        print('Combining Profiles')
+        print('Combining Profiles') ##
+        self.countsExp = self.countAA(
+            substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
+        )
+        self.calculateRF()
+        #self.calculateEntropy()
+        #self.evalEnrichment()
 
 
 
@@ -1346,7 +1353,7 @@ class WebApp:
             cores = os.cpu_count()
             size = max(1, int(np.ceil(len(data) / cores)))
             batches = list(batched(data.items(), size))
-            # print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
+            #print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
             args = [(dict(batch), matrix.columns.tolist(), matrix.index.tolist())
                     for batch in batches]
 
@@ -1478,6 +1485,7 @@ class WebApp:
         for pos in self.countsExp.columns:
             self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
         self.log(f'RF Experimental:\n{self.rfExp}')
+        print(f'RF Experimental:\n{self.rfExp}\n')
 
         if self.rfBg is None:
             self.rfBg = pd.DataFrame(
@@ -1490,6 +1498,11 @@ class WebApp:
                     if count == 0:
                         count = 1
                     self.rfBg.loc[AA, pos] = count / totalCounts
+            if self.combineRegisters:
+                self.rfBg = np.sum(self.rfBg, axis=1) / len(self.rfBg.columns)
+                self.rfBg = pd.DataFrame(self.rfBg, index=self.rfBg.index,
+                                         columns=['Average RF'])
+            print(f'RF:\n{self.rfBg}\n')
             self.log(f'\nRF Background:\n{self.rfBg}')
 
 
