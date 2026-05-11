@@ -1042,26 +1042,35 @@ class WebApp:
         if queuesExp:
             for q in queuesExp:
                 substrates = q.get()
-                for substrate, count in substrates.items():
-                    if substrate in self.subsExp.keys():
-                        self.subsExp[substrate] += count
-                    else:
-                        self.subsExp[substrate] = count
+                if combineProfiles:
+                    self.profiles.append(substrates)
+                else:
+                    for substrate, count in substrates.items():
+                        if substrate in self.subsExp.keys():
+                            self.subsExp[substrate] += count
+                        else:
+                            self.subsExp[substrate] = count
             self.log('\nSubstrates:')
             if self.subsExp:
-                i = 0
-                for substrate, count in self.subsExp.items():
-                    i += 1
+                for i, (substrate, count) in enumerate(self.subsExp.items()):
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
                         break
                 self.log(f'\nTotal Substrates: {sum(self.subsExp.values()):,}\n'
                          f'Unique Substrates: {len(self.subsExp.keys()):,}')
+            elif self.profiles:
+                for profile in self.profiles:
+                    # print(f'Profile:\n{profile}')
+                    for i, (substrate, count) in enumerate(profile.items()):
+                        self.log(f'    {substrate}, {count:,}')
+                        if i >= self.printN:
+                            break
+                    self.log('')
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
         if queuesBgLog:
-            if self.subsExp:
+            if self.subsExp or self.profiles:
                 self.log('\n\nLoading Substrate Counts: Background')
             else:
                 self.log('Loading Substrate Counts: Background')
@@ -1077,7 +1086,6 @@ class WebApp:
                 self.logErrorFn(function='loadCounts()',
                                 msg='No background substrates were loaded')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
-        self.motifLen = len(next(iter(self.subsExp)))
         print(f'Motif Length: {self.motifLen} AA')
 
         # Plot figures
@@ -1280,6 +1288,12 @@ class WebApp:
     def combineProfiles(self):
         print(f'Combining Profiles') ##
         print(f'Motif Len: {self.motifLen}')
+        for idx, profile in enumerate(self.profiles):
+            print(f'Profile ({idx}): '
+                  f'{self.idxMotif[idx]}, {self.idxMotif[self.idxMotif[idx]]}')
+            for i, (substrate, count) in enumerate(profile.items()):
+                print(f'* {substrate}: {count}')
+                break
 
 
     def selectMotifPos(self):
