@@ -76,7 +76,6 @@ class WebApp:
         self.countsBg = pd.DataFrame()
         self.countBgTotal = 0
         self.countBgUnique = 0
-        self.idxMotif = {}
         self.rfBg = None
         self.eMap = None
         self.eMapScaled = None
@@ -96,6 +95,10 @@ class WebApp:
         self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
         self.substrateProfileScl = pd.DataFrame()
+
+        # Params: Combined Profiles
+        self.idxMotif = {}
+        self.profiles = []
 
         # Params: Files
         self.queueLog = queue.Queue()
@@ -990,19 +993,21 @@ class WebApp:
                 getStr=True))
 
 
-    def evalSubs(self, form, filterMotifs=False):
+    def evalSubs(self, form, filterMotifs=False, combineProfiles=False):
         self.jobDone = False
         if filterMotifs:
             self.saveData = False
             self.jobInit(form, job='Filter Motif')
             self.setS = True
+        elif combineProfiles: ##
+            self.jobInit(form, job='Combine Motifs')
         else:
             self.jobInit(form, job='Filter AA')
         self.log('\n\n================================== Load Data '
                  '=================================')
 
         # Load the data
-        self.subsBg, self.subsExp = {}, {}
+        self.subsBg, self.subsExp, self.profiles = {}, {}, []
         threads = []
         queuesExp, queuesExpLog = [], []
         queuesBg, queuesBgLog = [], []
@@ -1081,6 +1086,8 @@ class WebApp:
             self.subsExpAll = self.subsExp
             self.filterSubs(plotEntropy=True)
             self.selectMotifPos()
+        elif combineProfiles:
+            self.combineProfiles()
         else:
             self.filterSubs(plotEntropy=True)
             self.evalEnrichment()
@@ -1094,7 +1101,7 @@ class WebApp:
 
         # Select data
         if allSubs:
-            substrates = self.subsExpAll ##
+            substrates = self.subsExpAll
         else:
             substrates = self.subsExp
         totalSubs = 0
@@ -1215,7 +1222,7 @@ class WebApp:
 
 
         # Release filter
-        print('Release Filter:') ##
+        print('Release Filter:')
         self.figTag = 'Release Filter'
         self.fixAA = {}
         idxEnd = len(self.motifPos.keys()) - 1
@@ -1270,10 +1277,9 @@ class WebApp:
         self.jobDone = True
 
 
-    def combineProfiles(self, form):
-        self.jobInit(form, job='Combine Motifs') ##
-
-
+    def combineProfiles(self):
+        print(f'Combining Profiles') ##
+        print(f'Motif Len: {self.motifLen}')
 
 
     def selectMotifPos(self):

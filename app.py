@@ -137,7 +137,7 @@ def filterMotif():
 
 @app.route('/evalFormCombineProfiles', methods=['POST'])
 def combineProfiles():
-    thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
+    thread = threading.Thread(target=webapp.evalSubs, args=(parseForm(),False,True,))
     thread.start()
     time.sleep(1)
     return render_template(
