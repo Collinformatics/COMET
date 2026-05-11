@@ -152,8 +152,6 @@ async function download() {
             filename = match[1].trim().replace(/['"]/g, '');
         }
     }
-    console.log('File Name:', filename);
-
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -192,15 +190,12 @@ async function processForm(formData) {
 
     // Evaluate job ID
     let jobID = '';
-    // console.log('Form:');
     for (let [key, value] of formData.entries()) {
         if (value instanceof File) {
             if (value.name) {
-                // console.log('* File name:', value.name);
                 jobID += key + '_' + value.name + ' ';
             }
         } else if (value) {
-            // console.log(key, value);
             jobID += key + '_' + value + ' ';
         }
     }
@@ -211,9 +206,6 @@ async function processForm(formData) {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     jobID = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    // Log the form
-    //console.log('Input Form:', json);
     return jobID;
 }
 
@@ -258,7 +250,6 @@ async function buttonProcessDNA() {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
-    console.log('Data:\n', formData);
 
     // Evaluate the form
     jobID = await processForm(formData);
@@ -272,9 +263,7 @@ async function buttonProcessDNA() {
     })
     .then(response => {
         if (response.ok) {
-            // Redirect
-            console.log('Redirect:')
-            window.location.href = '/results';
+            window.location.href = '/results'; // Redirect
         } else {
             console.log('ERROR: Processing DNA.');
             alert("ERROR: Processing DNA.");
@@ -297,12 +286,10 @@ async function buttonFilterSubs(filter) {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
-    console.log('Data:\n', formData);
 
     // Evaluate the form
     if (filter !== 'comet') {
         jobID = await processForm(formData);
-        console.log('jobID', jobID);
         formData.append('jobID', jobID);
     }
 
@@ -315,8 +302,7 @@ async function buttonFilterSubs(filter) {
         })
         .then(response => {
             if (response.ok) {
-                // Redirect
-                window.location.href = '/results';
+                window.location.href = '/results'; // Redirect
             } else {
                 console.log("ERROR: Filtering substrates.");
                 alert("ERROR: Filtering substrates.");
@@ -327,8 +313,6 @@ async function buttonFilterSubs(filter) {
             alert("An error occurred.");
         });
     } else if (filter === 'motif') {
-        console.log('Run: Eval Motif');
-
         fetch('/evalFormFilterMotif', {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
@@ -336,8 +320,7 @@ async function buttonFilterSubs(filter) {
         })
         .then(response => {
             if (response.ok) {
-                // Redirect
-                window.location.href = '/setEntropy';
+                window.location.href = '/setEntropy'; // Redirect
             } else {
                 console.log("ERROR: Filtering motif.");
                 alert("ERROR: Filtering motif.");
@@ -348,7 +331,6 @@ async function buttonFilterSubs(filter) {
             alert("An error occurred.");
         });
     } else if (filter === 'comet') {
-        console.log('Run: COMET');
         fetch('/comet', {
             body: formData,  // Send the actual FormData object, not a JSON
             headers: { 'X-CSRFToken': csrfToken },
@@ -356,8 +338,7 @@ async function buttonFilterSubs(filter) {
         })
         .then(response => {
             if (response.ok) {
-                // Redirect
-                window.location.href = '/results';
+                window.location.href = '/results'; // Redirect
             } else {
                 console.log("ERROR: Running COMET.");
                 alert("ERROR: Running COMET.");
@@ -384,19 +365,20 @@ async function buttonCombineProfiles() {
     const csrfToken = form.querySelector('input[name="csrf_token"]').value;
     const formData = new FormData(form);
     formData.delete('csrf_token');
-    console.log('Data:\n', formData);
+
+    // Evaluate the form
+    jobID = await processForm(formData); // ##
+    formData.append('jobID', jobID);
 
     // POST the raw formData to Flask
-    fetch('/evalFormCombineMotif', {
+    fetch('/evalFormCombineProfiles', {
         body: formData,  // Send the actual FormData object, not a JSON
         headers: { 'X-CSRFToken': csrfToken },
         method: 'POST'
     })
     .then(response => {
         if (response.ok) {
-            // Redirect
-            console.log('Redirect:');
-            window.location.href = '/results';
+            window.location.href = '/results'; // Redirect
         } else {
             console.log("ERROR: Combining profiles.");
             alert("ERROR: Combining profiles.");
@@ -418,7 +400,6 @@ function addFigure(container, label, fig, fig2 = null) {
     // Add figure
     const img1 = document.createElement('img');
     img1.src = fig;
-    //console.log('fig:', img1.src);
     img1.style.maxWidth = '80vw';
     img1.style.height = 'auto';
     img1.style.marginBottom = '20px';
@@ -453,7 +434,6 @@ function getFigures(pollFigs=true) {
             .then(res => res.json())
             // Verify if one figure is ready
             .then(data => {
-                //console.log('checkFigures comet response:', data);
                 if (data.entropyProfile) {
                     container.innerHTML = ''; // Clear figures
 
@@ -506,7 +486,6 @@ function getFigures(pollFigs=true) {
             fetch('/jobStatus')
                 .then(r => r.json())
                 .then(status => {
-                    // console.log('Status:', status.jobStatus);
                     if (status.jobStatus) {
                         clearInterval(interval);
                         // Append download button to the box
@@ -521,7 +500,6 @@ function getFigures(pollFigs=true) {
                             button.onclick = download;
                             buttonWrapper.appendChild(button);
                             document.getElementById('button-container').appendChild(buttonWrapper);
-                            //container.appendChild(buttonWrapper);
                         };
                     }
                 });
@@ -577,7 +555,6 @@ function getEntropyFigure(pollFigs=true) {
             fetch('/jobStatus')
                 .then(r => r.json())
                 .then(status => {
-                    // console.log('Status:', status.jobStatus);
                     if (status.jobStatus) {
                         clearInterval(interval);
                         // Append download button to the box
@@ -597,19 +574,15 @@ function getEntropyFigure(pollFigs=true) {
     }
 }
 
+
 function updateMotifPosDisplay(data) {
     const container = document.getElementById('motifPosContainer');
     if (!container) return;
     // remove old entries
     container.querySelectorAll('.motif-pos-entry').forEach(el => el.remove());
-      // console.log('Len:', data.length)
     const motifPos = data.motifPos;
-    console.log('Motif:', motifPos);
-    const minS = document.getElementById('minS').value;
-    console.log('Min S:', minS);
     if (motifPos.length > 0) {
         const def = document.getElementById('motifPosDefault');
-        console.log('Min ∆S:', motifPos.minS)
         if (def) def.style.display = 'none';
         motifPos.forEach(([pos, val]) => {
             const p = document.createElement('p');
@@ -639,25 +612,6 @@ function updateMinS() {
     });
 }
 
-
-// function updateMotifPosDisplay(data) {
-//     const container = document.getElementById('motifPosContainer');
-//     if (!container) return;
-//     // remove old entries
-//     container.querySelectorAll('.motif-pos-entry').forEach(el => el.remove());
-//       // console.log('Len:', data.length)
-//     if (data.length > 0) {
-//         const def = document.getElementById('motifPosDefault');
-//         console.log('Min ∆S:', data.minS)
-//         if (def) def.style.display = 'none';
-//         data.forEach(([pos, val]) => {
-//             const p = document.createElement('p');
-//             p.className = 'p3 motif-pos-entry';
-//             p.innerHTML = `${pos}: ∆S=<span class="param-value">${val.toFixed(2)}</span>`;
-//             container.appendChild(p);
-//         });
-//     }
-// }
 
 function pollMotifPos() {
     fetch('/motifPos')

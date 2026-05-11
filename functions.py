@@ -336,12 +336,13 @@ class WebApp:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
             tag = self.datasetTag.replace(' ', '_')
-        fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
-                    f'MinCounts_{self.minCounts}-{self.seqLength}AA')
+
         if ftype == 'Subs':
-            fileName += '.pkl'
+            fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
+                        f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl')
         else:
-            fileName += '.csv'
+            fileName = (f'{self.enzymeName}-AA_{ftype}_{datasetType}-{tag}-'
+                        f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv')
         print(f'File Name: {fileName}')
         return fileName
 
@@ -1263,10 +1264,11 @@ class WebApp:
 
 
     def combineProfiles(self, form):
-        self.jobInit(form, job='Combine Motifs')
         print('Combine Profiles:')
         for k, v in form.items():
             print(f'* {k}: {v}')
+        self.jobInit(form, job='Combine Motifs')
+
 
 
     def selectMotifPos(self):

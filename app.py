@@ -67,7 +67,7 @@ def run():
 def home():
     # return render_template('home.html')
     return render_template(
-        'filterMotif.html', csrf_token=generate_csrf()
+        'combineProfiles.html', csrf_token=generate_csrf()
     )
 
 
@@ -135,9 +135,8 @@ def filterMotif():
     )
 
 
-@app.route('/evalProfiles', methods=['POST'])
+@app.route('/evalFormCombineProfiles', methods=['POST'])
 def combineProfiles():
-    print('Combine Profiles')
     thread = threading.Thread(target=webapp.combineProfiles, args=(parseForm(),))
     thread.start()
     time.sleep(2)
