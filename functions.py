@@ -461,12 +461,10 @@ class WebApp:
             self.motifPos = {}
         elif job == 'Combine Motifs':
             print(f'Job: {job}')
-            self.motifLen = form['motifLength']
+            self.motifLen = int(form['motifLength'])
             for key in form.keys():
                 if 'idxStart' in key:
-                    print(key, form[key], type(form[key]))
-                    self.idxMotif[key] = 'R' + form[key]
-            print('Motif Idx:', self.idxMotif)
+                    self.idxMotif[key] = int(form[key]) - 1 ##
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
@@ -999,7 +997,7 @@ class WebApp:
             self.saveData = False
             self.jobInit(form, job='Filter Motif')
             self.setS = True
-        elif combineProfiles: ##
+        elif combineProfiles:
             self.jobInit(form, job='Combine Motifs')
         else:
             self.jobInit(form, job='Filter AA')
@@ -1050,8 +1048,8 @@ class WebApp:
                             self.subsExp[substrate] += count
                         else:
                             self.subsExp[substrate] = count
-            self.log('\nSubstrates:')
             if self.subsExp:
+                self.log('\nSubstrates:')
                 for i, (substrate, count) in enumerate(self.subsExp.items()):
                     self.log(f'    {substrate}, {count:,}')
                     if i >= self.printN:
@@ -1059,13 +1057,14 @@ class WebApp:
                 self.log(f'\nTotal Substrates: {sum(self.subsExp.values()):,}\n'
                          f'Unique Substrates: {len(self.subsExp.keys()):,}')
             elif self.profiles:
-                for profile in self.profiles:
-                    # print(f'Profile:\n{profile}')
+                for idx, profile in enumerate(self.profiles):
+                    self.log(f'\nProfile: {idx}')
                     for i, (substrate, count) in enumerate(profile.items()):
                         self.log(f'    {substrate}, {count:,}')
                         if i >= self.printN:
                             break
                     self.log('')
+                self.getMotifs()
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
@@ -1285,15 +1284,30 @@ class WebApp:
         self.jobDone = True
 
 
-    def combineProfiles(self):
-        print(f'Combining Profiles') ##
-        print(f'Motif Len: {self.motifLen}')
-        for idx, profile in enumerate(self.profiles):
-            print(f'Profile ({idx}): '
-                  f'{self.idxMotif[idx]}, {self.idxMotif[self.idxMotif[idx]]}')
+    def getMotifs(self):
+        motifs = {}
+        for idx, profile in enumerate(self.profiles): ##
+            # print(f'\nProfile {idx}, {list(self.idxMotif.keys())[idx]}')
+            idxN = self.idxMotif[list(self.idxMotif.keys())[idx]]
+            idxC = idxN + self.motifLen
+            # print(f'Profile ({idx}): {idxN}-{idxC}')
             for i, (substrate, count) in enumerate(profile.items()):
-                print(f'* {substrate}: {count}')
+                motifs[substrate[idxN:idxC]] = count
+                #print(f'* {substrate[idxN:idxC]}: {count}')
+                if i >= self.printN:
+                    break
+
+        self.log('Motifs:')
+        for i, (motif, count) in enumerate(motifs.items()):
+            self.log(f'* {motif}: {count}')
+            if i >= self.printN:
                 break
+
+
+
+    def combineProfiles(self):
+        print('Combining Profiles')
+
 
 
     def selectMotifPos(self):
@@ -1674,7 +1688,7 @@ class WebApp:
             self.log(f'Stack Heights:\n{stacks}')
 
         matrix = pd.DataFrame(0.0, index=self.rfExp.index,
-                              columns=self.rfExp.columns) ##
+                              columns=self.rfExp.columns)
         if releasedCounts:
             self.log('\n\n============================= Substrate Profile '
                      '==============================')

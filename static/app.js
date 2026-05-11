@@ -366,14 +366,6 @@ async function buttonCombineProfiles() {
     const formData = new FormData(form);
     formData.delete('csrf_token');
 
-    // Process the input form
-    for (const [key, value] of formData.entries()) {
-        console.log(key, value);
-        if (key.includes('idxStart')) {
-            console.log('* Idx');
-        }
-    }
-
     // Evaluate the form
     jobID = await processForm(formData); //
     formData.append('jobID', jobID);
