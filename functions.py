@@ -76,6 +76,7 @@ class WebApp:
         self.countsBg = pd.DataFrame()
         self.countBgTotal = 0
         self.countBgUnique = 0
+        self.idxMotif = {}
         self.rfBg = None
         self.eMap = None
         self.eMapScaled = None
@@ -355,6 +356,7 @@ class WebApp:
         self.fileBgRev = []
         self.subsExp = {}
         self.subsBg = {}
+        self.idxMotif = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
@@ -457,6 +459,11 @@ class WebApp:
         elif job == 'Combine Motifs':
             print(f'Job: {job}')
             self.motifLen = form['motifLength']
+            for key in form.keys():
+                if 'idxStart' in key:
+                    print(key, form[key], type(form[key]))
+                    self.idxMotif[key] = 'R' + form[key]
+            print('Motif Idx:', self.idxMotif)
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
@@ -1264,10 +1271,8 @@ class WebApp:
 
 
     def combineProfiles(self, form):
-        print('Combine Profiles:')
-        for k, v in form.items():
-            print(f'* {k}: {v}')
-        self.jobInit(form, job='Combine Motifs')
+        self.jobInit(form, job='Combine Motifs') ##
+
 
 
 

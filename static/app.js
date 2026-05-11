@@ -375,7 +375,7 @@ async function buttonCombineProfiles() {
     }
 
     // Evaluate the form
-    jobID = await processForm(formData); // ##
+    jobID = await processForm(formData); //
     formData.append('jobID', jobID);
 
     // POST the raw formData to Flask
