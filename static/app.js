@@ -91,9 +91,15 @@ function createProfileContainer(containerId = 'profileContainer') {
                 <label>Experimental Data:</label>
                 <div class="help-icon">?
                     <span class="help-tooltip">
-                        Substrate profiles obtained from "Filter Motif".<br>
-                        Acceptable file extension: .pkl<br><br>
-                        The "Motif Index" defines the index of the first AA in the motif within the full substrate sequence
+                        Substrate profiles obtained from "Filter Motif".<br><br>
+                        AA Counts:<br>
+                        - Count matrix of the substrate profile.<br>
+                        - Acceptable file extension: .csv<br><br>
+                        Substrates:<br>
+                        - Optional input used for a wordcloud.<br>
+                        - Acceptable file extension: .pkl<br><br>
+                        Motif Index:<br>
+                        - Index of the first AA in the motif within the full substrate sequence.
                     </span>
                 </div>
             </div>
@@ -103,27 +109,41 @@ function createProfileContainer(containerId = 'profileContainer') {
         if (i > seqLength-motifLength) {
             break; // Enforce data boundaries
         }
+        const l = "121px";
 
         // Upload file
+        const wrapper0 = document.createElement('div');
+        wrapper0.innerHTML = `
+            <a class="label-w">Profile ${i}:</a>
+        `;
+        container.appendChild(wrapper0);
+
         const wrapper1 = document.createElement('div');
         wrapper1.className = 'form-wrapper';
         wrapper1.innerHTML = `
-            <label class="label-w" for="fileExp${i}">Profile ${i}:</label>
-            <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".pkl" required>
+            <label class="label-w" style="width: ${l}" for="fileExp${i}">* AA Counts:</label>
+            <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".csv" required>
         `;
         container.appendChild(wrapper1);
 
-        // Motif start index
         const wrapper2 = document.createElement('div');
         wrapper2.className = 'form-wrapper';
-        wrapper2.style.marginBottom = '1px';
         wrapper2.innerHTML = `
-            <label class="label-w" for="fileExp${i}">Motif Index:</label>
-            <input type="number" id="idxStart${i}" name="idxStart${i}" value="${i}"
-                   min="1" max="${seqLength-motifLength}" style="width: 60px;"
-                   required>
+            <label class="label-w" style="width: ${l};" for="fileExpSubs${i}">* Substrates:</label>
+            <input type="file" "id="fileExpSubs${i}" name="fileExSubsp${i}" accept=".pkl">
         `;
         container.appendChild(wrapper2);
+
+        const wrapper3 = document.createElement('div');
+        wrapper3.className = 'form-wrapper';
+        wrapper3.style.marginBottom = '1px';
+        wrapper3.innerHTML = `
+            <label class="label-w" style="width: ${l}" for="fileExp${i}">* Motif Index:</label>
+            <input type="number" id="idxStart${i}" name="idxStart${i}" value="${i}"
+                   min="1" max="${seqLength-motifLength}" style="width: 60px; height: 22px;"
+                   required>
+        `;
+        container.appendChild(wrapper3);
     }
 }
 

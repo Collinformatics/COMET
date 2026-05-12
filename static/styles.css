@@ -130,8 +130,7 @@ p {
     display: flex;
     align-items:
     center; gap: 5px;
-}
-.help-icon {
+}.help-icon {
     color: white;
     background-color: var(--greendark);
     font-size: 13px;
@@ -296,6 +295,8 @@ button:hover {
     color: var(--white);
     font-weight: normal;
     align-items: center;
+    width: 107px;        /* fixed width */
+    margin: 1px 0 1px 0;
 }.input-form {
     color: var(--textColorLabel);
     background-color: var(--colorForm);
