@@ -364,7 +364,6 @@ class WebApp:
         self.subsBg = {}
         self.fileOrder = []
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
-        print(f'Axis Label: {self.xAxisLabel}')
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.figures = {}
@@ -452,9 +451,7 @@ class WebApp:
         elif job == 'Combine Motifs':
             self.combineRegisters = True
             self.seqLength = int(form['motifLength'])
-            print(f'Keys:')
             for key in form.keys():
-                print(f'* {key}')
                 if 'idxStart' in key:
                     self.idxMotif[key] = int(form[key]) - 1 ##
             print()
@@ -1112,14 +1109,14 @@ class WebApp:
                 print(f'\nIdx: {idx}, {self.idxMotif}\n'
                       f'* {self.fileOrder[idx]} -> {idxN}, {idxC}')
                 c = counts.iloc[:, idxN:idxC]
-                c.columns = self.xAxisLabel
-                self.countsExp += c
                 if len(queuesExpCounts) > 1:
                     self.log(f'\nLoaded Counts: {idx}\n{counts}\n')
                 else:
                     self.log(f'\nLoaded Counts:\n{counts}\n')
                 print(f'{c}\n')
                 self.log(f'Motif Counts:\n{c}\n')
+                c.columns = self.xAxisLabel
+                self.countsExp += c
 
             self.log(f'\nCounts: Substrate Profile\n{self.countsExp}\n')
             print(f'\n{"="*70}\nCounts: Substrate Profile\n{self.countsExp}\n')
