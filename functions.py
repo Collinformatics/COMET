@@ -361,7 +361,6 @@ class WebApp:
         self.fileBgRev = []
         self.subsExp = {}
         self.subsBg = {}
-        self.idxMotif = {}
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         print(f'Axis Label: {self.xAxisLabel}')
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
@@ -428,6 +427,7 @@ class WebApp:
 
         # Job dependant parameters
         self.motifFilter = False
+        self.idxMotif = {}
         if job == 'Process DNA':
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
@@ -1067,7 +1067,6 @@ class WebApp:
             # for log in queuesExpLog:
             #     self.logInQueue(log)
         if queuesExp:
-            print('here')
             for q in queuesExp:
                 substrates = q.get()
                 if combineProfiles:
@@ -1099,23 +1098,28 @@ class WebApp:
                                 msg='No experimental substrates were loaded')
 
         if queuesExpCountsLog: ##
-            print('here1')
             self.log('Loading Counts: Experimental')
         if queuesExpCounts:
-            print('here2')
             for idx, q in enumerate(queuesExpCounts):
                 counts = q.get()
-                print(f'\nCount: {idx}\n{counts}')
-                self.countsExp += counts
+                idxN = self.idxMotif[list(self.idxMotif.keys())[idx]]
+                idxC = idxN + self.seqLength
+                print(f'N, C = {idxN}, {idxC}')
+                c = counts.iloc[:, idxN:idxC]
+                print(f'{c}\n')
+                self.countsExp += c
+                print(f'Counts Exp:\n{self.countsExp}\n')
                 if len(queuesExpCounts) > 1:
-                    self.log(f'\nLoaded Count Set: {idx}\n{counts}\n')
+                    self.log(f'\nLoaded Count Set: {idx}\n{counts}\n\n')
+                else:
+                    self.log(f'\nLoaded Count Set:\n{counts}\n')
             self.countExpTotal = [sum(self.countsExp.iloc[:, i])
                                   for i in range(len(self.countsExp.columns))]
             self.countExpTotal.append(0)
             if any([v == 0 for v in self.countExpTotal]):
-                print(f'DataFrame contains an empty column.\n{self.countsExp}')
+                print(f'DataFrame contains an empty column.\n{self.countExpTotal}')
                 self.logErrorFn(function='loadCounts()',
-                                msg='No background substrates were loaded')
+                                msg=f'Experimental count matrix contains an empty column.')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
 
         if queuesBgLog:
@@ -1129,6 +1133,8 @@ class WebApp:
                 self.countsBg += counts
                 if len(queuesBg) > 1:
                     self.log(f'\nLoaded Count Set: {idx}\n{counts}\n')
+                else:
+                    self.log(f'\nLoaded Count Set:\n{counts}\n')
             self.countBgTotal = sum(self.countsBg.iloc[:, 0])
             if self.countBgTotal == 0:
                 print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
