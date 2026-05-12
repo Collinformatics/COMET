@@ -1105,11 +1105,12 @@ class WebApp:
         if queuesExpCounts:
             # Extract motif counts
             for idx, q in enumerate(queuesExpCounts):
-                idxN = self.idxMotif[self.fileOrder[idx].replace('fileExpCounts', 'idxStart')]
-                print(f'\nIdx: {idx}, {self.idxMotif}\n* {self.fileOrder[idx]} -> {idxN}')
                 counts = q.get()
+                idxN = self.idxMotif[self.fileOrder[idx].replace('fileExpCounts',
+                                                                 'idxStart')]
                 idxC = idxN + self.seqLength
-                print(f'N, C = {idxN}, {idxC}')
+                print(f'\nIdx: {idx}, {self.idxMotif}\n'
+                      f'* {self.fileOrder[idx]} -> {idxN}, {idxC}')
                 c = counts.iloc[:, idxN:idxC]
                 c.columns = self.xAxisLabel
                 self.countsExp += c
@@ -1123,20 +1124,16 @@ class WebApp:
             self.log(f'\nCounts: Substrate Profile\n{self.countsExp}\n')
             print(f'\n{"="*70}\nCounts: Substrate Profile\n{self.countsExp}\n')
             self.countExpTotal = self.countsExp.sum()
-            print(f'Total Counts:\n{self.countExpTotal}\n')
-            self.log(f'Total Counts:\n{self.countExpTotal}\n')
-            self.countExpTotal['R2'] = 0
             for pos in self.xAxisLabel:
                 if self.countExpTotal[pos] == 0:
-                    print(f'Experimental count matrix contains an '
-                          f'empty column.\nTotal Counts:\n{self.countExpTotal}')
                     self.logErrorFn(
                         function='loadCounts()',
                         msg=f'Experimental count matrix contains an empty '
                             f'column.\nTotal Counts:\n{self.countExpTotal}'
                     )
                     break
-            self.log(f'\nBackground Counts:\n{self.countsBg}')
+            print(f'Total Counts:\n{self.countExpTotal.to_string()}\n')
+            self.log(f'Total Counts:\n{self.countExpTotal.to_string()}\n')
 
         if queuesBgLog:
             if self.subsExp or self.profiles:
