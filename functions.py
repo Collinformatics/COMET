@@ -104,6 +104,7 @@ class WebApp:
         self.queueLog = queue.Queue()
         self.fileExp = []
         self.fileExpRev = []
+        self.fileExpCounts = []
         self.fileBg = []
         self.fileBgRev = []
         self.pathDir = ''
@@ -355,6 +356,7 @@ class WebApp:
         # Initialize data structures
         self.fileExp = []
         self.fileExpRev = []
+        self.fileExpCounts = []
         self.fileBg = []
         self.fileBgRev = []
         self.subsExp = {}
@@ -364,6 +366,7 @@ class WebApp:
         print(f'Axis Label: {self.xAxisLabel}')
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        self.figures = {}
 
 
     def jobInit(self, form, job):
@@ -423,18 +426,8 @@ class WebApp:
             else:
                 data.append(value)
 
-        # Get the files
-        for key, value in form.items():
-            if 'fileExpRev' in key:
-                addFile(self.fileExpRev, value)
-            elif 'fileExp' in key:
-                addFile(self.fileExp, value)
-            elif 'fileBgRev' in key:
-                addFile(self.fileBgRev, value)
-            elif 'fileBg' in key:
-                addFile(self.fileBg, value)
-
         # Job dependant parameters
+        self.motifFilter = False
         if job == 'Process DNA':
             self.seq5Prime = form['seq5Prime']
             self.seq3Prime = form['seq3Prime']
@@ -467,8 +460,20 @@ class WebApp:
 
         # Initialize params
         self.initDataStructures()
-        self.figures = {}
-        self.motifFilter = False
+
+        # Get the files
+        for key, value in form.items():
+            if 'fileBgRev' in key:
+                addFile(self.fileBgRev, value)
+            elif 'fileBg' in key:
+                addFile(self.fileBg, value)
+            elif 'fileExpCounts' in key:
+                addFile(self.fileExpCounts, value)
+            elif 'fileExpRev' in key:
+                addFile(self.fileExpRev, value)
+            elif 'fileExp' in key:
+                addFile(self.fileExp, value)
+        print(f'Counts: {self.fileExpCounts}')
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
@@ -538,8 +543,10 @@ class WebApp:
                     self.log(f'          {substrate}: {count}')
 
         # Sort data
-        substrates = dict(sorted(substrates.items(),
-                                 key=lambda item: item[1], reverse=True))
+        substrates = dict(
+            sorted(substrates.items(),
+                   key=lambda item: item[1], reverse=True)
+        )
 
 
         # Count AAs
@@ -893,7 +900,9 @@ class WebApp:
                         subs[substrate] += count
                     else:
                         subs[substrate] = count
-            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
             addSubs(self.subsExp, subs)
         if self.fileExpRev:
             subs = {}
@@ -904,7 +913,9 @@ class WebApp:
                         subs[substrate] += count
                     else:
                         subs[substrate] = count
-            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
             addSubs(self.subsExp, subs)
         if self.fileBg:
             subs = {}
@@ -915,7 +926,9 @@ class WebApp:
                         subs[substrate] += count
                     else:
                         subs[substrate] = count
-            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
             addSubs(self.subsBg, subs)
         if self.fileBgRev:
             subs = {}
@@ -926,7 +939,9 @@ class WebApp:
                         subs[substrate] += count
                     else:
                         subs[substrate] = count
-            subs = dict(sorted(subs.items(), key=lambda item: item[1], reverse=True))
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
             addSubs(self.subsBg, subs)
 
         # Make figures
@@ -1009,6 +1024,7 @@ class WebApp:
         self.subsBg, self.subsExp, self.profiles = {}, {}, []
         threads = []
         queuesExp, queuesExpLog = [], []
+        queuesExpCounts, queuesExpCountsLog = [], []
         queuesBg, queuesBgLog = [], []
         for file in self.fileExp:
             queueExp = queue.Queue()
@@ -1017,6 +1033,18 @@ class WebApp:
             queuesExpLog.append(queueLog)
             thread = threading.Thread(
                 target=self.loadSubstrates, args=(file, queueExp, queueLog)
+            )
+            thread.start()
+            threads.append(thread)
+        print(f'Counts: {self.fileExpCounts}')
+        for file in self.fileExpCounts:
+            print('Loading Counts')
+            queueExp = queue.Queue()
+            queueLog = queue.Queue()
+            queuesExpCounts.append(queueExp)
+            queuesExpCountsLog.append(queueLog)
+            thread = threading.Thread(
+                target=self.loadCounts, args=(file, queueExp, queueLog)
             )
             thread.start()
             threads.append(thread)
@@ -1039,6 +1067,7 @@ class WebApp:
             # for log in queuesExpLog:
             #     self.logInQueue(log)
         if queuesExp:
+            print('here')
             for q in queuesExp:
                 substrates = q.get()
                 if combineProfiles:
@@ -1068,6 +1097,27 @@ class WebApp:
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
+
+        if queuesExpCountsLog: ##
+            print('here1')
+            self.log('Loading Counts: Experimental')
+        if queuesExpCounts:
+            print('here2')
+            for idx, q in enumerate(queuesExpCounts):
+                counts = q.get()
+                print(f'\nCount: {idx}\n{counts}')
+                self.countsExp += counts
+                if len(queuesExpCounts) > 1:
+                    self.log(f'\nLoaded Count Set: {idx}\n{counts}\n')
+            self.countExpTotal = [sum(self.countsExp.iloc[:, i])
+                                  for i in range(len(self.countsExp.columns))]
+            self.countExpTotal.append(0)
+            if any([v == 0 for v in self.countExpTotal]):
+                print(f'DataFrame contains an empty column.\n{self.countsExp}')
+                self.logErrorFn(function='loadCounts()',
+                                msg='No background substrates were loaded')
+            self.log(f'\nBackground Counts:\n{self.countsBg}')
+
         if queuesBgLog:
             if self.subsExp or self.profiles:
                 self.log('\n\nLoading Substrate Counts: Background')
@@ -1308,10 +1358,10 @@ class WebApp:
 
     def combineProfiles(self):
         print('Combining Profiles') ##
-        self.countsExp = self.countAA(
-            substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
-        )
-        self.calculateRF()
+        # self.countsExp = self.countAA(
+        #     substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
+        # )
+        # self.calculateRF()
         #self.calculateEntropy()
         #self.evalEnrichment()
 

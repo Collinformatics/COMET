@@ -121,16 +121,16 @@ function createProfileContainer(containerId = 'profileContainer') {
         const wrapper1 = document.createElement('div');
         wrapper1.className = 'form-wrapper';
         wrapper1.innerHTML = `
-            <label class="label-w" style="width: ${l}" for="fileExp${i}">* AA Counts:</label>
-            <input type="file" id="fileExp${i}" name="fileExp${i}" accept=".csv" required>
+            <label class="label-w" style="width: ${l}" for="fileExpCounts${i}">* AA Counts:</label>
+            <input type="file" id="fileExpCounts${i}" name="fileExpCounts${i}" accept=".csv" required>
         `;
         container.appendChild(wrapper1);
 
         const wrapper2 = document.createElement('div');
         wrapper2.className = 'form-wrapper';
         wrapper2.innerHTML = `
-            <label class="label-w" style="width: ${l};" for="fileExpSubs${i}">* Substrates:</label>
-            <input type="file" "id="fileExpSubs${i}" name="fileExSubsp${i}" accept=".pkl">
+            <label class="label-w" style="width: ${l};" for="fileExp${i}">* Substrates:</label>
+            <input type="file" "id="fileExpSubs${i}" name="fileExp${i}" accept=".pkl">
         `;
         container.appendChild(wrapper2);
 
