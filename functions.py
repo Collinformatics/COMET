@@ -97,6 +97,7 @@ class WebApp:
 
         # Params: Combined Profiles
         self.combineRegisters = False
+        self.fileOrder = []
         self.idxMotif = {}
         self.profiles = []
 
@@ -361,6 +362,7 @@ class WebApp:
         self.fileBgRev = []
         self.subsExp = {}
         self.subsBg = {}
+        self.fileOrder = []
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         print(f'Axis Label: {self.xAxisLabel}')
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
@@ -437,8 +439,8 @@ class WebApp:
             self.log(f'5\' Sequence: {self.seq5Prime}\n'
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
-        elif job == 'Filter AA':
-            print(f'Job: {job}')
+        # elif job == 'Filter AA':
+        #     print(f'Job: {job}')
         elif job == 'Filter Motif':
             self.motifFilter = True
             self.iteration = 0
@@ -448,12 +450,14 @@ class WebApp:
             self.minESRel = -0.5
             self.motifPos = {}
         elif job == 'Combine Motifs':
-            print(f'Job: {job}')
             self.combineRegisters = True
             self.seqLength = int(form['motifLength'])
+            print(f'Keys:')
             for key in form.keys():
+                print(f'* {key}')
                 if 'idxStart' in key:
                     self.idxMotif[key] = int(form[key]) - 1 ##
+            print()
         else:
             print('ERROR: What Script Is Running')
             sys.exit()
@@ -468,12 +472,12 @@ class WebApp:
             elif 'fileBg' in key:
                 addFile(self.fileBg, value)
             elif 'fileExpCounts' in key:
+                self.fileOrder.append(key)
                 addFile(self.fileExpCounts, value)
             elif 'fileExpRev' in key:
                 addFile(self.fileExpRev, value)
             elif 'fileExp' in key:
                 addFile(self.fileExp, value)
-        print(f'Counts: {self.fileExpCounts}')
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
@@ -1004,7 +1008,8 @@ class WebApp:
             queueLog.put(self.logErrorFn(
                 function='loadCounts()',
                 msg=f'Failed to load file:\n     {path}\n     {e}',
-                getStr=True))
+                getStr=True)
+            )
 
 
     def evalSubs(self, form, filterMotifs=False, combineProfiles=False):
@@ -1036,9 +1041,7 @@ class WebApp:
             )
             thread.start()
             threads.append(thread)
-        print(f'Counts: {self.fileExpCounts}')
         for file in self.fileExpCounts:
-            print('Loading Counts')
             queueExp = queue.Queue()
             queueLog = queue.Queue()
             queuesExpCounts.append(queueExp)
@@ -1100,26 +1103,39 @@ class WebApp:
         if queuesExpCountsLog: ##
             self.log('Loading Counts: Experimental')
         if queuesExpCounts:
+            # Extract motif counts
             for idx, q in enumerate(queuesExpCounts):
+                idxN = self.idxMotif[self.fileOrder[idx].replace('fileExpCounts', 'idxStart')]
+                print(f'\nIdx: {idx}, {self.idxMotif}\n* {self.fileOrder[idx]} -> {idxN}')
                 counts = q.get()
-                idxN = self.idxMotif[list(self.idxMotif.keys())[idx]]
                 idxC = idxN + self.seqLength
                 print(f'N, C = {idxN}, {idxC}')
                 c = counts.iloc[:, idxN:idxC]
-                print(f'{c}\n')
+                c.columns = self.xAxisLabel
                 self.countsExp += c
-                print(f'Counts Exp:\n{self.countsExp}\n')
                 if len(queuesExpCounts) > 1:
-                    self.log(f'\nLoaded Count Set: {idx}\n{counts}\n\n')
+                    self.log(f'\nLoaded Counts: {idx}\n{counts}\n')
                 else:
-                    self.log(f'\nLoaded Count Set:\n{counts}\n')
-            self.countExpTotal = [sum(self.countsExp.iloc[:, i])
-                                  for i in range(len(self.countsExp.columns))]
-            self.countExpTotal.append(0)
-            if any([v == 0 for v in self.countExpTotal]):
-                print(f'DataFrame contains an empty column.\n{self.countExpTotal}')
-                self.logErrorFn(function='loadCounts()',
-                                msg=f'Experimental count matrix contains an empty column.')
+                    self.log(f'\nLoaded Counts:\n{counts}\n')
+                print(f'{c}\n')
+                self.log(f'Motif Counts:\n{c}\n')
+
+            self.log(f'\nCounts: Substrate Profile\n{self.countsExp}\n')
+            print(f'\n{"="*70}\nCounts: Substrate Profile\n{self.countsExp}\n')
+            self.countExpTotal = self.countsExp.sum()
+            print(f'Total Counts:\n{self.countExpTotal}\n')
+            self.log(f'Total Counts:\n{self.countExpTotal}\n')
+            self.countExpTotal['R2'] = 0
+            for pos in self.xAxisLabel:
+                if self.countExpTotal[pos] == 0:
+                    print(f'Experimental count matrix contains an '
+                          f'empty column.\nTotal Counts:\n{self.countExpTotal}')
+                    self.logErrorFn(
+                        function='loadCounts()',
+                        msg=f'Experimental count matrix contains an empty '
+                            f'column.\nTotal Counts:\n{self.countExpTotal}'
+                    )
+                    break
             self.log(f'\nBackground Counts:\n{self.countsBg}')
 
         if queuesBgLog:
@@ -1132,14 +1148,14 @@ class WebApp:
                 counts = q.get()
                 self.countsBg += counts
                 if len(queuesBg) > 1:
-                    self.log(f'\nLoaded Count Set: {idx}\n{counts}\n')
+                    self.log(f'\nLoaded Counts: {idx}\n{counts}\n')
                 else:
-                    self.log(f'\nLoaded Count Set:\n{counts}\n')
+                    self.log(f'\nLoaded Counts:\n{counts}\n')
             self.countBgTotal = sum(self.countsBg.iloc[:, 0])
             if self.countBgTotal == 0:
                 print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
                 self.logErrorFn(function='loadCounts()',
-                                msg='No background substrates were loaded')
+                                msg='No background counts were loaded')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
         print(f'Motif Length: {self.seqLength} AA')
 
@@ -1342,7 +1358,7 @@ class WebApp:
 
     def getMotifs(self):
         motifs = {}
-        for idx, profile in enumerate(self.profiles): ##
+        for idx, profile in enumerate(self.profiles):
             # print(f'\nProfile {idx}, {list(self.idxMotif.keys())[idx]}')
             idxN = self.idxMotif[list(self.idxMotif.keys())[idx]]
             idxC = idxN + self.seqLength
@@ -1363,7 +1379,7 @@ class WebApp:
 
 
     def combineProfiles(self):
-        print('Combining Profiles') ##
+        print('Combining Profiles')
         # self.countsExp = self.countAA(
         #     substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
         # )
