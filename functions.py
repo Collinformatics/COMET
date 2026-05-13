@@ -1341,9 +1341,9 @@ class WebApp:
         self.figTag = 'Substrate Profile'
         self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
         self.calculateEntropy(plotFig=True)
-        self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
-        print(f'Substrate Profile:\n{self.substrateProfile}\n')
-        print(f'Substrate Profile: Scaled\n{self.substrateProfileScl}\n')
+        # self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
+        # print(f'Substrate Profile:\n{self.substrateProfile}\n')
+        # print(f'Substrate Profile: Scaled\n{self.eMapScaled}\n')
         print(f'Profile Counts:\n{self.countsExp}\n')
 
         # Plot profile
@@ -1754,6 +1754,7 @@ class WebApp:
         for column in heights.columns:
             if (heights[column] == 0).all():
                 heights.loc[:, column] = np.nan
+                print(f'NaN: {column}:\n{heights[column]}')
             elif heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
                 print(f'N Values: {nValues}')
@@ -1761,9 +1762,10 @@ class WebApp:
                     self.log(
                         f'{len(heights[column]) - nValues} NaN values at: {column}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
-                heights.loc[:, column] = heights.loc[:, column].fillna(0)
         self.log(f'Residue Heights: {self.datasetTag}\n'
                  f'{heights}\n')
+        print(f'Residue Heights: {self.datasetTag}\n'
+              f'{heights}\n')
         return heights
 
 
@@ -1823,7 +1825,7 @@ class WebApp:
                         matrix.loc[AA, pos] = -np.inf
                     else:
                         matrix.loc[AA, pos] = np.log2(rf / self.rfBg.loc[AA, pos])
-        self.eMap = matrix
+        self.eMap = matrix.copy()
         self.log(f'Enrichment Score: {self.datasetTag}\n'
               f'{matrix.round(self.roundVal)}\n')
         # print('============================= Eval Enrichment '
@@ -1844,9 +1846,8 @@ class WebApp:
                  '=====================')
         self.log(f'Scale Enrichment Scores:\n'
               f'     Enrichment Scores * ΔS\n')
-        heights = self.scaleMatrix(matrix)
-        self.eMapScaled = heights.copy()
-        evalMatrix(heights.replace([np.inf, -np.inf], 0))
+        self.eMapScaled = self.scaleMatrix(self.eMap)
+        evalMatrix(self.eMapScaled)
         print(f'Enrichment Scores:\n{self.eMap}\n\n'
               f'Scaled Enrichment Scores:\n{self.eMapScaled}\n')
 
@@ -1880,6 +1881,7 @@ class WebApp:
             scores = self.eMapScaled
         else:
             scores = self.eMap
+        print(f'E Scores:\n{scores}\n')
 
         # Set figure title
         if self.figTag:
@@ -1996,10 +1998,9 @@ class WebApp:
             stackOrder = 'small_on_top'
 
         # Rename columns for logomaker script
-        if self.subProfile:
-            scores = self.substrateProfileScl.copy().replace([np.inf, -np.inf], 0)
-        else:
-            scores = self.eMapScaled.copy().replace([np.inf, -np.inf], 0)
+        print(f'EMap Scaled:\n{self.eMapScaled}\n')
+        scores = self.eMapScaled.copy().replace([np.inf, -np.inf], 0).replace(np.nan, 0)
+        print(f'Logo:\n{scores}')
         xticks = scores.columns
         scores.columns = range(len(scores.columns))
 
