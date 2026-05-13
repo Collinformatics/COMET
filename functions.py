@@ -353,8 +353,7 @@ class WebApp:
         return fileName
 
 
-    def initDataStructures(self):
-        # Initialize data structures
+    def initParams(self):
         self.fileExp = []
         self.fileExpRev = []
         self.fileExpCounts = []
@@ -367,6 +366,7 @@ class WebApp:
         self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.figures = {}
+        self.figTag = ''
 
 
     def jobInit(self, form, job):
@@ -460,7 +460,7 @@ class WebApp:
             sys.exit()
 
         # Initialize params
-        self.initDataStructures()
+        self.initParams()
 
         # Get the files
         for key, value in form.items():
@@ -1092,7 +1092,7 @@ class WebApp:
                         self.log(f'    {substrate}, {count:,}')
                         if i >= self.printN:
                             break
-                self.getMotifs()
+                self.getMotifSeq()
             else:
                 self.logErrorFn(function='loadSubstrates()',
                                 msg='No experimental substrates were loaded')
@@ -1153,8 +1153,7 @@ class WebApp:
             self.log(f'\nBackground Counts:\n{self.countsBg}')
         print(f'Motif Length: {self.seqLength} AA')
 
-        # Plot figures
-
+        # Use data
         if filterMotifs:
             self.subsExpAll = self.subsExp
             self.filterSubs(plotEntropy=True)
@@ -1321,19 +1320,20 @@ class WebApp:
             # print(f'{self.eMap}\n')
             # print(f'{self.eMap.loc[:, posRel]}\n')
             self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
-            # print(f'Substrate Profile: {posRel}\n{self.substrateProfile}\n')
+            print(f'Substrate Profile: {posRel}\n{self.substrateProfile}\n')
 
         # Populate non-motif pos
         print(f'Populate remaining')
         for pos in eMap.columns:
             if pos not in self.motifPos.keys():
-                # print(f'Populate Pos: {pos}')
+                print(f'Populate Pos: {pos}')
                 # print(f'{eMap.loc[:, pos]}\n')
                 self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
-                # print(f'Substrate Profile:\n{self.substrateProfile}\n')
+                print(f'Substrate Profile:\n{self.substrateProfile}\n')
         self.motifFilter = False
         self.subProfile = True
         self.figTag = 'Substrate Profile'
+        self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
         self.calculateEntropy(plotFig=True)
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
 
@@ -1350,7 +1350,7 @@ class WebApp:
         self.jobDone = True
 
 
-    def getMotifs(self):
+    def getMotifSeq(self):
         motifs = {}
         for idx, profile in enumerate(self.profiles):
             # print(f'\nProfile {idx}, {list(self.idxMotif.keys())[idx]}')
@@ -1371,16 +1371,15 @@ class WebApp:
         self.subsExp = motifs
 
 
-
     def combineProfiles(self):
-        print('Combining Profiles')
+        print('Combining Profiles') ##
+        print(f'Exp Counts:\n{self.countsExp}')
         # self.countsExp = self.countAA(
         #     substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
         # )
         # self.calculateRF()
         #self.calculateEntropy()
         #self.evalEnrichment()
-
 
 
     def selectMotifPos(self):
@@ -1405,6 +1404,19 @@ class WebApp:
             self.log(f'\nSaving Substrates:\n     {path}')
             with open(path, 'wb') as file:
                 pk.dump(substrates, file)
+
+
+    def saveCounts(self, counts, datasetType, subProfile=False):
+        # File path
+        saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
+                                   subProfile=subProfile)
+
+        # Save the counts
+        path = os.path.join(self.pathData, saveTag)
+        print(f'Saving Counts: {path}\n{counts}')
+        if not os.path.exists(path):
+            # self.log(f'\nSaving Counts:\n     {path}')
+            counts.to_csv(path)
 
 
     def countAA(self, substrates, countMatrix,
@@ -1441,16 +1453,10 @@ class WebApp:
         self.log(f'\nCount Totals:\n{totalCounts}')
 
         if self.saveData:
-            # File path
-            saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
-                                       subProfile=subProfile)
-
-            # Save the counts
-            path = os.path.join(self.pathData, saveTag)
-            print(f'Saving Counts: {path}')
-            if not os.path.exists(path):
-                # self.log(f'\nSaving Counts:\n     {path}')
-                countMatrix.to_csv(path)
+            print('Saving Data: Counts')
+            self.saveCounts(
+                counts=countMatrix, datasetType=datasetType, subProfile=subProfile
+            )
         return countMatrix
 
     def plotCounts(self, countedData, totalCounts, datasetType):
@@ -1551,7 +1557,7 @@ class WebApp:
         for pos in self.countsExp.columns:
             self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
         self.log(f'RF Experimental:\n{self.rfExp}')
-        print(f'RF Experimental:\n{self.rfExp}\n')
+        # print(f'RF Experimental:\n{self.rfExp}\n')
 
         if self.rfBg is None:
             self.rfBg = pd.DataFrame(
