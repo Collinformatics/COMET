@@ -291,7 +291,7 @@ class WebApp:
     def getSaveTag(self, saveTag=''):
         # Evaluate filters
         if self.motifFilter:
-            tag = self.datasetTagMotif.replace(' ', '')
+            tag = self.datasetTagMotif.replace(' ', '_')
         else:
             tag = self.datasetTag
             tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
@@ -1689,6 +1689,9 @@ class WebApp:
 
         # File path
         figName = self.getFileNameFig('entropy')
+        if self.subProfile:
+            figName = figName.replace(self.enzymeName,
+                                      f'{self.enzymeName}-subProfile')
         path = os.path.join(self.pathFigs, figName)
 
         # Encode the figure
