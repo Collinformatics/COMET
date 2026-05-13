@@ -316,8 +316,8 @@ class WebApp:
         self.getDatasetTag()
 
 
-    def getFileNameFig(self, tag, tag2=''):
-        figName = (f'{tag}-subProfile-{self.enzymeName}-'
+    def getFileNameFig(self, tag, tag2=False):
+        figName = (f'{tag}-{self.enzymeName}-'
                    f'{self.getSaveTag()}-{self.seqLength}AA.png')
         if self.motifFilter and 'entropy' not in tag.lower():
             figName = figName.replace(tag, f'{tag}-{self.iteration}')
@@ -1330,9 +1330,9 @@ class WebApp:
                 # print(f'Substrate Profile:\n{self.substrateProfile}\n')
                 # print(f'Profile Counts:\n{self.countsExp}\n')
         self.subProfile = True
-        # self.motifFilter = False
         self.calculateRF()
         self.calculateEntropy()
+        # self.motifFilter = False
         self.evalEnrichment(releasedCounts=True, noFigs=True)
         self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
         # self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
