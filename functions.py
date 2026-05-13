@@ -2,9 +2,6 @@ import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
 from concurrent.futures import ProcessPoolExecutor
-
-from wordcloud.tokenization import score
-
 from counter import counter
 import gzip
 import io
@@ -1244,7 +1241,6 @@ class WebApp:
 
 
     def comet(self, form):
-        print(f'Set S: {self.setS}')
         self.jobDone = False
         self.motifFilter = True
         self.evalEnrichment(skipFigs=True)
@@ -1260,6 +1256,11 @@ class WebApp:
         self.log('\nRecognition Sites:')
         self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
 
+        # Average Bg data
+        self.rfBg = np.sum(self.rfBg, axis=1) / len(self.rfBg.columns)
+        self.rfBg = pd.DataFrame(self.rfBg, index=self.rfBg.index,
+                                 columns=['Average RF'])
+
         def evalAAs(position, minES):
             self.fixAA[position] = []
             for aa in self.eMap.index:
@@ -1268,6 +1269,7 @@ class WebApp:
             # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
         # Apply Filter
+
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
                 evalAAs(pos, self.minES)
@@ -1277,6 +1279,7 @@ class WebApp:
 
         # Refine Filter
         for posRel in self.motifPos.keys():
+            print(f'Refine: {posRel}')
             self.fixAA = {}
             filter = []
             for pos in self.motifPos.keys():
@@ -1298,15 +1301,14 @@ class WebApp:
         self.figTag = 'Release Filter'
         self.fixAA = {}
         idxEnd = len(self.motifPos.keys()) - 1
-        eMap = self.eMap.copy()
-        self.substrateProfile = pd.DataFrame(0.0, index=self.eMap.index,
+        counts = self.countsExp.copy()
+        self.substrateProfile = pd.DataFrame(0, index=self.eMap.index,
                                              columns=self.eMap.columns)
         for idx, posRel in enumerate(self.motifPos.keys()):
             print(f'Release Pos: {posRel}')
             self.fixAA = {}
             filter = []
             for pos in self.motifPos.keys():
-                # print(f'* Release: {posRel}')
                 if pos != posRel:
                     filter.append(pos)
             for posFix in filter:
@@ -1316,26 +1318,33 @@ class WebApp:
                 self.filterSubs(allSubs=True, plotEntropy=True, subProfile=True)
             else:
                 self.filterSubs(allSubs=True)
+            # print(f'Counts Exp: {posRel}\n{self.countsExp}\n')
+            self.substrateProfile.loc[:, posRel] = self.countsExp.loc[:, posRel]
+            # print(f'Substrate Profile:\n{self.substrateProfile}\n')
+            self.countsExp = self.substrateProfile.copy()
+            self.calculateRF()
             self.evalEnrichment(releasedCounts=True, skipFigs=True)
-            # print(f'{self.eMap}\n')
-            # print(f'{self.eMap.loc[:, posRel]}\n')
-            self.substrateProfile.loc[:, posRel] = self.eMap.loc[:, posRel]
-            print(f'Substrate Profile: {posRel}\n{self.substrateProfile}\n')
 
         # Populate non-motif pos
         print(f'Populate remaining')
-        for pos in eMap.columns:
+        for pos in counts.columns:
             if pos not in self.motifPos.keys():
                 print(f'Populate Pos: {pos}')
-                # print(f'{eMap.loc[:, pos]}\n')
-                self.substrateProfile.loc[:, pos] = eMap.loc[:, pos]
-                print(f'Substrate Profile:\n{self.substrateProfile}\n')
+                self.substrateProfile.loc[:, pos] = counts.loc[:, pos]
+                self.countsExp.loc[:, pos] = counts.loc[:, pos]
+                # print(f'Substrate Profile:\n{self.substrateProfile}\n')
+                # print(f'Profile Counts:\n{self.countsExp}\n')
+        self.calculateRF()
+        self.evalEnrichment(releasedCounts=True)
         self.motifFilter = False
         self.subProfile = True
         self.figTag = 'Substrate Profile'
         self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
         self.calculateEntropy(plotFig=True)
         self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
+        print(f'Substrate Profile:\n{self.substrateProfile}\n')
+        print(f'Substrate Profile: Scaled\n{self.substrateProfileScl}\n')
+        print(f'Profile Counts:\n{self.countsExp}\n')
 
         # Plot profile
         self.figures['eMapProfile'] = (
@@ -1407,16 +1416,15 @@ class WebApp:
 
 
     def saveCounts(self, counts, datasetType, subProfile=False):
-        # File path
         saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
                                    subProfile=subProfile)
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)
-        print(f'Saving Counts: {path}\n{counts}')
-        if not os.path.exists(path):
-            # self.log(f'\nSaving Counts:\n     {path}')
-            counts.to_csv(path)
+        print(f'Counts:\n{counts}') 
+        # if not os.path.exists(path): ## ==================================================
+        print(f'Saving Counts: {path}\n')
+        counts.to_csv(path)
 
 
     def countAA(self, substrates, countMatrix,
@@ -1452,12 +1460,13 @@ class WebApp:
             totalCounts.loc[pos, 'Sum'] = counts
         self.log(f'\nCount Totals:\n{totalCounts}')
 
-        if self.saveData:
+        if self.saveData and not subProfile:
             print('Saving Data: Counts')
             self.saveCounts(
                 counts=countMatrix, datasetType=datasetType, subProfile=subProfile
             )
         return countMatrix
+
 
     def plotCounts(self, countedData, totalCounts, datasetType):
         countedData.index = self.AA
@@ -1519,7 +1528,7 @@ class WebApp:
         ax.set_yticks(yTicks)
         ax.set_yticklabels(countedData.index)
 
-        # Colorbar
+        # Set colorbar
         normalize = Normalize(vmin=0, vmax=maxRound)  # Normalize the entropy values
         sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
         sm.set_array([])
@@ -1574,7 +1583,6 @@ class WebApp:
                 self.rfBg = np.sum(self.rfBg, axis=1) / len(self.rfBg.columns)
                 self.rfBg = pd.DataFrame(self.rfBg, index=self.rfBg.index,
                                          columns=['Average RF'])
-            print(f'RF:\n{self.rfBg}\n')
             self.log(f'\nRF Background:\n{self.rfBg}')
 
 
@@ -1678,7 +1686,7 @@ class WebApp:
         ax.set_xlim(-0.5, xMax-0.5)
         ax.set_ylim(0, yMax)
 
-        # Colorbar
+        # Set colorbar
         sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, pad=0.02)
@@ -1744,8 +1752,11 @@ class WebApp:
 
         # Adjust values
         for column in heights.columns:
-            if heights.loc[:, column].isna().any():
+            if (heights[column] == 0).all():
+                heights.loc[:, column] = np.nan
+            elif heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
+                print(f'N Values: {nValues}')
                 if nValues > 0:
                     self.log(
                         f'{len(heights[column]) - nValues} NaN values at: {column}')
@@ -1836,6 +1847,8 @@ class WebApp:
         heights = self.scaleMatrix(matrix)
         self.eMapScaled = heights.copy()
         evalMatrix(heights.replace([np.inf, -np.inf], 0))
+        print(f'Enrichment Scores:\n{self.eMap}\n\n'
+              f'Scaled Enrichment Scores:\n{self.eMapScaled}\n')
 
         # Plot: Enrichment Map
         self.figures['eMap'] = (
@@ -1864,15 +1877,9 @@ class WebApp:
         scaleData = False
         if 'scaled' in dataType.lower():
             scaleData = True
-            if self.subProfile:
-                scores = self.substrateProfileScl
-            else:
-                scores = self.eMapScaled
+            scores = self.eMapScaled
         else:
-            if self.subProfile:
-                scores = self.substrateProfile
-            else:
-                scores = self.eMap
+            scores = self.eMap
 
         # Set figure title
         if self.figTag:
@@ -1945,7 +1952,7 @@ class WebApp:
         cmap = plt.cm.get_cmap(cMapCustom)
         cmap.set_bad(color='lightgrey')
 
-        # Colorbar
+        # Set colorbar
         normalize = Normalize(vmax=cBarMax, vmin=cBarMin)
         sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
         sm.set_array([])
