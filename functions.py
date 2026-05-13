@@ -25,7 +25,6 @@ from wordcloud import WordCloud
 
 
 
-
 defaultResidues = (
     ('Alanine', 'Ala', 'A'), ('Arginine', 'Arg', 'R'), ('Asparagine', 'Asn', 'N'),
     ('Aspartic Acid', 'Asp', 'D'), ('Cysteine', 'Cys', 'C'), ('Glutamic Acid', 'Glu', 'E'),
@@ -279,7 +278,8 @@ class WebApp:
         else:
             self.datasetTag = 'Unfiltered'
         if self.motifFilter and not self.datasetTagMotif:
-            self.datasetTagMotif = f'Register {self.datasetTag.replace(f'Fix ', '')}'
+            self.datasetTagMotif = (f'Register '
+                                    f'{self.datasetTag.replace(f'Fix ', '')}')
             self.jobParams['Dataset Tag'] = self.datasetTagMotif
             if log:
                 self.log(f'Filter: {self.datasetTagMotif}')
@@ -303,7 +303,7 @@ class WebApp:
         self.getDatasetTag()
 
 
-    def getSaveTag(self, saveTag=''):
+    def getSaveTag(self):
         # Evaluate filters
         if self.initCOMET:
             self.initCOMET = False
@@ -314,10 +314,7 @@ class WebApp:
             tag = self.datasetTag
             tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
             tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
-        if saveTag:
-            return saveTag.replace(self.datasetTag, tag)
-        else:
-            return tag
+        return tag
 
 
     def getFileNameFig(self, tag, tag2=False):
@@ -332,13 +329,12 @@ class WebApp:
     
     def getFileName(self, ftype='Subs', datasetType='Exp', subProfile=False):
         if subProfile:
-            tag = self.datasetTagMotif.replace(' ', '_')
+            tag = f'SubProfile_{self.datasetTagMotif.replace(' ', '_')}'
         else:
             if self.datasetTag is None:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
                 sys.exit()
             tag = self.datasetTag.replace(' ', '_')
-
         if ftype == 'Subs':
             fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
                         f'MinCounts_{self.minCounts}-{self.seqLength}AA.pkl')
@@ -347,6 +343,29 @@ class WebApp:
                         f'MinCounts_{self.minCounts}-{self.seqLength}AA.csv')
         print(f'File Name: {fileName}')
         return fileName
+
+
+    def saveSubstrates(self, substrates, datasetType='Exp', subProfile=False):
+        saveTag = self.getFileName(datasetType=datasetType, subProfile=subProfile)
+
+        # Save the substrates
+        path = os.path.join(self.pathData, saveTag)
+        print(f'Saving Substrates: {path}')
+        if not os.path.exists(path):
+            self.log(f'\nSaving Substrates:\n     {path}')
+            with open(path, 'wb') as file:
+                pk.dump(substrates, file)
+
+
+    def saveCounts(self, counts, datasetType, subProfile=False):
+        saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
+                                   subProfile=subProfile)
+
+        # Save the counts
+        path = os.path.join(self.pathData, saveTag)
+        # if not os.path.exists(path): ## ==================================================
+        print(f'Saving Counts: {path}')
+        counts.to_csv(path)
 
 
     def initParams(self):
@@ -363,6 +382,7 @@ class WebApp:
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.figures = {}
         self.figTag = ''
+        self.motifFilter = False
 
 
     def jobInit(self, form, job):
@@ -423,7 +443,6 @@ class WebApp:
                 data.append(value)
 
         # Job dependant parameters
-        self.motifFilter = False
         self.idxMotif = {}
         if job == 'Process DNA':
             self.seq5Prime = form['seq5Prime']
@@ -437,8 +456,6 @@ class WebApp:
         # elif job == 'Filter AA':
         #     print(f'Job: {job}')
         elif job == 'Filter Motif':
-            self.initCOMET = True
-            self.motifFilter = True
             self.iteration = 0
             self.minS = 0.6
             self.jobParams['Minimum ∆S'] = self.minS
@@ -1009,8 +1026,10 @@ class WebApp:
     def evalSubs(self, form, filterMotifs=False, combineProfiles=False):
         self.jobDone = False
         if filterMotifs:
-            self.saveData = False
             self.jobInit(form, job='Filter Motif')
+            self.initCOMET = True
+            self.motifFilter = True
+            self.saveData = False
             self.setS = True
         elif combineProfiles:
             self.jobInit(form, job='Combine Motifs')
@@ -1148,10 +1167,10 @@ class WebApp:
                 self.logErrorFn(function='loadCounts()',
                                 msg='No background counts were loaded')
             self.log(f'\nBackground Counts:\n{self.countsBg}')
-        print(f'Motif Length: {self.seqLength} AA')
 
         # Use data
         if filterMotifs:
+            self.figTag = 'Motif Filter'
             self.subsExpAll = self.subsExp
             self.filterSubs(plotEntropy=True)
             self.selectMotifPos()
@@ -1268,7 +1287,6 @@ class WebApp:
             # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
         # Apply Filter
-
         for pos in self.motifPos.keys():
             if pos not in self.fixAA.keys():
                 evalAAs(pos, self.minES)
@@ -1314,7 +1332,7 @@ class WebApp:
                 evalAAs(posFix, self.minESRel)
             if idx == idxEnd:
                 self.saveData = True
-                self.filterSubs(allSubs=True, plotEntropy=True, subProfile=True)
+                self.filterSubs(allSubs=True, subProfile=True)
             else:
                 self.filterSubs(allSubs=True)
             self.substrateProfile.loc[:, posRel] = self.countsExp.loc[:, posRel]
@@ -1391,29 +1409,6 @@ class WebApp:
         if not self.motifPos:
             self.motifPos = {False: 'No Positions Selected'}
         # print(f'Motif Pos:\n{self.motifPos}')
-
-
-    def saveSubstrates(self, substrates, datasetType='Exp', subProfile=False):
-        saveTag = self.getFileName(datasetType=datasetType, subProfile=subProfile)
-
-        # Save the substrates
-        path = os.path.join(self.pathData, saveTag)
-        print(f'Saving Substrates: {path}')
-        if not os.path.exists(path):
-            self.log(f'\nSaving Substrates:\n     {path}')
-            with open(path, 'wb') as file:
-                pk.dump(substrates, file)
-
-
-    def saveCounts(self, counts, datasetType, subProfile=False):
-        saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
-                                   subProfile=subProfile)
-
-        # Save the counts
-        path = os.path.join(self.pathData, saveTag)
-        # if not os.path.exists(path): ## ==================================================
-        print(f'Saving Counts: {path}\n')
-        counts.to_csv(path)
 
 
     def countAA(self, substrates, countMatrix,
@@ -1600,15 +1595,19 @@ class WebApp:
             else:
                 self.figures['entropy'] = self.plotEntropy()
             if self.setS:
-                print('End job')
                 self.jobDone = True
                 self.setS = False
 
 
     def plotEntropy(self):
         # Set figure title
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
+        if self.initCOMET:
+            title = (f'{self.enzymeName}\n'
+                     f'{self.datasetTag.replace('Fix', 'Register')}')
+        elif self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
+        elif self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
         else:
             title = self.enzymeName
 
@@ -1685,6 +1684,7 @@ class WebApp:
 
         # File path
         figName = self.getFileNameFig('entropy')
+        print('Saving:', figName)
         path = os.path.join(self.pathFigs, figName)
 
         # Encode the figure
@@ -1865,8 +1865,8 @@ class WebApp:
             scores = self.eMap
 
         # Set figure title
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -1967,8 +1967,8 @@ class WebApp:
 
     def plotEnrichmentLogo(self):
         # Set figure title
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -2095,8 +2095,8 @@ class WebApp:
         totalWords = len(substrates)
 
         # Set figure title
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
@@ -2138,8 +2138,8 @@ class WebApp:
 
     def plotWebLogo(self):
         # Set figure title
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}\n{self.datasetTagMotif}'
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
             title = self.enzymeName
 
