@@ -83,6 +83,7 @@ class WebApp:
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: COMET
+        self.initCOMET = False
         self.iteration = 0
         self.minS = 0.6
         self.minES = 0
@@ -288,20 +289,6 @@ class WebApp:
                 self.log(f'Filter: {self.datasetTag}')
 
 
-    def getSaveTag(self, saveTag=''):
-        # Evaluate filters
-        if self.motifFilter:
-            tag = self.datasetTagMotif.replace(' ', '_')
-        else:
-            tag = self.datasetTag
-            tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
-            tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
-        if saveTag:
-            return saveTag.replace(self.datasetTag, tag)
-        else:
-            return tag
-
-
     def getFilter(self, data):
         self.fixAA = {}
         self.exclAA = {}
@@ -314,6 +301,23 @@ class WebApp:
                 if 'excl' in key:
                     self.exclAA[key.replace('excl', '')] = value
         self.getDatasetTag()
+
+
+    def getSaveTag(self, saveTag=''):
+        # Evaluate filters
+        if self.initCOMET:
+            self.initCOMET = False
+            tag = f'{self.datasetTagMotif.replace(' ', '_')}'
+        elif self.motifFilter: ##
+            tag = f'SubProfile_{self.datasetTagMotif.replace(' ', '_')}'
+        else:
+            tag = self.datasetTag
+            tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
+            tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
+        if saveTag:
+            return saveTag.replace(self.datasetTag, tag)
+        else:
+            return tag
 
 
     def getFileNameFig(self, tag, tag2=False):
@@ -433,6 +437,7 @@ class WebApp:
         # elif job == 'Filter AA':
         #     print(f'Job: {job}')
         elif job == 'Filter Motif':
+            self.initCOMET = True
             self.motifFilter = True
             self.iteration = 0
             self.minS = 0.6
@@ -1237,7 +1242,6 @@ class WebApp:
 
     def comet(self, form):
         self.jobDone = False
-        self.motifFilter = True
         self.evalEnrichment(skipFigs=True)
         self.log('\n\n================================ Filter Motif '
                  '================================')
@@ -1324,21 +1328,13 @@ class WebApp:
         print(f'Populate remaining')
         for pos in counts.columns:
             if pos not in self.motifPos.keys():
-                print(f'Populate Pos: {pos}')
                 self.substrateProfile.loc[:, pos] = counts.loc[:, pos]
                 self.countsExp.loc[:, pos] = counts.loc[:, pos]
-                # print(f'Substrate Profile:\n{self.substrateProfile}\n')
-                # print(f'Profile Counts:\n{self.countsExp}\n')
         self.subProfile = True
         self.calculateRF()
         self.calculateEntropy()
-        # self.motifFilter = False
         self.evalEnrichment(releasedCounts=True, noFigs=True)
         self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
-        # self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
-        # print(f'Substrate Profile:\n{self.substrateProfile}\n')
-        # print(f'Substrate Profile: Scaled\n{self.eMapScaled}\n')
-        print(f'Profile Counts:\n{self.countsExp}\n')
 
         # Plot profile
         self.figures['eMapProfile'] = (
@@ -1689,9 +1685,6 @@ class WebApp:
 
         # File path
         figName = self.getFileNameFig('entropy')
-        if self.subProfile:
-            figName = figName.replace(self.enzymeName,
-                                      f'{self.enzymeName}-subProfile')
         path = os.path.join(self.pathFigs, figName)
 
         # Encode the figure
