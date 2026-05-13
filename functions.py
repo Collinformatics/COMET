@@ -317,15 +317,10 @@ class WebApp:
 
 
     def getFileNameFig(self, tag, tag2=''):
-        if self.subProfile:
-            figName = f'{tag}-subProfile-{self.enzymeName}-{self.seqLength}AA.png'
-        else:
-            if self.datasetTag is None:
-                print(f'Dont save, dataset tag: {self.datasetTag}\n')
-                sys.exit()
-            figName = f'{tag}-{self.enzymeName}-{self.getSaveTag()}-{self.seqLength}AA.png'
-            if self.motifFilter and 'entropy' not in tag.lower():
-                figName = figName.replace(tag, f'{tag}-{self.iteration}')
+        figName = (f'{tag}-subProfile-{self.enzymeName}-'
+                   f'{self.getSaveTag()}-{self.seqLength}AA.png')
+        if self.motifFilter and 'entropy' not in tag.lower():
+            figName = figName.replace(tag, f'{tag}-{self.iteration}')
         if tag2:
             figName = figName.replace('.png', f'{tag2}.png')
         return figName
@@ -388,18 +383,18 @@ class WebApp:
         if self.pathFigs is not None:
             if not os.path.exists(self.pathFigs):
                 os.makedirs(self.pathFigs, exist_ok=True)
-            # else:
-            #     # Clear figs
-            #     import shutil
-            #     # Remove everything inside the directory
-            #     for filename in os.listdir(self.pathFigs):
-            #         path = os.path.join(self.pathFigs, filename)
-            #         if os.path.isfile(path) or os.path.islink(path):
-            #             os.unlink(path)  # delete file or link
-            #         elif os.path.isdir(path):
-            #             shutil.rmtree(path)  # delete subdirectory
-            #     # time.sleep(5)
-            #     os.makedirs(self.pathFigs, exist_ok=True)
+            else:
+                # Clear figs
+                import shutil
+                # Remove everything inside the directory
+                for filename in os.listdir(self.pathFigs):
+                    path = os.path.join(self.pathFigs, filename)
+                    if os.path.isfile(path) or os.path.islink(path):
+                        os.unlink(path)  # delete file or link
+                    elif os.path.isdir(path):
+                        shutil.rmtree(path)  # delete subdirectory
+                # time.sleep(5)
+                os.makedirs(self.pathFigs, exist_ok=True)
 
         self.log() # Clear the log
         self.log('================================ Job Summary '
@@ -1334,11 +1329,11 @@ class WebApp:
                 self.countsExp.loc[:, pos] = counts.loc[:, pos]
                 # print(f'Substrate Profile:\n{self.substrateProfile}\n')
                 # print(f'Profile Counts:\n{self.countsExp}\n')
+        self.subProfile = True
+        # self.motifFilter = False
         self.calculateRF()
         self.calculateEntropy()
-        self.evalEnrichment(releasedCounts=True)
-        self.motifFilter = False
-        self.subProfile = True
+        self.evalEnrichment(releasedCounts=True, noFigs=True)
         self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
         # self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
         # print(f'Substrate Profile:\n{self.substrateProfile}\n')
@@ -1356,7 +1351,7 @@ class WebApp:
         self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
 
         self.jobDone = True
-
+        print(f'Job Done: {self.jobDone}')
 
     def getMotifSeq(self):
         motifs = {}
@@ -1420,7 +1415,6 @@ class WebApp:
 
         # Save the counts
         path = os.path.join(self.pathData, saveTag)
-        print(f'Counts:\n{counts}') 
         # if not os.path.exists(path): ## ==================================================
         print(f'Saving Counts: {path}\n')
         counts.to_csv(path)
@@ -1647,9 +1641,6 @@ class WebApp:
 
         # Plotting the entropy values as a bar graph
         fig, ax = plt.subplots(figsize=self.figSize)
-        # if self.motifFilter:
-        #     print(f'Min ∆S: {self.minS}')
-        #     plt.hlines(y=[self.minS], xmin=-0.5, xmax=xMax, colors=[self.orange], zorder=0)
         plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
                 edgecolor='black', linewidth=self.lineThickness, width=0.8)
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
@@ -1698,8 +1689,6 @@ class WebApp:
 
         # File path
         figName = self.getFileNameFig('entropy')
-        # if self.motifFilter:
-        #     figName = figName.replace('entropy', 'entropyMin')
         path = os.path.join(self.pathFigs, figName)
 
         # Encode the figure
@@ -1730,7 +1719,7 @@ class WebApp:
 
 
     def scaleMatrix(self, data):
-        self.log(f'Scale Enrichment Scores:\n'
+        self.log(f'\n\nScale Enrichment Scores:\n'
                  f'     Enrichment Scores * ΔS\n')
         # Calculate: Letter heights
         heights = pd.DataFrame(0, index=data.index,
@@ -1758,7 +1747,6 @@ class WebApp:
                 print(f'NaN: {column}:\n{heights[column]}')
             elif heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
-                print(f'N Values: {nValues}')
                 if nValues > 0:
                     self.log(
                         f'{len(heights[column]) - nValues} NaN values at: {column}')
@@ -1772,7 +1760,7 @@ class WebApp:
         return heights
 
 
-    def evalEnrichment(self, releasedCounts=False, skipFigs=False):
+    def evalEnrichment(self, releasedCounts=False, skipFigs=False, noFigs=False):
         def evalMatrix(data):
             stacks = pd.DataFrame(0.0, index=data.columns,
                                   columns=['+Stack', '-Stack'])
@@ -1845,6 +1833,9 @@ class WebApp:
         evalMatrix(matrix.replace([np.inf, -np.inf], 0))
         self.eMapScaled = self.scaleMatrix(self.eMap)
         evalMatrix(self.eMapScaled)
+
+        if noFigs:
+            return
 
         # Plot: Enrichment Map
         self.figures['eMap'] = (
@@ -1992,9 +1983,9 @@ class WebApp:
             stackOrder = 'small_on_top'
 
         # Rename columns for logomaker script
-        print(f'EMap Scaled:\n{self.eMapScaled}\n')
+        # print(f'EMap Scaled:\n{self.eMapScaled}\n')
         scores = self.eMapScaled.copy().replace([np.inf, -np.inf], 0).replace(np.nan, 0)
-        print(f'Logo:\n{scores}')
+        # print(f'Logo:\n{scores}')
         xticks = scores.columns
         scores.columns = range(len(scores.columns))
 
