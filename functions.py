@@ -1298,8 +1298,8 @@ class WebApp:
 
         # Release filter
         print('Release Filter:')
-        self.figTag = 'Release Filter'
         self.fixAA = {}
+        self.figTag = 'Substrate Profile'
         idxEnd = len(self.motifPos.keys()) - 1
         counts = self.countsExp.copy()
         self.substrateProfile = pd.DataFrame(0, index=self.eMap.index,
@@ -1318,11 +1318,11 @@ class WebApp:
                 self.filterSubs(allSubs=True, plotEntropy=True, subProfile=True)
             else:
                 self.filterSubs(allSubs=True)
-            # print(f'Counts Exp: {posRel}\n{self.countsExp}\n')
             self.substrateProfile.loc[:, posRel] = self.countsExp.loc[:, posRel]
-            # print(f'Substrate Profile:\n{self.substrateProfile}\n')
             self.countsExp = self.substrateProfile.copy()
+            # if idx != idxEnd:
             self.calculateRF()
+            self.calculateEntropy(plotFig=False)
             self.evalEnrichment(releasedCounts=True, skipFigs=True)
 
         # Populate non-motif pos
@@ -1335,12 +1335,11 @@ class WebApp:
                 # print(f'Substrate Profile:\n{self.substrateProfile}\n')
                 # print(f'Profile Counts:\n{self.countsExp}\n')
         self.calculateRF()
+        self.calculateEntropy()
         self.evalEnrichment(releasedCounts=True)
         self.motifFilter = False
         self.subProfile = True
-        self.figTag = 'Substrate Profile'
         self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
-        self.calculateEntropy(plotFig=True)
         # self.substrateProfileScl = self.scaleMatrix(self.substrateProfile)
         # print(f'Substrate Profile:\n{self.substrateProfile}\n')
         # print(f'Substrate Profile: Scaled\n{self.eMapScaled}\n')
@@ -1731,6 +1730,8 @@ class WebApp:
 
 
     def scaleMatrix(self, data):
+        self.log(f'Scale Enrichment Scores:\n'
+                 f'     Enrichment Scores * ΔS\n')
         # Calculate: Letter heights
         heights = pd.DataFrame(0, index=data.index,
                                columns=data.columns, dtype=float)
@@ -1753,7 +1754,7 @@ class WebApp:
         # Adjust values
         for column in heights.columns:
             if (heights[column] == 0).all():
-                heights.loc[:, column] = np.nan
+                heights.loc[:, column] = -np.inf
                 print(f'NaN: {column}:\n{heights[column]}')
             elif heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
@@ -1762,10 +1763,12 @@ class WebApp:
                     self.log(
                         f'{len(heights[column]) - nValues} NaN values at: {column}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
-        self.log(f'Residue Heights: {self.datasetTag}\n'
-                 f'{heights}\n')
-        print(f'Residue Heights: {self.datasetTag}\n'
-              f'{heights}\n')
+        if self.datasetTagMotif:
+            self.log(f'Residue Heights: {self.datasetTagMotif}\n'
+                     f'{heights}\n')
+        else:
+            self.log(f'Residue Heights: {self.datasetTag}\n'
+                     f'{heights}\n')
         return heights
 
 
@@ -1840,16 +1843,8 @@ class WebApp:
 
         # Evaluate stack heights
         evalMatrix(matrix.replace([np.inf, -np.inf], 0))
-
-
-        self.log('\n\n===================== Calculate: Scaled Enrichment Score '
-                 '=====================')
-        self.log(f'Scale Enrichment Scores:\n'
-              f'     Enrichment Scores * ΔS\n')
         self.eMapScaled = self.scaleMatrix(self.eMap)
         evalMatrix(self.eMapScaled)
-        print(f'Enrichment Scores:\n{self.eMap}\n\n'
-              f'Scaled Enrichment Scores:\n{self.eMapScaled}\n')
 
         # Plot: Enrichment Map
         self.figures['eMap'] = (
@@ -1881,7 +1876,6 @@ class WebApp:
             scores = self.eMapScaled
         else:
             scores = self.eMap
-        print(f'E Scores:\n{scores}\n')
 
         # Set figure title
         if self.figTag:
