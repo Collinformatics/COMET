@@ -66,8 +66,10 @@ def run():
 @app.route('/')
 def home():
     # return render_template('home.html')
+    x = 'filterMotif.html'
+    y = 'combineProfiles.html'
     return render_template(
-        'combineProfiles.html', csrf_token=generate_csrf()
+        x, csrf_token=generate_csrf()
     )
 
 
@@ -242,7 +244,6 @@ def updateMinS():
     json = request.get_json()
     webapp.minS = float(json.get('minS'))
     webapp.selectMotifPos()
-    webapp.figures['entropy'] = webapp.plotEntropy()
     return jsonify({
         'motifPos': list(webapp.motifPos.items()),
         'entropy': webapp.figures['entropy']
