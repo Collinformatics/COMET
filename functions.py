@@ -1365,6 +1365,7 @@ class WebApp:
         self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
 
         self.jobDone = True
+        time.sleep(5)
         print(f'Job Done: {self.jobDone}')
 
     def getMotifSeq(self):

@@ -68,8 +68,9 @@ def home():
     # return render_template('home.html')
     x = 'filterMotif.html'
     y = 'combineProfiles.html'
+    z = 'home.html'
     return render_template(
-        x, csrf_token=generate_csrf()
+        z, csrf_token=generate_csrf()
     )
 
 
@@ -99,11 +100,6 @@ def pCombineProfiles():
     return render_template(
         'combineProfiles.html', csrf_token=generate_csrf()
     )
-
-
-@app.route('/resources')
-def resources():
-    return render_template('resources.html',)
 
 
 @app.route('/evalFormDNA', methods=['POST'])

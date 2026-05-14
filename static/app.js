@@ -254,10 +254,6 @@ function pageCombineProfiles() {
     window.location.href = "/combineProfiles";
 }
 
-function pageResources() {
-    window.location.href = "/resources";
-}
-
 // Define button function
 async function buttonProcessDNA() {
     // Disable to prevent double click

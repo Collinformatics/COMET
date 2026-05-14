@@ -21,7 +21,6 @@
                 </div>
                 <div class="button-group-r">
                     <button class="buttonHeader" onclick="pageHome()">README</button>
-                    <button class="buttonHeader" onclick="pageResources()">Resources</button>
                 </div>
             </div>
         </div>
@@ -31,37 +30,20 @@
         <div class="box">
             <h2>Read Me</h2>
             <div class="box-form">
-                <p>
-                    This website will allow you to process enzyme profiling data.<br><br>
-                    The available tools can:<br>
-                     — Extract protein sequences from FASTQ or FASTA files.<br>
-                     — Evaluate amino acid (AA) enrichment in an experimental (Exp) dataset
-                    relative to a background (Bg) set.<br>
-                     — Filter randomized sequences to find recognition motifs.
-                </p>
-                <br><br>
-
-
-                <div class="input-form">
-                    <p class="pL">
-                    <b>Equations:</b>
-                    </p>
-                    <p>
-                        By comparing the probability of finding a given residue in the Exp and Bg
-                        datasets, the Enrichment Score (ES) of each residue can be evaluated.
-                    </p>
-                    <p class="pE"> <!-- Equation -->
-                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
-                    </p>
-                    <p>
-                        The AA probabilities in the Exp set are used to determine the change in
-                        entropy (∆S) at a given position in the sequence.
-                    </p>
-                    <p class="pE">
-                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
-                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))
-                    </p>
+                <div class="p2">
+                    <div>
+                        <img src="../static/COMET.png" style="width: 90%; margin: 10px;"/>
+                    </div>
                 </div>
+                <p>
+                    COMET is a mulituse toolkit that can be used for processing enzyme profiling data.<br><br>
+                    The available tools can:<br>
+                    - Evaluate and extract protein sequences from FASTQ or FASTA files generated from sequencing methods such as NGS.<br>
+                    - Evaluate amino acid (AA) enrichment in an experimental (Exp) dataset
+                    relative to a background (Bg) set.<br>
+                    - Filter randomized sequences to find Recognition Sites and evaluate the Substrate Profile.<br>
+                    - Combine multiple Substrate Profiles, and evaluate convergence.
+                </p>
                 <br><br>
 
                 <div class="input-form">
@@ -98,27 +80,27 @@
                 </div>
                 <br><br>
 
-<!--                <div class="input-form">-->
-<!--                    <p class="pL">-->
-<!--                    <b>Equations:</b>-->
-<!--                    </p>-->
-<!--                    <p>-->
-<!--                        By comparing the probability of finding a given residue in the Exp and Bg-->
-<!--                        datasets, the Enrichment Score (ES) of each residue can be evaluated.-->
-<!--                    </p>-->
-<!--                    <p class="pE"> &lt;!&ndash; Equation &ndash;&gt;-->
-<!--                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)-->
-<!--                    </p>-->
-<!--                    <p>-->
-<!--                        The AA probabilities in the Exp set are used to determine the change in-->
-<!--                        entropy (∆S) at a given position in the sequence.-->
-<!--                    </p>-->
-<!--                    <p class="pE">-->
-<!--                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) - -->
-<!--                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))-->
-<!--                    </p>-->
-<!--                </div>-->
-<!--                <br><br>-->
+                <div class="input-form">
+                    <p class="pL">
+                    <b>Equations:</b>
+                    </p>
+                    <p>
+                        By comparing the probability of finding a given residue in the Exp and Bg
+                        datasets, the Enrichment Score (ES) of each residue can be evaluated.
+                    </p>
+                    <p class="pE"> <!-- Equation -->
+                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
+                    </p>
+                    <p>
+                        The AA probabilities in the Exp set are used to determine the change in
+                        entropy (∆S) at a given position in the sequence.
+                    </p>
+                    <p class="pE">
+                        ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
+                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))
+                    </p>
+                </div>
+                <br><br>
 
                 <div class="input-form">
                     <p class="pL">
@@ -132,6 +114,15 @@
                         </a>
                     </p>
                 </div>
+                <br><br>
+
+                <div class="input-form">
+                    <p class="pL">
+                        <b>Literature:</b>
+                    </p>
+                    <p>Link Paper</p>
+                </div>
+                <br><br>
             </div>
         </div>
         <div class=ft>
