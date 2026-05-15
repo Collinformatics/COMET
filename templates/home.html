@@ -62,9 +62,11 @@
                         <b>Filter AA:</b>
                     </p>
                     <p>
-                        To apply a filter to the data, select which residues will be fixed, or excluded
-                        from a given position in the sequence. If you don't know which AAs to fix, then
-                        don't add a filter and plot the raw data. This will indicate favorable residues.
+                        To apply a <span class="highlight">filter</span> to the data,
+                        select which residues will be <span class="highlight">fixed</span>,
+                        or <span class="highlight">excluded</span> from a given position in
+                        the sequence.<br><br>If you don't know which AAs to fix, then don't add
+                        a filter to plot the raw data. This will indicate favorable residues.
                     </p>
                 </div>
                 <br><br>
@@ -74,8 +76,25 @@
                         <b>Filter Motif:</b>
                     </p>
                     <p>
-                        By evaluating the amino acid probabilities in the Exp set, we can determine
-                        entropy scores (∆S) at each position in the sequence.
+                        By applying and filter to a randomized set of substrates, and then
+                        evaluating the frequencies of each amino acid in that set,
+                        we can determine entropy scores (<span class="highlight">∆S</span>)
+                        at each position in the sequence. This reveals the
+                        <span class="highlight">Recognition Site</span>, or the sites that
+                        are important for substrate recognition.
+                    </p>
+                </div>
+                <br><br>
+
+                <div class="input-form">
+                    <p class="pL">
+                        <b>Combine Profiles:</b>
+                    </p>
+                    <p>
+                        Combine the <span class="highlight">Recognition Sites</span> from
+                        multiple <span class="highlight">Substrate Profiles</span> that
+                        were obtained from the <span class="highlight">Filter Motif</span>
+                        analysis.
                     </p>
                 </div>
                 <br><br>
@@ -85,19 +104,23 @@
                     <b>Equations:</b>
                     </p>
                     <p>
-                        By comparing the probability of finding a given residue in the Exp and Bg
-                        datasets, the Enrichment Score (ES) of each residue can be evaluated.
+                        By comparing the relative frequency (<span class="highlight">RF</span>)
+                        of finding a given residue in the <span class="highlight">Experimental</span>
+                        and <span class="highlight">Background</span> datasets, the
+                        Enrichment Score (<span class="highlight">ES</span>) of each
+                        residue can be evaluated.
                     </p>
                     <p class="pE"> <!-- Equation -->
-                        ES =  log<sub>2</sub>(prob<sub>AA Exp</sub> / prob<sub>AA Bg</sub>)
+                        ES =  log<sub>2</sub>(RF<sub>AA Exp</sub> / RF<sub>AA Bg</sub>)
                     </p>
                     <p>
-                        The AA probabilities in the Exp set are used to determine the change in
-                        entropy (∆S) at a given position in the sequence.
+                        The RF of each AA in the Experimental set are used to determine the
+                        Positional Entropy (<span class="highlight">∆S</span>) at each
+                        position in the sequence.
                     </p>
                     <p class="pE">
                         ∆S = S<sub>Max</sub> - S<sub>Shannon</sub> = log<sub>2</sub>(20) -
-                        ∑(-prob<sub>AA</sub> * log<sub>2</sub>(prob<sub>AA</sub>))
+                        ∑(-RF<sub>AA</sub> * log<sub>2</sub>(RF<sub>AA</sub>))
                     </p>
                 </div>
                 <br><br>
@@ -113,13 +136,7 @@
                             <strong>github.com/Collinformatics/COMET</strong>
                         </a>
                     </p>
-                </div>
-                <br><br>
-
-                <div class="input-form">
-                    <p class="pL">
-                        <b>Literature:</b>
-                    </p>
+                    <br><br>
                     <p>Link Paper</p>
                 </div>
                 <br><br>
