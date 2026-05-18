@@ -845,7 +845,7 @@ class NGS:
                         f'FinalSort - MinCounts {self.minSubCount}').replace(
                     '/', '_')
                 pathSubs = (
-                    os.path.join(self.pathData, f'fixedMotifSubs - {file}'))
+                    os.path.join(self.pathData, f'fixedMotifSubs - {file}.pkl'))
                 pathCounts = (
                     os.path.join(self.pathData, f'fixedMotifCounts - {file}'))
                 pathCountsReleased = (
@@ -855,7 +855,7 @@ class NGS:
                 file = (f'{self.enzymeName} - {customTag} - FinalSort - '
                         f'MinCounts {self.minSubCount}').replace('/', '_')
                 pathSubs = (
-                    os.path.join(self.pathData, f'fixedMotifSubs - {file}'))
+                    os.path.join(self.pathData, f'fixedMotifSubs - {file}.pkl'))
                 pathCounts = (
                     os.path.join(self.pathData, f'fixedMotifCounts - {file}'))
                 pathCountsReleased = (
@@ -865,7 +865,7 @@ class NGS:
             file = (f'{self.enzymeName} - {datasetTag} - FinalSort - '
                     f'MinCounts {self.minSubCount}').replace('/', '_')
             pathSubs = os.path.join(
-                self.pathData, f'fixedSubs - {file}')
+                self.pathData, f'fixedSubs - {file}.pkl')
             pathCounts = os.path.join(
                 self.pathData, f'counts - {file}')
             self.pathFilteredSubs = pathSubs
@@ -1073,7 +1073,7 @@ class NGS:
 
         # Function to load each file
         def loadFile(fileName):
-            fileLocation = os.path.join(self.pathData, f'substrates_{fileName}')
+            fileLocation = os.path.join(self.pathData, f'substrates_{fileName}.pkl')
             print(f'File path:\n     {greenDark}{fileLocation}{resetColor}\n')
             with open(fileLocation, 'rb') as openedFile:  # Open file
                 data = pk.load(openedFile) # Access the data
@@ -1455,12 +1455,14 @@ class NGS:
 
 
     def saveSubstrateCSV(self, seqs, initialRF, finalRF, minCounts=100,
+                         seqsBg=False, maxCountsBg=5, mod=25,
                          combinedMotifs=False, chopSeq=False):
         print('==============================  Save Substrate CSV '
               '==============================')
         print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')  ##
 
         # Chop off the C-terminal AAs
+        print(f'Chop: {chopSeq}')
         if chopSeq:
             sub = next(iter(seqs))
             subLen = len(sub)
@@ -1500,11 +1502,39 @@ class NGS:
                   f'{cyan}counts{orange} >= {cyan}{minCounts}{resetColor}\n\n')
             return
 
+        # Add bg substrates
+        if seqsBg:
+            bg = {}
+            print(f'Add Background substrates:\n')
+            i = 0
+            for seq, count in seqsBg.items():
+                i += 1
+                if count <= maxCountsBg and seq not in subsCounts.keys():
+                    if i % mod == 0:
+                        bg[seq] = count
+            bg = dict(sorted(bg.items(), key=lambda x: x[1], reverse=True))
+            print(f'Adding {red}{len(bg.keys()):,}{resetColor} Background Substrates:')
+            for i, (seq, count) in enumerate(bg.items()):
+                if i >= self.printNumber:
+                    break
+                print(f'    {pink}{seq}{resetColor}: Count {red}{count:,}{resetColor}')
+            print()
+            for seq, count in bg.items():
+                subsCounts[seq] = count
+            N = len(subsCounts)
+
+        # Normalize counts
+        subsCountsNorm = {}
+        maxCount = max(list(subsCounts.values()))
+        for seq, count in subsCounts.items():
+            subsCountsNorm[seq] = count / maxCount
 
         # Get data paths
         t = 'Counts'
         tag = (f'{self.enzyme}_{t}_{subLen}AA_'
                f'{self.datasetTag}_MinCounts{minCounts}.csv').replace(' ', '-')
+        if seqsBg:
+            tag = tag.replace('.csv', f'_MinBgCounts{maxCountsBg}_mod{mod}.csv')
         pathCSV = os.path.join(self.pathFolder, 'CSV')
         if not os.path.exists(pathCSV):
             os.makedirs(pathCSV, exist_ok=True)
@@ -1513,6 +1543,7 @@ class NGS:
             os.makedirs(pathCSVFig, exist_ok=True)
         paths = [
             os.path.join(pathCSV, tag),
+            os.path.join(pathCSV, tag.replace(f'_{t}', '_CountsNorm')),
             os.path.join(pathCSV, tag.replace(f'_{t}', '_ZCounts')),
             os.path.join(pathCSV, tag.replace(f'_{t}','_ZPred'))
         ]
@@ -1528,6 +1559,9 @@ class NGS:
             figLabel.replace('.png', f' - MinCounts {minCounts}.png')
         pathFigs = [
             os.path.join(pathCSVFig, figLabel),
+            os.path.join(pathCSVFig, figLabel.replace(
+                '- Counts -', '- Counts Norm -')
+                         ),
             os.path.join(pathCSVFig, figLabel.replace(
                 '- Counts -', '- Z Counts -')
                          ),
@@ -1551,11 +1585,11 @@ class NGS:
             matrix = matrix.drop(dropCol, axis=1)
 
 
-            # Calculate: Z-scores Counts
+        # Calculate: Z-scores Counts
         subsZCounts = {}
-        mu = np.average(list(subsCounts.values()))
-        sigma = np.std(list(subsCounts.values()))
-        for seq, count in subsCounts.items():
+        mu = np.average(list(subsCountsNorm.values()))
+        sigma = np.std(list(subsCountsNorm.values()))
+        for seq, count in subsCountsNorm.items():
             subsZCounts[seq] = (count - mu) / sigma
 
 
@@ -1676,21 +1710,27 @@ class NGS:
             )
         if not os.path.exists(pathFigs[1]):
             self.plotBarGraphCSV(
-                substrates=subsZCounts, dataType='Z Counts',
+                substrates=subsCountsNorm, dataType='Counts Norm',
                 combinedMotifs=combinedMotifs, minCounts=minCounts,
                 saveLocation=pathFigs[1]
             )
-        if subsZ and not os.path.exists(pathFigs[2]):
+        if not os.path.exists(pathFigs[2]):
             self.plotBarGraphCSV(
-                substrates=subsZ, dataType='Pred',
+                substrates=subsZCounts, dataType='Z Counts',
                 combinedMotifs=combinedMotifs, minCounts=minCounts,
                 saveLocation=pathFigs[2]
             )
-        if subsZPred and not os.path.exists(pathFigs[3]):
+        if subsZ and not os.path.exists(pathFigs[3]):
+            self.plotBarGraphCSV(
+                substrates=subsZ, dataType='Pred',
+                combinedMotifs=combinedMotifs, minCounts=minCounts,
+                saveLocation=pathFigs[3]
+            )
+        if subsZPred and not os.path.exists(pathFigs[4]):
             self.plotBarGraphCSV(
                 substrates=subsZPred, dataType='Z Pred',
                 combinedMotifs=combinedMotifs, minCounts=minCounts,
-                saveLocation=pathFigs[3]
+                saveLocation=pathFigs[4]
             )
 
 
@@ -1706,7 +1746,8 @@ class NGS:
         # Evaluate data
         NSubs = len(substrates.keys())
         iteration = 0
-        if 'counts' in dataType.lower() and 'z ' not in dataType.lower():
+        if ('counts' in dataType.lower() and 'z ' not in dataType.lower()
+                and 'norm' not in dataType.lower()):
             for substrate, count in substrates.items():
                 print(f'     {blue}{substrate}{resetColor}, '
                       f'Counts: {red}{count:,}{resetColor}')
@@ -1724,7 +1765,7 @@ class NGS:
                 iteration += 1
                 if iteration >= self.printNumber:
                     break
-            scoreTotal = 0
+            scoreTotal = 0.0
             for score in substrates.values():
                 scoreTotal += score
             scoreTotal = np.round(scoreTotal, self.roundVal)
@@ -1889,7 +1930,7 @@ class NGS:
 
             self.pathSaveFigs = os.path.join(self.pathFolder, 'Figures')
 
-            filePathSubs = os.path.join(folder, f'substrates_{saveTag}')
+            filePathSubs = os.path.join(folder, f'substrates_{saveTag}.pkl')
             filePathCounts = os.path.join(folder, f'counts_{saveTag}')
         else:
             if self.datasetTag == 'Unfiltered':

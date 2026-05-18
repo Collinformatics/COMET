@@ -19,11 +19,11 @@ inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = False
-inFixedResidue = [['A','C','I','T','V'],['L','M'],['Q'],['A','C','G','S']]
-inFixedPosition = [1,3,4,5]
+inFixedResidue = ['Q']
+inFixedPosition = [5]
 inExcludeResidues = False
-inExcludedResidue = ['Q'] # ['Y','Y','Y','Y','Y','Y','Y']
-inExcludedPosition = [8] # [1,2,3,4,6,7,8,9]
+inExcludedResidue = ['A', 'A'] # ['Y','Y','Y','Y','Y','Y','Y']
+inExcludedPosition = [9, 10] # ['1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
 inMinDeltaS = 0.6
 inPrintFixedSubs = True
@@ -35,7 +35,7 @@ inAvgInitialProb = False
 inDropResidue = [] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
 
 # Input 3: Making Figures
-inBlockFigures = False
+inBlockFigures = True
 inPlotEntropy = True
 inPlotEnrichmentMap = True
 inPlotEnrichmentMapScaled = False
@@ -69,9 +69,12 @@ inFindSequences = False
 inFindSeq = 'ILQA'
 
 # Input 5: CSV
-inSaveCSV = False # Save substrates in a csv file
+inSaveCSV = True # Save substrates in a csv file
 inMinSubsCSV = 100 # Minimum counts for saved substrates
 inSubLengthCSV = False # If: False, use full seq, If: 6, use 6 AA seq
+inUseBgSubs = True
+inMaxBgSubstrateCount = 5
+inModulus = 250 # Increase to select fewer Bg substrates
 
 # Input 6: Plot Heatmap
 inShowEnrichmentScores = True
@@ -192,13 +195,11 @@ probInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
                               fileType='Initial Sort', calcAvg=inAvgInitialProb)
 
 
-# substratesInitial = None
+substratesInitial = None
 loadUnfilteredSubs = False
 filePathFixedCountsFinal, filePathFixedSubsFinal = None, None
 substratesFinal, countsFinal, countsFinalTotal = None, None, None
 if inFixResidues or inExcludeResidues:
-    substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
-
     filePathFixedSubsFinal, filePathFixedCountsFinal = (
         ngs.getFilePath(datasetTag=fixedSubSeq))
 
@@ -227,16 +228,15 @@ if inFixResidues or inExcludeResidues:
         # Load: Substrates
         substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
 else:
-    # Load: Substrates
-    if inFindSequences:
-        (substratesInitial, totalSubsInitial,
-         substratesFinal, totalSubsFinal) = ngs.loadUnfilteredSubs()
-    else:
-        substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
+    substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
 
     # Load: Counts
     countsFinal, countsFinalTotal = ngs.loadCounts(fileType='Final Sort', filter=False,
                                                    dropColumn=inDropResidue)
+
+# Load: Substrates
+if inFindSequences or inEvaluateSubstrateEnrichment or inUseBgSubs:
+    substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
 
 
 
@@ -262,8 +262,6 @@ if inFixResidues:
                                                     dropColumn=inDropResidue)
 
     if inEvaluateSubstrateEnrichment:
-        substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
-
         fixedSubsInitial, countsInitialFixedTotal = ngs.fixResidue(
             substrates=substratesInitial, fixedString=fixedSubSeq,
             printRankedSubs=inPrintFixedSubs, sortType='Initial Sort')
@@ -282,6 +280,7 @@ if inExcludeResidues and not inFixResidues:
 
         # Save the data
         ngs.saveData(substrates=substratesFinal, counts=countsFinal)
+
 
 
 # Display current sample size
@@ -320,10 +319,18 @@ else:
 
 # Create csv
 if inSaveCSV:
-    ngs.saveSubstrateCSV(
-        seqs=substratesFinal, initialRF=probInitial,
-        finalRF=probFinal, minCounts=inMinSubsCSV, chopSeq=inSubLengthCSV
-    )
+    if inUseBgSubs:
+        ngs.saveSubstrateCSV(
+            seqs=substratesFinal, initialRF=probInitial, finalRF=probFinal,
+            minCounts=inMinSubsCSV, seqsBg=substratesInitial,
+            maxCountsBg=inMaxBgSubstrateCount, mod=inModulus,
+            chopSeq=inSubLengthCSV
+        )
+    else:
+        ngs.saveSubstrateCSV(
+            seqs=substratesFinal, initialRF=probInitial,
+            finalRF=probFinal, minCounts=inMinSubsCSV, chopSeq=inSubLengthCSV
+        )
 
 # Evaluate: Sequences
 if inUseEnrichmentFactor:
@@ -486,7 +493,3 @@ if inPlotCounts:
 if inPlotPositionalProbDist:
     ngs.plotPositionalProbDist(probability=probFinal, entropyScores=entropy,
                                sortType='Final Sort', datasetTag=fixedSubSeq)
-
-if inPlotPosProb:
-    ngs.compairRF(probInitial=probInitial, probFinal=probFinal, selectAA=inCompairAA)
-    ngs.boxPlotRF(probInitial=probInitial, probFinal=probFinal, selectAA=inCompairAA)
