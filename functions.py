@@ -1,322 +1,197 @@
-# PURPOSE: This script contains the functions that you will need to process your NGS data
-
+import base64
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio import BiopythonWarning
-import csv
-import esm
+from concurrent.futures import ProcessPoolExecutor
+from counter import counter
 import gzip
-from itertools import combinations, product
+import io
+from itertools import batched
 import logomaker
 import math
-from matplotlib.font_manager import FontProperties
-from matplotlib.lines import Line2D
-import matplotlib.patheffects as path_effects
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.widgets import RectangleSelector
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import numpy as np
-import os
+import os.path
 import pandas as pd
 import pickle as pk
-import random
+import queue
 import seaborn as sns
+import secrets
 import sys
 import threading
-import warnings
+import time
 from wordcloud import WordCloud
 
 
 
-# ================================== Setup Residue List ==================================
-defaultResidues = (('Alanine', 'Ala', 'A'), ('Arginine', 'Arg', 'R'),
-                   ('Asparagine', 'Asn', 'N'), ('Aspartic Acid', 'Asp', 'D'),
-                   ('Cysteine', 'Cys', 'C'),  ('Glutamic Acid', 'Glu', 'E'),
-                   ('Glutamine', 'Gln', 'Q'),('Glycine', 'Gly', 'G'),
-                   ('Histidine', 'His ', 'H'),('Isoleucine', 'Ile', 'I'),
-                   ('Leucine', 'Leu', 'L'), ('Lysine', 'Lys', 'K'),
-                   ('Methionine', 'Met', 'M'), ('Phenylalanine', 'Phe', 'F'),
-                   ('Proline', 'Pro', 'P'), ('Serine', 'Ser', 'S'),
-                   ('Threonine', 'Thr', 'T'),('Tryptophan', 'Typ', 'W'),
-                   ('Tyrosine', 'Tyr', 'Y'), ('Valine', 'Val', 'V'))
+defaultResidues = (
+    ('Alanine', 'Ala', 'A'), ('Arginine', 'Arg', 'R'), ('Asparagine', 'Asn', 'N'),
+    ('Aspartic Acid', 'Asp', 'D'), ('Cysteine', 'Cys', 'C'), ('Glutamic Acid', 'Glu', 'E'),
+    ('Glutamine', 'Gln', 'Q'), ('Glycine', 'Gly', 'G'), ('Histidine', 'His ', 'H'),
+    ('Isoleucine', 'Ile', 'I'), ('Leucine', 'Leu', 'L'), ('Lysine', 'Lys', 'K'),
+    ('Methionine', 'Met', 'M'), ('Phenylalanine', 'Phe', 'F'), ('Proline', 'Pro', 'P'),
+    ('Serine', 'Ser', 'S'), ('Threonine', 'Thr', 'T'), ('Tryptophan', 'Typ', 'W'),
+    ('Tyrosine', 'Tyr', 'Y'), ('Valine', 'Val', 'V')
+)
 
 
-
-# ===================================== Set Options ======================================
-# Colors: Console
-greyDark = '\033[38;2;144;144;144m'
-white = '\033[38;2;255;255;255m'
-purple = '\033[38;2;189;22;255m'
-magenta = '\033[38;2;255;0;128m'
-pink = '\033[38;2;255;0;242m'
-cyan = '\033[38;2;22;255;212m'
-blue = '\033[38;5;51m'
-green = '\033[38;2;5;232;49m'
-greenLight = '\033[38;2;204;255;188m'
-greenLightB = '\033[38;2;204;255;188m'
-greenDark = '\033[38;2;30;121;13m'
-yellow = '\033[38;2;255;217;24m'
-orange = '\033[38;2;247;151;31m'
-red = '\033[91m'
-resetColor = '\033[0m'
+# Generate figures entirely in memory without opening a window
+matplotlib.use('Agg')  # Use a non-interactive backend for servers
 
 
+class WebApp:
+    def __init__(self):
+        # Params: Job
+        self.jobDone = False
+        self.setS = False
+        self.jobParams = {}
+        self.datasetTag = ''
+        self.datasetTagMotif = ''
+        self.subProfile = False
+        self.saveData = True
 
-# =================================== Define Functions ===================================
-def getFileNames(enzyme):
-    if enzyme.lower() == 'eln' or enzyme.lower() == 'hne':
-        enzyme = 'Human Neutrophil Elastase'
-        inFileNamesInitialSort = ['ELN-I_S1_L001', 'ELN-I_S1_L002']
-        inFileNamesFinalSort = ['ELN-R4_S2_L001', 'ELN-R4_S2_L002']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'ide':
-        enzyme = 'IDE'
-        inFileNamesInitialSort = ['IDE-I_S3_L001', 'IDE-I_S3_L002']
-        inFileNamesFinalSort = ['IDE-F_S5_L001', 'IDE-F_S5_L002']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'ide prev':
-        enzyme = 'IDE Prev'
-        inFileNamesInitialSort = ['IDE-S1_L001', 'IDE-S1_L002',
-                                  'IDE-S1_L003', 'IDE-S1_L004']
-        inFileNamesFinalSort = ['IDE-S2_L001', 'IDE-S2_L002',
-                                'IDE-S2_L003', 'IDE-S2_L004']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'mpro' or enzyme.lower() == 'mpro1':
-        enzyme = f'SARS-CoV M{'ᵖʳᵒ'}'
-        inFileNamesInitialSort = ['Mpro1-I_S1_L001', 'Mpro1-I_S1_L002',
-                                  'Mpro1-I_S1_L003', 'Mpro1-I_S1_L004']
-        inFileNamesFinalSort = ['Mpro1-R4_S3_L001', 'Mpro1-R4_S3_L002',
-                                'Mpro1-R4_S3_L003', 'Mpro1-R4_S3_L004']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'mpro2':
-        enzyme = f'SARS-CoV-2 M{'ᵖʳᵒ'}'
-        inFileNamesInitialSort = ['Mpro2-I_S1_L001', 'Mpro2-I_S1_L002',
-                                  'Mpro2-I_S1_L003', 'Mpro2-I_S1_L004']
-        inFileNamesFinalSort = ['Mpro2-R4_S3_L001', 'Mpro2-R4_S3_L002',
-                                'Mpro2-R4_S3_L003', 'Mpro2-R4_S3_L004']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'mpro2-lq':
-        enzyme = f'SARS-CoV-2 M{'ᵖʳᵒ'} LQ-NNS'
-        inFileNamesInitialSort = ['Mpro2-LQ-Initial_S3_L001', 'Mpro2-LQ-Initial_S3_L002',
-                                  'Mpro2-LQ-Initial_S3_L003', 'Mpro2-LQ-Initial_S3_L004']
-        inFileNamesFinalSort = ['Mpro2-LQ-R5_S4_L001', 'Mpro2-LQ-R5_S4_L002',
-                                'Mpro2-LQ-R5_S4_L003', 'Mpro2-LQ-R5_S4_L004']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'mmp7':
-        enzyme = 'Matrix Metalloproteinase-7'
-        inFileNamesInitialSort = ['MMP7-I_S3_L001', 'MMP7-I_S3_L002']
-        inFileNamesFinalSort = ['MMP7-R4_S4_L001', 'MMP7-R4_S4_L002']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    elif enzyme.lower() == 'fyn':
-        enzyme = 'Fyn'
-        inFileNamesInitialSort = ['Fyn-I_S6_L001', 'Fyn-I_S6_L002']
-        inFileNamesFinalSort = ['Fyn-F_S1_L001', 'Fyn-F_S1_L002']
-        inAAPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
-    elif enzyme.lower() == 'src':
-        enzyme = 'Src'
-        inFileNamesInitialSort = ['Src-I_S4_L001', 'Src-I_S4_L002']
-        inFileNamesFinalSort = ['Src-F_S2_L001', 'Src-F_S2_L002']
-        inAAPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
-    elif enzyme.lower() == 'den':
-        enzyme = 'Dengue Virus - NS2B/NS3'
-        inFileNamesInitialSort = ['DEN-I_S1_L001']
-        inFileNamesFinalSort = ['DEN-F_S2_L001']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
-    elif enzyme.lower() == 'veev' or enzyme.lower() == 've':
-        enzyme = 'Venezuelan Equine Encephalitis Virus - nsP2'
-        inFileNamesInitialSort = ['VEEV-I_S1_L001']
-        inFileNamesFinalSort = ['VEEV-R4_S2_L001']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10']
-    elif enzyme.lower() == 'wnv':
-        enzyme = 'West Nile Virus - NS2B/NS3'
-        inFileNamesInitialSort = ['WNV-I_S3_L001']
-        inFileNamesFinalSort = ['WNV-F_S4_L001']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
-    elif enzyme.lower() == 'zk':
-        enzyme = 'Zika Virus - NS2B/NS3'
-        inFileNamesInitialSort = ['ZK-I_S1_L001']
-        inFileNamesFinalSort = ['ZK-F_S2_L001']
-        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
-    else:
-        print(f'{orange}ERROR: There are no file names for {cyan}{enzyme}{orange}\n'
-              f'       Add information to the "{cyan}filePaths{resetColor}" function in '
-              f'{cyan}{os.path.basename(__file__)}{resetColor}\n')
-        sys.exit(1)
+        # Params: Dataset
+        self.enzymeName = ''
+        self.seqLength = 0
+        self.minCounts = 1
+        self.printN = 10
+        self.roundVal = 3
+        self.xAxisLabel = []
+        self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
+        self.entropyMax = None
+        self.subsExp = {}
+        self.subsExpAll = {}
+        self.countsExp = pd.DataFrame()
+        self.countExpTotal = 0
+        self.countExpUnique = 0
+        self.rfExp = None
+        self.rfExpScaled = None
+        self.saveTagExp = {}
+        self.subsBg = {}
+        self.countsBg = pd.DataFrame()
+        self.countBgTotal = 0
+        self.countBgUnique = 0
+        self.rfBg = None
+        self.eMap = None
+        self.eMapScaled = None
+        self.eMapReleased = None
+        self.eMapReleasedScaled = None
+        self.saveTagBg = {}
+        self.saveTagFig = {}
+        self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
-    return enzyme, inFileNamesInitialSort, inFileNamesFinalSort, inAAPositions
+        # Params: COMET
+        self.initCOMET = False
+        self.iteration = 0
+        self.minS = 0.6
+        self.minES = 0
+        self.minESRel = -0.5
+        self.motifFilter = False
+        self.motifPos = {}
+        self.substrateProfile = pd.DataFrame()
+        self.substrateProfileScl = pd.DataFrame()
 
+        # Params: Combined Profiles
+        self.combineRegisters = False
+        self.fileOrder = []
+        self.idxMotif = {}
+        self.profiles = []
 
-def pressKey(event):
-    if event.key == 'escape':
-        plt.close()
-    elif event.key == 'e':
-        sys.exit()
-    elif event.key == 'r':
-        python = sys.executable # Doesnt seem to work on windows?
-        os.execl(python, python, *sys.argv)
+        # Params: Files
+        self.queueLog = queue.Queue()
+        self.fileExp = []
+        self.fileExpRev = []
+        self.fileExpCounts = []
+        self.fileBg = []
+        self.fileBgRev = []
+        self.pathDir = ''
+        self.pathData = ''
+        self.pathFigs = ''
+        self.pathLog = ''
 
+        # Params: Process dna
+        self.seq5Prime = ''
+        self.seq3Prime = ''
+        self.minPhred = False
 
-def includeCommas(x):
-    return f'{x:,}'
+        # Params: Filter Dataset
+        self.filterPos = False
+        self.fixAA = {}
+        self.exclAA = {}
 
-
-class NGS:
-    def __init__(self, enzyme, enzymeName, substrateLength, filterSubs, fixedAA, fixedPosition,
-                 excludeAAs, excludeAA, excludePosition, minCounts, minEntropy,
-                 figEMSquares, xAxisLabels, printNumber, showNValues, bigAAonTop,
-                 findMotif, folderPath, filesInit, filesFinal, plotPosS, plotFigEM,
-                 plotFigEMScaled, plotFigLogo, plotFigWebLogo, plotFigWords, wordLimit,
-                 wordsTotal, plotFigBars, NSubBars, plotFigPCA, numPCs, NSubsPCA,
-                 plotSuffixTree, saveFigures, setFigureTimer, expressDNA=False,
-                 useEF=False, xAxisLabelsMotif=None, motifFilter=False,
-                 plotFigMotifEnrich=False):
-        # Parameters: Dataset
-        self.enzyme = enzyme
-        self.enzymeName = enzymeName
-        self.filterSubs = filterSubs
-        self.fixedAA = fixedAA
-        self.fixedPos = fixedPosition
-        self.excludeAAs = excludeAAs
-        self.excludeAA = excludeAA
-        self.excludePosition = excludePosition
-        self.minSubCount = minCounts
-        self.minEntropy = minEntropy
-        self.xAxisLabels = xAxisLabels
-        self.xAxisLabelsMotif = xAxisLabelsMotif
-        self.motifLen = None
-        self.motifTags = None
-        self.printNumber = printNumber
-        self.selectedSubstrates = []
-        self.selectedDatapoints = []
-        self.rectangles = []
-        self.initialize = True
-        self.maxValue = 0
-        self.useEF = useEF
-        
-        # Parameters: DNA Processing
-        self.expressDNA = expressDNA # Only set as True when processing DNA seqs
-        self.minQS = 20 # Minium Phred quality score for extracted substrates
-        self.fileSize = []
-        self.countExtractedSubs = []
-        self.percentUnusableDNASeqs = []
-
-        # Parameters: Figures
-        self.entropy, self.entropyMax = None, None
-        self.eMap, self.eMapScaled = None, None
-        self.eMapReleased, self.eMapReleasedScaled = None, None
-        self.heights, self.weblogo = None, None
-        self.plotFigEntropy = plotPosS
-        self.plotFigEM = plotFigEM
-        self.plotFigEMScaled = plotFigEMScaled
-        self.plotFigLogo = plotFigLogo
-        self.plotFigWebLogo = plotFigWebLogo
-        self.plotFigMotifEnrich = plotFigMotifEnrich
-        self.plotFigWords = plotFigWords
-        self.wordsLimit = wordLimit
-        self.wordsTotal = wordsTotal
-        self.plotFigBars = plotFigBars
-        self.NSubBars = NSubBars
-        self.plotFigPCA = plotFigPCA
-        self.numPCs=numPCs
-        self.NSubsPCA = NSubsPCA
-        self.plotSuffixTree = plotSuffixTree
-        self.datasetTag = None
-        self.datasetTagMotif = None
-        self.title = ''
+        # Params: Figures
+        self.figTag = ''
+        self.numSamples = 50
+        self.figureResolution = 600
+        self.titleCombined = ''
         self.titleReleased = ''
         self.titleWeblogo = ''
         self.titleWeblogoCombined = ''
         self.titleWeblogoReleased = ''
         self.titleWords = ''
-        self.substrateLength = substrateLength
-        self.figEMSquares = figEMSquares
-        if figEMSquares:
-            self.figSizeEM = (5, 8) # (width, height)
-        else:
-            self.figSizeEM = (9.5, 8)
-        self.figSize = (9.5, 8)
+        self.titleWordsCombined = ''
+        self.figEMSquares = False
+        self.figSize = (9.5, 8) # (width, height)
+        self.figSizeSq = (5, 8)
         self.figSizeMini = (self.figSize[0], 6)
-        self.residueLabelType = 2 # 0 = full AA name, 1 = 3-letter code, 2 = 1 letter
+        self.residueLabelType = 2  # 0 = full AA name, 1 = 3-letter code, 2 = 1 letter
         self.labelSizeTitle = 18
         self.labelSizeAxis = 16
         self.labelSizeTicks = 13
         self.lineThickness = 1.5
         self.tickLength = 4
+        self.colorsAA = self.residueColors()
         self.residues = defaultResidues
-        self.letters = [residue[2] for residue in self.residues]
-        self.colorsAA = NGS.residueColors()
-        self.showSampleSize = showNValues
-        self.nSubsInitial = 0
-        self.nSubsFinal = 0
-        self.bigAAonTop = bigAAonTop
-        self.findMotif = findMotif
-        self.motifFilter = motifFilter
-        self.initialize = True # filterMotif.py: Set to False after NGS.calculateEntropy()
-        self.motifTag = ''
-        self.subFrame = None
-        self.motifIndex = None
-        self.motifIndexExtracted = []
-        self.saveFigures = saveFigures
-        self.setFigureTimer = setFigureTimer
-        self.figureTimerDuration = 0.5
-        self.saveFigureIteration = 0
-        self.figureResolution = 300
+        self.AA = [residue[2] for residue in self.residues]
+        self.bigAAonTop = False
+        self.figures = {}
 
-        # Parameters: Files
-        self.filesInit = filesInit
-        self.filesFinal = filesFinal
-        self.pathFolder = folderPath
-        self.pathData = os.path.join(self.pathFolder, 'Data')
-        self.pathSaveFigs = os.path.join(self.pathFolder, 'Figures')
-        self.pathFilteredSubs = None
-        self.pathFilteredCounts = None
+        # Colors
+        self.orange = '#FA8128'
+        self.orangeBurnt = '#BF5700'
 
-        # Parameters: Misc
-        self.roundVal = 3
-        np.set_printoptions(suppress=True) # Prevent data from printing in sci notation
-        np.seterr(divide='ignore')
-
-        # Verify directory paths
-        if not os.path.exists(self.pathFolder):
-            os.makedirs(self.pathFolder, exist_ok=True)
-            # print(f'{orange}ERROR: Folder not found\n'
-            #       f'Check input: "{cyan}inPathFolder{orange}"\n'
-            #       f'     inPathFolder = {self.pathFolder}\n')
-            # sys.exit(1)
-        if self.pathData is not None:
-            if not os.path.exists(self.pathData):
-                os.makedirs(self.pathData, exist_ok=True)
-        if self.pathSaveFigs is not None:
-            if not os.path.exists(self.pathSaveFigs):
-                os.makedirs(self.pathSaveFigs, exist_ok=True)
-
-        # Set options
         pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', 1000)
-        pd.options.display.float_format = '{:,.4f}'.format
+        pd.options.display.float_format = '{:,.3f}'.format
 
 
     @staticmethod
-    def alert(soundPath):
-        # This function can be used to play .mp3 files
-        # Used it to let you know when a process has been completed
-        from playsound import playsound
-
-        if os.path.exists(soundPath):
-            threading.Thread(target=playsound, args=(soundPath,)).start()
+    def createCustomColorMap(colorType):
+        colorType = colorType.lower()
+        if colorType == 'counts':
+            useGreen = True
+            if useGreen:
+                # Green
+                colors = ['#FFFFFF','#ABFF9B','#39FF14','#2E9418','#2E9418','#005000']
+            else:
+                # Orange
+                colors = ['white','white','#FF76FA','#FF50F9','#FF00F2','#CA00DF','#BD16FF']
+        elif colorType == 'stdev':
+            colors = ['white','white','#FF76FA','#FF50F9','#FF00F2','#CA00DF','#BD16FF']
+        elif colorType == 'word cloud':
+            # ,'#F2A900','#2E8B57','black'
+            colors = ['#CC5500','#CC5500','#F79620','#FAA338',
+                      '#00C01E','#1D680D','#003000','black']
+        elif colorType == 'em':
+            colors = ['navy','royalblue','dodgerblue','lightskyblue','white',
+                      'white','lightcoral','red','firebrick','darkred']
         else:
-            print(f'{orange}ERROR: The alerts sound was not found at\n'
-                  f'     {soundPath}{resetColor}\n\n')
+            print(f'ERROR: Cannot create colormap. '
+                  f'Unrecognized colorType parameter: {colorType}\n')
+            sys.exit(1)
 
+        # Create colormap
+        if len(colors) == 1:
+            colorList = [(0, colors[0]), (1, colors[0])]
+        else:
+            colorList = [(i / (len(colors) - 1), color) for i, color in enumerate(colors)]
+        return LinearSegmentedColormap.from_list('custom_colormap', colorList)
 
 
     @staticmethod
     def residueColors():
         color = ['darkgreen', 'firebrick', 'deepskyblue', 'pink', 'navy', 'black', 'gold']
-                 # Aliphatic, Acidic, Basic, Hydroxyl, Amide, Aromatic, Sulfur
+        # Aliphatic, Acidic, Basic, Hydroxyl, Amide, Aromatic, Sulfur
 
         return {
             'A': color[0],
@@ -342,2461 +217,1527 @@ class NGS:
         }
 
 
+    @staticmethod
+    def getKey(app):  # required for CSRF
+        app.config['SECRET_KEY'] = secrets.token_hex(nbytes=32)
+        # print(f'Key: {app.config['SECRET_KEY']}\n'
+        #       f'Len: {len(app.config['SECRET_KEY'])}\n')
+
 
     @staticmethod
-    def createCustomColorMap(colorType):
-        colorType = colorType.lower()
-        if colorType == 'counts':
-            useGreen = True
-            if useGreen:
-                # Green
-                colors = ['#FFFFFF','#ABFF9B','#39FF14','#2E9418','#2E9418',
-                          '#005000']
+    def pressButton(message):
+        print(f'Received data: {message}')
+        return {'key': 'Returned data'}
+
+
+    def encodeFig(self, fig):
+        # Save figure to a memory buffer instead of disk
+        buffer = io.BytesIO()
+        plt.savefig(
+            buffer, format='png', bbox_inches='tight',
+            dpi=self.figureResolution
+        )
+        buffer.seek(0)
+
+        # Encode as base64 for embedding in HTML
+        figBase64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        plt.close(fig) # or fig.clear() to release memory
+        buffer.close()
+
+        return figBase64
+
+
+    def getDatasetTag(self, log=True):
+        self.fixAA = dict(sorted(self.fixAA.items()))
+        self.exclAA = dict(sorted(self.exclAA.items()))
+        tagFix = 'Fix '
+        tagExcl = 'Excl '
+
+        # Evaluate filters
+        if self.exclAA:
+            for index, (pos, AA) in enumerate(self.exclAA.items()):
+                if len(AA) > 1:
+                    tagExcl += f'[{','.join(AA)}]@{pos} '
+                else:
+                    tagExcl += f'{AA}@{pos} '
+            tagExcl = tagExcl[:-1]
+        if self.fixAA:
+            for index, (pos, AA) in enumerate(self.fixAA.items()):
+                if len(AA) > 1:
+                    tagFix += f'[{','.join(AA)}]@{pos} '
+                else:
+                    tagFix += f'{AA}@{pos} '
+            tagFix = tagFix[:-1]
+        if tagExcl != 'Excl ' and tagFix != 'Fix ':
+            self.datasetTag = f'{tagExcl} {tagFix}'
+        elif tagFix != 'Fix ':
+            self.datasetTag = tagFix
+        elif tagExcl != 'Excl ':
+            self.datasetTag = tagExcl
+        else:
+            self.datasetTag = 'Unfiltered'
+        if self.motifFilter and not self.datasetTagMotif:
+            self.datasetTagMotif = (f'Register '
+                                    f'{self.datasetTag.replace(f'Fix ', '')}')
+            self.jobParams['Dataset Tag'] = self.datasetTagMotif
+            if log:
+                self.log(f'Filter: {self.datasetTagMotif}')
+        elif 'Dataset Tag' not in self.jobParams.keys():
+            self.jobParams['Dataset Tag'] = self.datasetTag
+            if log:
+                self.log(f'Filter: {self.datasetTag}')
+
+
+    def getFilter(self, data):
+        self.fixAA = {}
+        self.exclAA = {}
+        if 'filterPos' in data.keys():
+            self.filterPos = data['filterPos']
+            # Get filter params
+            for key, value in data.items():
+                if 'fix' in key:
+                    self.fixAA[key.replace('fix', '')] = value
+                if 'excl' in key:
+                    self.exclAA[key.replace('excl', '')] = value
+        self.getDatasetTag()
+
+
+    def getSaveTag(self):
+        # Evaluate filters
+        if self.initCOMET:
+            self.initCOMET = False
+            tag = f'{self.datasetTagMotif.replace(' ', '_')}'
+        elif self.motifFilter: ##
+            tag = f'SubProfile_{self.datasetTagMotif.replace(' ', '_')}'
+        else:
+            tag = self.datasetTag
+            tag = tag.replace(' Fix ', '-Fix_').replace('Fix ', 'Fix_')
+            tag = tag.replace('Excl ', 'Excl_').replace(' ', '_')
+        return tag
+
+
+    def getFileNameFig(self, tag, tag2=False):
+        figName = (f'{tag}-{self.enzymeName}-{self.getSaveTag()}-'
+                   f'{self.seqLength}AA-MinCounts{self.minCounts}.png')
+        if self.motifFilter and 'entropy' not in tag.lower():
+            figName = figName.replace(tag, f'{tag}-{self.iteration}')
+        if tag2:
+            figName = figName.replace('.png', f'{tag2}.png')
+        return figName
+    
+    
+    def getFileName(self, ftype='Subs', datasetType='Exp', subProfile=False):
+        if subProfile:
+            tag = (f'SubProfile_{self.datasetTagMotif.replace(' ', '_')}_'
+                   f'MinCounts{self.minCounts}')
+        else:
+            if self.datasetTag is None:
+                print(f'Dont save, dataset tag: {self.datasetTag}\n')
+                sys.exit()
+            tag = self.datasetTag.replace(' ', '_')
+        if ftype == 'Subs':
+            fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
+                        f'{self.seqLength}AA-MinCounts{self.minCounts}.pkl')
+        else:
+            fileName = (f'{self.enzymeName}-AA_{ftype}_{datasetType}-{tag}-'
+                        f'{self.seqLength}AA-MinCounts{self.minCounts}.csv')
+        print(f'File Name: {fileName}')
+        return fileName
+
+
+    def saveSubstrates(self, substrates, datasetType='Exp', subProfile=False):
+        saveTag = self.getFileName(datasetType=datasetType, subProfile=subProfile)
+
+        # Save the substrates
+        path = os.path.join(self.pathData, saveTag)
+        print(f'Saving Substrates: {path}')
+        if not os.path.exists(path):
+            self.log(f'\nSaving Substrates:\n     {path}')
+            with open(path, 'wb') as file:
+                pk.dump(substrates, file)
+
+
+    def saveCounts(self, counts, datasetType, subProfile=False):
+        saveTag = self.getFileName(ftype='Counts', datasetType=datasetType,
+                                   subProfile=subProfile)
+
+        # Save the counts
+        path = os.path.join(self.pathData, saveTag)
+        # if not os.path.exists(path): ## ==================================================
+        print(f'Saving Counts: {path}')
+        counts.to_csv(path)
+
+
+    def initParams(self):
+        self.minCounts = 1
+        self.fileExp = []
+        self.fileExpRev = []
+        self.fileExpCounts = []
+        self.fileBg = []
+        self.fileBgRev = []
+        self.subsExp = {}
+        self.subsBg = {}
+        self.fileOrder = []
+        self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
+        self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        self.figures = {}
+        self.figTag = ''
+        self.motifFilter = False
+
+
+    def jobInit(self, form, job):
+        self.jobDone = False
+        self.jobParams['Job ID'] = form['jobID']
+        self.jobParams['Job'] = job
+
+        # Initialize directories
+        self.pathDir = os.path.join('dset', f"{form['enzymeName']}")
+        # self.pathDir = os.path.join('dset', f"{form['enzymeName']}-"
+        #                                     f"{time.strftime("%Y_%m_%d-%H:%M:%S")}-"
+        #                                     f"{form['jobID']}")
+        self.pathData = os.path.join(self.pathDir, 'data')
+        self.pathFigs = os.path.join(self.pathDir, 'figures')
+        self.pathLog = os.path.join(self.pathDir, 'log.txt')
+        if self.pathDir is not None:
+            if not os.path.exists(self.pathDir):
+                os.makedirs(self.pathDir, exist_ok=True)
+        if self.pathData is not None:
+            if not os.path.exists(self.pathData):
+                os.makedirs(self.pathData, exist_ok=True)
+        if self.pathFigs is not None:
+            if not os.path.exists(self.pathFigs):
+                os.makedirs(self.pathFigs, exist_ok=True)
             else:
-                # Orange
-                colors = ['white','white','#FF76FA','#FF50F9','#FF00F2',
-                          '#CA00DF','#BD16FF']
-        elif colorType == 'standard deviation':
-            colors = ['white','white','#FF76FA','#FF50F9','#FF00F2','#CA00DF','#BD16FF']
-        elif colorType == 'word cloud':
-            # ,'#F2A900','#2E8B57','black'
-            colors = ['#BF5700','#BF5700','#F8971F','#FAA338',
-                      '#00C01E','#1D680D','#003000','black']
-            # colors = ['#008631','#39E75F','#BF5700','#F8971F','black']
-        elif colorType == 'em':
-            colors = ['navy','royalblue','dodgerblue','lightskyblue','white','white',
-                      'lightcoral','red','firebrick','darkred']
-        else:
-            print(f'{orange}ERROR: Cannot create colormap. '
-                  f'Unrecognized colorType parameter: {cyan}{colorType}{resetColor}\n')
-            sys.exit(1)
+                # Clear figs
+                import shutil
+                # Remove everything inside the directory
+                for filename in os.listdir(self.pathFigs):
+                    path = os.path.join(self.pathFigs, filename)
+                    if os.path.isfile(path) or os.path.islink(path):
+                        os.unlink(path)  # delete file or link
+                    elif os.path.isdir(path):
+                        shutil.rmtree(path)  # delete subdirectory
+                # time.sleep(5)
+                os.makedirs(self.pathFigs, exist_ok=True)
 
-        # Create colormap
-        if len(colors) == 1:
-            colorList = [(0, colors[0]), (1, colors[0])]
-        else:
-            colorList = [(i / (len(colors) - 1), color) for i, color in enumerate(colors)]
-        return LinearSegmentedColormap.from_list('custom_colormap', colorList)
+        self.log() # Clear the log
+        self.log('================================ Job Summary '
+                 '=================================')
 
+        # Record job params
+        self.log(f'Job ID: {self.jobParams['Job ID']}')
+        self.log(f'Job: {job}')
+        self.enzymeName = form['enzymeName']
+        self.jobParams['Enzyme Name'] = self.enzymeName
+        self.log(f'Enzyme: {self.enzymeName}')
+        self.seqLength = int(form['seqLength'])
+        self.jobParams['Substrate Length'] = self.seqLength
+        self.log(f'Substrate Length: {self.seqLength}')
 
+        # Initialize params
+        self.initParams()
 
-    @staticmethod
-    def dropColumnsFromMatrix(countMatrix, datasetType, dropColumn):
-        printMatrix = False
-        for pos in dropColumn:
-            if pos in countMatrix.columns:
-                printMatrix = True
-                print(f'Dropping column: {blue}{dropColumn}{resetColor}')
-                countMatrix = countMatrix.drop(columns=pos)
-
-        if printMatrix:
-            countsFormatted = countMatrix.to_string(
-                formatters={column: '{:,.0f}'.format for column in
-                            countMatrix.select_dtypes(include='number').columns})
-            print(f'Counts: {purple}{datasetType}{resetColor}\n{countsFormatted}\n\n')
-
-        return countMatrix
-
-
-
-    @staticmethod
-    def zScore(dist, AA):
-        x = dist.loc[AA]
-        dist = np.asarray(dist)
-        mu = dist.mean()
-        sigma = dist.std(ddof=0) # population std
-        return (x - mu) / sigma
-
-
-
-    def loadAndTranslate(self, filePath, fileName, fileType, fixedSubs,
-                         startSeq, endSeq, printQS, forwardRead):
-        if forwardRead is None:
-            print(f'{orange}ERROR: The file {cyan}{fileName}{orange} does not contain '
-                  f'a forward read (R1) or reverse read (R2) label.\n\n'
-                  f'Please update the file name, or expand the conditional statements '
-                  f'in extractSubs.py that call the function NGS.loadAndTranslate() '
-                  f'so that the file can be processed.')
-            sys.exit(1)
-
-
-        # Define file location
-        fileLocation = os.path.join(filePath, f'{fileName}.{fileType}')
-
-        # Determine the read direction
-        subSequence = None
-        # Extract the substrates
-        subSequence = self.translate(path=fileLocation, fileName=fileName,
-                                     fileType=fileType, fixData=fixedSubs,
-                                     startSeq=startSeq, endSeq=endSeq,
-                                     printQS=printQS, forwardRead=forwardRead)
-
-        return subSequence
-
-
-
-    def translate(self, path, fileName, fileType, fixData, startSeq, endSeq, printQS,
-                  forwardRead):
-        if forwardRead:
-            read = 'R1'
-            print('============================ Translate: Forward Read '
-                  '============================')
-        else:
-            read = 'R2'
-            print('============================ Translate: Reverse Read '
-                  '============================')
-        subSequence = {}
-        totalSeqsDNA = 0
-        printedSeqs = 0
-
-
-        # Evaluate the file path
-        gZipped = False
-        if not os.path.isfile(path):
-            pathZipped = path + '.gz'
-            if os.path.isfile(pathZipped):
-                gZipped = True
-                path = pathZipped
+        def addFile(data, value):
+            if isinstance(value, list):
+                for f in value:
+                    data.append(f)
             else:
-                print(f'{orange}ERROR: File location does not lead to a file\n'
-                      f'     {path}\n'
-                      f'     {pathZipped}\n')
-                sys.exit(1)
-        print(f'File Location:\n'
-              f'     {greenDark}{path}{resetColor}\n\n')
+                data.append(value)
 
-        # Define fixed substrate tag
-        if fixData:
-            self.getDatasetTag()
-            print(f'Evaluating fixed library: {purple}{self.datasetTag}{resetColor}')
-        else:
-            print(f'Evaluating library: {purple}{self.enzymeName}{resetColor}')
-
-
-        def printDNA(printedSeqs):
-            # Select full DNA seq
-            DNA = str(datapoint.seq)
-            if not forwardRead:
-                DNA = Seq(DNA).reverse_complement()
-
-            # Get: Quality score
-            QS = datapoint.letter_annotations['phred_quality']
-            print(f'DNA sequence: {DNA}')
-
-            # Inspect full DNA seq
-            if startSeq in DNA and endSeq in DNA:
-                # Find: Substrate indices
-                start = DNA.find(startSeq) + len(startSeq)
-                end = DNA.find(endSeq)
-
-                # Extract substrate DNA seq
-                substrateDNA = DNA[start:end].strip()
-                print(f'     Inspected substrate: '
-                      f'{greenLightB}{substrateDNA}{resetColor}')
-
-                if len(substrateDNA) == self.substrateLength * 3:
-                    # Translate substrate
-                    substrate = str(Seq.translate(substrateDNA))
-                    print(f'     Inspected Substrate:'
-                          f'{greenLightB} {substrate}{resetColor}')
-
-                    # Inspect substrate seq: PRINT ONLY
-                    if 'X' not in substrate and '*' not in substrate:
-                        print(f'     Extracted substrate: '
-                              f'{pink}{substrate}{resetColor}')
-                        if printQS:
-                            QS = QS[start:end]
-                            print(f'     QS Substrate: {QS}')
-                        printedSeqs += 1
+        # Job dependant parameters
+        self.idxMotif = {}
+        if job == 'Process DNA':
+            self.seq5Prime = form['seq5Prime']
+            self.seq3Prime = form['seq3Prime']
+            self.minPhred = int(round(float(form['minPhred']))) if form['minPhred'] != '' else 0
+            self.log(f'5\' Sequence: {self.seq5Prime}\n'
+                     f'3\' Sequence: {self.seq3Prime}\n'
+                     f'Min Phred Score: {self.minPhred}')
+        # elif job == 'Filter AA':
+        #     print(f'Job: {job}')
+        elif job == 'Filter Motif':
+            self.iteration = 0
+            self.minS = 0.6
+            self.jobParams['Minimum ∆S'] = self.minS
+            self.minES = 0
+            self.minESRel = -0.5
+            self.motifPos = {}
+        elif job == 'Combine Motifs':
+            self.combineRegisters = True
+            self.seqLength = int(form['motifLength'])
+            for key in form.keys():
+                if 'idxStart' in key:
+                    self.idxMotif[key] = int(form[key]) - 1 ##
             print()
+        else:
+            print('ERROR: What Script Is Running')
+            sys.exit()
+        self.minCounts = int((round(float(form['minCounts']))))
+        self.jobParams['Minimum Count'] = self.minCounts
+        self.log(f'Minimum Count: {self.minCounts}')
 
-            return printedSeqs
+        # Get the files
+        for key, value in form.items():
+            if 'fileBgRev' in key:
+                addFile(self.fileBgRev, value)
+            elif 'fileBg' in key:
+                addFile(self.fileBg, value)
+            elif 'fileExpCounts' in key:
+                self.fileOrder.append(key)
+                addFile(self.fileExpCounts, value)
+            elif 'fileExpRev' in key:
+                addFile(self.fileExpRev, value)
+            elif 'fileExp' in key:
+                addFile(self.fileExp, value)
+
+        # Get the filter and initialize the data structures
+        self.getFilter(form)
 
 
-        def inspectDNA():
-            # Inspect full DNA seq
-            if startSeq in DNA and endSeq in DNA:
+    def log(self, txt=None):
+        if txt is None:
+            with open(self.pathLog, 'w'):
+                pass
+        else:
+            with open(self.pathLog, 'a') as log:
+                log.write(f'{txt}\n')
+
+
+    def logInQueue(self, logQueue):
+        with open(self.pathLog, 'a') as log:
+            while not logQueue.empty():
+                log.write(logQueue.get() + '\n')
+
+
+    def logErrorFn(self, function, msg, getStr=False):
+        if getStr:
+            return (f'\n========================================='
+                    f'========================================\n'
+                     f'========================================='
+                     f'========================================\n'
+                     f'***** ERROR: {function} *****\n\n'
+                     f'{msg}\n'
+                     f'========================================='
+                     f'========================================\n'
+                     f'========================================='
+                     f'========================================')
+        else:
+            self.log(f'\n========================================='
+                     f'========================================\n'
+                     f'========================================='
+                     f'========================================\n'
+                     f'***** ERROR: {function} *****\n\n'
+                     f'{msg}\n'
+                     f'========================================='
+                     f'========================================\n'
+                     f'========================================='
+                     f'========================================')
+            sys.exit(1)
+
+
+    def processSubs(self, substrates, datasetType, filteredAA):
+        self.log('\n\n================================= Substrates '
+                 '=================================')
+        self.log(f'Dataset: {self.datasetTypes[datasetType]}')
+
+        # Inspect sequences
+        if not filteredAA:
+            filteredSubs = {}
+            for substrate, count in substrates.items():
+                for AA in substrate:
+                    if AA not in self.AA:
+                        filteredSubs[substrate] = count
+            if filteredSubs:
+                self.log(f'\nFiltering Substrates:\n'
+                         f'     If a substrate contains an '
+                         f'unaccented AA it will be removed.\n'
+                         f'     Accepted: {self.AA}\n\n'
+                         f'     Removed Substrates:')
+                for substrate, count in filteredSubs.items():
+                    substrates.pop(substrate, count)
+                    self.log(f'          {substrate}: {count}')
+
+        # Sort data
+        substrates = dict(
+            sorted(substrates.items(),
+                   key=lambda item: item[1], reverse=True)
+        )
+
+
+        # Count AAs
+        countMatrix = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        self.log('\nSubstrate Totals:')
+        if datasetType == 'Exp':
+            self.subsExp = substrates
+            self.countExpTotal = sum(substrates.values())
+            self.countExpUnique = len(substrates.keys())
+            self.log(f'     Total Substrates: {self.countExpTotal:,}\n'
+                     f'    Unique Substrates: {self.countExpUnique:,}\n')
+
+            # Record job params
+            self.jobParams['Total Experimental Substrates'] = f'{self.countExpTotal:,}'
+            self.jobParams['Unique Experimental Substrates'] = f'{self.countExpUnique:,}'
+        elif datasetType == 'Bg':
+            self.subsBg = substrates
+            self.countBgTotal = sum(substrates.values())
+            self.countBgUnique = len(substrates.keys())
+            self.log(f'     Total Substrates: {self.countBgTotal:,}\n'
+                     f'    Unique Substrates: {self.countBgUnique:,}\n')
+
+            # Record job params
+            self.jobParams['Total Background Substrates'] = f'{self.countBgTotal:,}'
+            self.jobParams['Unique Background Substrates'] = f'{self.countBgUnique:,}'
+        else:
+            self.logErrorFn(function='processSubs()',
+                            msg=f'Unknown dataset type: {datasetType}')
+
+        self.log(f'Top {self.printN:,} {self.datasetTypes[datasetType]} Sequences')
+        for index, (sub, count) in enumerate(substrates.items()):
+            if index >= self.printN:
+                break
+            self.log(f'     {sub}: {count}')
+
+        # Save data
+        self.saveSubstrates(substrates=substrates, datasetType=datasetType)
+
+        # Count AAs
+        countMatrix = self.countAA(substrates=substrates, countMatrix=countMatrix,
+                                   datasetType=datasetType)
+        if datasetType == 'Bg':
+            self.countsBg = countMatrix
+        else:
+            self.countsExp = countMatrix
+
+
+    def loadDNA(self, path, datasetType, queueData, queueLog, reverseRead):
+        translate = True
+        filename = path.filename if hasattr(path, 'filename') else path.name
+        try:
+            # Open the file
+            if filename.endswith('.gz'):
+                file_handle = gzip.open(path, 'rt')
+            else:
+                path.seek(0)  # ensure at start
+                file_handle = io.StringIO(path.read().decode('utf-8'))
+            data = None
+
+            if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
+                data = SeqIO.parse(file_handle, 'fastq')
+            elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
+                data = SeqIO.parse(file_handle, 'fasta')
+            else:
+                queueLog.put(self.logErrorFn(
+                    function='loadDNA()',
+                    msg=f'Unrecognized file\n     {path}',
+                    getStr=True
+                    )
+                )
+                translate = False
+
+            # Translate the dna
+            if translate:
+                substrates = self.translate(
+                    data, filename, datasetType, queueLog, reverseRead
+                )
+                queueData.put(substrates) # Put the substrates in the queue
+        except Exception as e:
+            queueLog.put(self.logErrorFn(
+                function='loadDNA()',
+                msg=f'Failed to load file:\n     {path}\n     {e}',
+                getStr=True))
+
+
+    def translate(self, data, fileName, datasetType, queueLog, revRead):
+        queueLog.put('\n\n================================ Translate DNA '
+                     '===============================')
+        data = list(data)
+        self.printN = 10
+
+        queueLog.put(f'File Name: {fileName}')
+        if revRead:
+            queueLog.put('Read Type: Reverse Read')
+        else:
+            queueLog.put('Read Type: Forward Read')
+        queueLog.put(f'  Dataset: {datasetType}')
+
+        # Inspect the file
+        useQS = False
+        for datapoint in data:
+            if 'phred_quality' in datapoint.letter_annotations:
+                useQS = True
+            break
+        queueLog.put(f'  Eval QS: {useQS}')
+        if useQS:
+            queueLog.put(f'Min Phred: {self.minPhred}')
+        queueLog.put('\n')
+
+        # Inspect the datasetType parameter
+        if (datasetType != self.datasetTypes['Exp']
+                and datasetType != self.datasetTypes['Bg']):
+            self.logErrorFn(function='translate()',
+                            msg=f'Unknown dataset type: {datasetType}')
+
+
+        def reverseComplement(seq):
+            """Returns the reverse complement of a DNA sequence."""
+            complement = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C', 'N': 'N'}
+            return ''.join(complement[base] for base in reversed(seq))
+
+
+        def extractionEfficiency(totalSeqsDNA, totalSubsExtracted, fullSet=False):
+            if totalSeqsDNA == 0:
+                totalSeqsDNA = 1
+            perExtracted = (totalSubsExtracted / totalSeqsDNA) * 100
+            if fullSet:
+                queueLog.put(f'\nExtraction Efficiency: - All Sequences')
+            else:
+                queueLog.put(f'\nExtraction Efficiency: {self.printN} Substrates')
+            queueLog.put(f'     Evaluated DNA Sequences: {totalSeqsDNA:,}\n'
+                         f'        Extracted Substrates: {totalSubsExtracted:,}\n'
+                         f'       Extraction Efficiency: {round(perExtracted, 3)} %')
+
+
+        def logDNA(datapoint, totalSeqs, totalSubsExtracted, useQS):
+            """
+                Scan dataset and log datapoints
+            """
+            totalSeqs += 1
+            dna = str(datapoint.seq)
+            # print(f'DNA: {dna}')
+            if revRead:
+                dna = reverseComplement(dna)
+            queueLog.put(f'DNA Seq: {dna}')
+
+            # Inspect full dna seq
+            queueLog.put(f'Tags: {self.seq5Prime}, {self.seq5Prime in dna} - '
+                  f'{self.seq3Prime}, {self.seq3Prime in dna}')
+            if (self.seq5Prime in dna and self.seq3Prime in dna or
+                    not self.seq5Prime and self.seq3Prime in dna or
+                    self.seq5Prime in dna and not self.seq3Prime):
+
                 # Find: Substrate indices
-                start = DNA.find(startSeq) + len(startSeq)
-                end = DNA.find(endSeq)
+                start = dna.find(self.seq5Prime) + len(self.seq5Prime)
+                end = dna.find(self.seq3Prime)
 
-                # Extract substrate DNA seq
-                substrate = DNA[start:end].strip()
-                if len(substrate) == self.substrateLength * 3:
-                    # Express substrate
-                    substrate = str(Seq.translate(substrate))
+                # Extract substrate dna seq
+                if end:
+                    substrateDNA = dna[start:end].strip()
+                else:
+                    substrateDNA = dna[start:].strip()
+                queueLog.put(f'* Sub DNA: {substrateDNA}')
+                if len(substrateDNA) == self.seqLength * 3:
+                    substrate = str(Seq.translate(substrateDNA))
+                    queueLog.put(f'Sub Seq: {substrate}')
 
-                    # Inspect substrate seq: Keep good fixed datapoints
+                    # Inspect substrate seq: log only
                     if 'X' not in substrate and '*' not in substrate:
-                        # Inspect quality score
-                        QS = datapoint.letter_annotations['phred_quality']
-                        QS = QS[start:end]
-                        if any(score < self.minQS for score in QS):
-                            return
+                        if useQS:
+                            qs = datapoint.letter_annotations['phred_quality']
+                            if end:
+                                qs = qs[start:end]
+                            else:
+                                qs = qs[start:]
+                            queueLog.put(f'     QS: {qs}')
+                            if all(score < self.minPhred for score in qs):
+                                print(f'Low QS: {qs}')
+                                return totalSeqs, totalSubsExtracted
+                        queueLog.put(f'* Keep Substrate')
+                        totalSubsExtracted += 1
+            queueLog.put('')
 
-                        # Record datapoint
-                        if substrate in subSequence:
-                            subSequence[substrate] += 1
+            return totalSeqs, totalSubsExtracted
+
+        # Translate and log DNA
+        totalSeqs = 0
+        totalSubsExtracted = 0
+        for idx, datapoint in enumerate(data):
+            if totalSubsExtracted >= self.printN:
+                break
+            totalSeqs, totalSubsExtracted = logDNA(
+                datapoint, totalSeqs, totalSubsExtracted, useQS
+            )
+        extractionEfficiency(totalSeqs, totalSubsExtracted)
+
+
+        def processDNA(datapoint, totalSeqs, totalSubsExtracted, substrates, useQS):
+            # Process datapoint
+            totalSeqs += 1
+            dna = str(datapoint.seq)
+            if revRead:
+                # print(f'Reverse DNA: {dna}')
+                dna = reverseComplement(dna)
+
+            # Inspect full dna seq
+            if (self.seq5Prime in dna and self.seq3Prime in dna or
+                    not self.seq5Prime and self.seq3Prime in dna or
+                    self.seq5Prime in dna and not self.seq3Prime):
+
+                # Find: Substrate indices
+                start = dna.find(self.seq5Prime) + len(self.seq5Prime)
+                end = dna.find(self.seq3Prime)
+
+                # Extract substrate dna seq
+                if end:
+                    substrateDNA = dna[start:end].strip()
+                else:
+                    substrateDNA = dna[start:].strip()
+                if len(substrateDNA) == self.seqLength * 3:
+                    substrate = str(Seq.translate(substrateDNA))
+
+                    # Inspect substrate seq
+                    if 'X' not in substrate and '*' not in substrate:
+                        if useQS:
+                            qs = datapoint.letter_annotations['phred_quality']
+                            if end:
+                                qs = qs[start:end]
+                            else:
+                                qs = qs[start:]
+                            if all(score < self.minPhred for score in qs):
+                                return substrates, totalSeqs, totalSubsExtracted
+                        if substrate in substrates.keys():
+                            substrates[substrate] += 1
                         else:
-                            subSequence[substrate] = 1
+                            substrates[substrate] = 1
+                        totalSubsExtracted += 1
+
+            return substrates, totalSeqs, totalSubsExtracted
+
+        # Translate DNA and record substrates
+        substrates = {}
+        totalSeqs = 0
+        totalSubsExtracted = 0
+        for datapoint in data:
+            substrates, totalSeqs, totalSubsExtracted = processDNA(
+                datapoint, totalSeqs, totalSubsExtracted, substrates, useQS
+            )
+        extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
+        return substrates
 
 
-        def inspectDNAFixed():
-            # Inspect full DNA seq
-            if startSeq in DNA and endSeq in DNA:
-                # Find: Substrate indices
-                start = DNA.find(startSeq) + len(startSeq)
-                end = DNA.find(endSeq)
-
-                # Extract substrate DNA seq
-                substrate = DNA[start:end].strip()
-                if len(substrate) == self.substrateLength * 3:
-                    # Express substrate
-                    substrate = str(Seq.translate(substrate))
-
-                    # Inspect substrate seq: Keep good fixed datapoints
-                    if 'X' not in substrate and '*' not in substrate:
-                        # Inspect quality score
-                        QS = datapoint.letter_annotations['phred_quality']
-                        QS = QS[start:end]
-                        if any(score < self.minQS for score in QS):
-                            return
-
-                        # Fix AAs
-                        keep = True
-                        for idx, AA in enumerate(self.fixedAA):
-                            if isinstance(AA, list):
-                                if substrate[self.fixedPos[idx] - 1] not in AA:
-                                    keep = False
-                                    break
-                            else:
-                                if substrate[self.fixedPos[idx] - 1] != AA:
-                                    keep = False
-                                    break
-                        if keep:
-                            if substrate in subSequence:
-                                subSequence[substrate] += 1
-                            else:
-                                subSequence[substrate] = 1
-
-
-
-        def evaluateDNAQuality(totalSeqsDNA, read):
-            throwaway = totalSeqsDNA - self.printNumber
-            throwawayPercent = (throwaway / totalSeqsDNA) * 100
-            print(f'\nExtraction Efficiency: '
-                  f'{greenLight}{fileName}{resetColor}\n'
-                  f'     Number of discarded sequences until {red}'
-                  f'{self.printNumber} substrates{resetColor} were found in '
-                  f'{purple}{read}{resetColor}: {red}{throwaway:,}{resetColor}\n'
-                  f'     {yellow}Percent throwaway{resetColor}:'
-                  f'{red} {round(throwawayPercent, self.roundVal)} %'
-                  f'{resetColor}')
-
+    def evalDNA(self, form):
+        self.jobInit(form, job='Process DNA')
 
         # Load the data
-        if gZipped:
-            # Open the file
-            with (gzip.open(path, 'rt', encoding='utf-8') as file):
-                data = SeqIO.parse(file, fileType)
-                warnings.simplefilter('ignore', BiopythonWarning)
-
-                for datapoint in data:
-                    totalSeqsDNA += 1
-                    printedSeqs = printDNA(printedSeqs)
-                    if printedSeqs == self.printNumber:
-                        evaluateDNAQuality(totalSeqsDNA, read)
-                        break
-                if fixData:
-                    print(f'\nNote: The displayed substrates were not filtered for '
-                          f'{purple}{self.datasetTag}{resetColor}\n'
-                          f'      The filter will be applied to the extracted substrates')
-                print('')
-
-
-                # Extract the substrates
-                totalSeqsDNA = 0
-                if forwardRead:
-                    if fixData:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            totalSeqsDNA += 1
-                            inspectDNAFixed()
-                    else:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            totalSeqsDNA += 1
-                            inspectDNA()
-                else:
-                    if fixData:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            DNA = Seq(DNA).reverse_complement()
-                            totalSeqsDNA += 1
-                            inspectDNAFixed()
-                    else:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            DNA = Seq(DNA).reverse_complement()
-                            totalSeqsDNA += 1
-                            inspectDNA()
-        else:
-            # Open the file
-            with open(path, 'r') as file:
-                data = SeqIO.parse(file, fileType)
-                warnings.simplefilter('ignore', BiopythonWarning)
-
-                for datapoint in data:
-                    totalSeqsDNA += 1
-                    printedSeqs = printDNA(printedSeqs)
-                    print(f'Print: {printedSeqs}, {totalSeqsDNA}')
-                    if printedSeqs >= self.printNumber:
-                        evaluateDNAQuality(totalSeqsDNA, read)
-                        break
-                if fixData:
-                    print(f'\nNote: The displayed substrates were not filtered for '
-                          f'{purple}{self.datasetTag}{resetColor}\n'
-                          f'      The filter will be applied to the extracted substrates')
-                print('')
-
-                # Extract the substrates
-                totalSeqsDNA = 0
-                if forwardRead:
-                    if fixData:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            totalSeqsDNA += 1
-                            inspectDNAFixed()
-                    else:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            totalSeqsDNA += 1
-                            inspectDNA()
-                else:
-                    if fixData:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            DNA = Seq(DNA).reverse_complement()
-                            totalSeqsDNA += 1
-                            inspectDNAFixed()
-                    else:
-                        for datapoint in data:
-                            # Select full DNA seq
-                            DNA = str(datapoint.seq)
-                            DNA = Seq(DNA).reverse_complement()
-                            totalSeqsDNA += 1
-                            inspectDNA()
-
-
-        # Verify if substrates have been extracted
-        if len(subSequence) == 0:
-            print(f'\nNo substrates were extracted from file at:\n{path}\n\n'
-                  f'Recommend: adjust variables\n'
-                  f'     startSeq: {red}{startSeq}{resetColor}\n'
-                  f'     endSeq: {red}{endSeq}{resetColor}')
-            sys.exit(1)
-        else:
-            extractionCount = sum(subSequence.values())
-            throwaway = (totalSeqsDNA - extractionCount)
-            throwawayPercent = (throwaway / totalSeqsDNA) * 100
-            self.fileSize.append(totalSeqsDNA)
-            self.countExtractedSubs.append(extractionCount)
-            self.percentUnusableDNASeqs.append(throwawayPercent)
-            print(f'Evaluate All DNA Sequences in {purple}{read}{resetColor}: '
-                  f'{greenLight}{fileName}{resetColor}\n'
-                  f'     Total DNA sequences in the file: '
-                  f'{red}{totalSeqsDNA:,}{resetColor}\n'
-                  f'     Number of extracted Substrates: '
-                  f'{red}{extractionCount:,}{resetColor}\n'
-                  f'     {yellow}Percent throwaway{resetColor}:'
-                  f'{red} {round(throwawayPercent, self.roundVal)} %{resetColor}\n\n')
-
-        # Rank the substrates
-        subSequence = dict(sorted(subSequence.items(), key=lambda x: x[1], reverse=True))
-
-        return subSequence
-
-
-
-    def extractionEfficiency(self, files):
-        print('======================== Substrate Extraction Efficiency '
-              '========================')
-        for index, file in enumerate(files):
-            print(f'{pink}Evaluate file{resetColor}:{greenLight} {file}{resetColor}\n'
-                  f'     Total DNA sequences in the file: '
-                  f'{red}{self.fileSize[index]:,}{resetColor}\n'
-                  f'     Number of extracted Substrates: '
-                  f'{red}{self.countExtractedSubs[index]:,}{resetColor}\n'
-                  f'     {yellow}Percent throwaway{resetColor}: '
-                  f'{red}{round(self.percentUnusableDNASeqs[index], self.roundVal)} %'
-                  f'{resetColor}\n')
-        print('')
-
-
-
-    def countResidues(self, substrates, datasetType):
-        print('============================= Calculate: AA Counts '
-              '==============================')
-        print(f'Dataset: {purple}{datasetType}{resetColor}\n'
-              f'Unique substrate count: {red}{len(substrates):,}{resetColor}')
-
-        # Determine substrate length
-        firstSub, lengthSubstrate = None, None
-        countMotif = False
-        for substrate in substrates.keys():
-            firstSub = substrate
-            lengthSubstrate = len(substrate)
-            if lengthSubstrate != len(self.xAxisLabels):
-                countMotif = True
-            break
-
-        # Initialize the count matrix
-        if countMotif and self.xAxisLabelsMotif is not None:
-            countedData = pd.DataFrame(0,
-                                       index=self.letters,
-                                       columns=self.xAxisLabelsMotif,
-                                       dtype=int)
-        else:
-            countedData = pd.DataFrame(0,
-                                       index=self.letters,
-                                       columns=self.xAxisLabels,
-                                       dtype=int)
-
-        # Verify consistent substrate lengths
-        countModulus = 100 # Check the Nth substrate length
-        for index, substrate in enumerate(substrates.keys()):
-            if index % countModulus == 0:
-                if len(substrate) != lengthSubstrate:
-                    print(f'{orange}ERROR: The substrate lengths do not match\n'
-                          f'     {firstSub}: {lengthSubstrate} AA\n'
-                          f'     {substrate}: {len(substrate)} AA{resetColor}\n')
-                    sys.exit(1)
-
-        # Count the occurrences of each residue
-        totalSubs = 0
-        if countMotif:
-            # Count the AAs
-            for substrate, counts in substrates.items():
-                totalSubs += counts
-                indicesResidue = [self.letters.index(AA) for AA in substrate]
-                for position, indexResidue in enumerate(indicesResidue):
-                    countedData.iloc[indexResidue, position] += counts
-
-            # Sum all columns
-            columnSums = pd.DataFrame(np.sum(countedData, axis=0),
-                                      columns=['Total Counts'],
-                                      index=self.xAxisLabelsMotif)
-        else:
-            # Count the AAs
-            for substrate, counts in substrates.items():
-                totalSubs += counts
-                indicesResidue = [self.letters.index(AA) for AA in substrate]
-                for position, indexResidue in enumerate(indicesResidue):
-                    countedData.iloc[indexResidue, position] += counts
-
-
-            # Sum all columns
-            columnSums = pd.DataFrame(np.sum(countedData, axis=0),
-                                      columns=['Total Counts'],
-                                      index=self.xAxisLabels)
-
-        # Print: Counts
-        columnSumsFormated = columnSums.apply(lambda col: col.map(includeCommas)).copy()
-        print(f'{columnSumsFormated}\n')
-        countedDataPrint = countedData.apply(lambda col: col.map(includeCommas))
-        print(f'Counted data: {purple}{self.enzymeName}{resetColor}\n'
-              f'{countedDataPrint}\n\n')
-
-
-        # Sanity Check: Do the sums of each column match the total number of substrates?
-        #totalSubs = sum(countedData.iloc[:, 0])
-        for indexColumn in countedData.columns:
-            columnSum = sum(countedData.loc[:, indexColumn])
-            if columnSum != totalSubs:
-                print(
-                    f'Counted data: {purple}{self.enzymeName}{resetColor}\n'
-                    f'{countedData}\n\n'
-                    f'{orange}ERROR: The total number of substrates '
-                    f'({cyan}{totalSubs:,}{orange}) =/= the sum of column '
-                    f'{indexColumn} ({cyan}{columnSum:,}{orange}){resetColor}\n')
-                sys.exit(1)
-
-        print(f'Total substrates: {red}{totalSubs:,}{resetColor}\n'
-              f'Total Unique Substrates: {red}{len(substrates):,}{resetColor}\n\n')
-
-        return countedData, totalSubs
-
-
-
-    def getFilePath(self, datasetTag, motifPath=False, customTag=None):
-        print('============================== Define: File Paths '
-              '===============================')
-        # Define: File path
-        if motifPath:
-            if customTag is None:
-                file = (f'{self.enzymeName} - {self.datasetTagMotif} - '
-                        f'FinalSort - MinCounts {self.minSubCount}').replace(
-                    '/', '_')
-                pathSubs = (
-                    os.path.join(self.pathData, f'fixedMotifSubs - {file}.pkl'))
-                pathCounts = (
-                    os.path.join(self.pathData, f'fixedMotifCounts - {file}'))
-                pathCountsReleased = (
-                    os.path.join(self.pathData, f'fixedMotifCountsRel - {file}'))
-                paths = [pathSubs, pathCounts, pathCountsReleased]
-            else:
-                file = (f'{self.enzymeName} - {customTag} - FinalSort - '
-                        f'MinCounts {self.minSubCount}').replace('/', '_')
-                pathSubs = (
-                    os.path.join(self.pathData, f'fixedMotifSubs - {file}.pkl'))
-                pathCounts = (
-                    os.path.join(self.pathData, f'fixedMotifCounts - {file}'))
-                pathCountsReleased = (
-                    os.path.join(self.pathData, f'fixedMotifCountsRel - {file}'))
-                paths = [pathSubs, pathCounts, pathCountsReleased]
-        else:
-            file = (f'{self.enzymeName} - {datasetTag} - FinalSort - '
-                    f'MinCounts {self.minSubCount}').replace('/', '_')
-            pathSubs = os.path.join(
-                self.pathData, f'fixedSubs - {file}.pkl')
-            pathCounts = os.path.join(
-                self.pathData, f'counts - {file}')
-            self.pathFilteredSubs = pathSubs
-            self.pathFilteredCounts = pathCounts
-            paths = [pathSubs, pathCounts]
-
-        print(f'File: {greenLight}{file}{resetColor}\n')
-        print(f'File paths:{greenDark}')
-        for path in paths:
-            print(f'     {path}')
-        print(f'{resetColor}\n')
-
-        return paths
-
-
-
-    def getFilePathCombined(self, loadSubs=False, loadCounts=False, loadCountsRel=False):
-        print('============================== Define: File Paths '
-              '===============================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n')
-        self.motifTags = []
-        paths = []
-
-        # Define: Dataset
-        dataset = None
-        if loadSubs:
-            dataset = 'fixedMotifSubs'
-        elif loadCounts:
-            dataset = 'fixedMotifCounts'
-        elif loadCountsRel:
-            dataset = 'fixedMotifCountsRel'
-
-        # Define: File tags
-        if len(self.fixedAA) == len(self.fixedPos):
-            tags = [[] for _ in range(len(self.fixedAA))]
-            for index, AA in enumerate(self.fixedAA):
-                if isinstance(AA, list):
-                    if len(AA) == 1:
-                        AA = AA[0]
-                    else:
-                        AA = f'[{','.join(AA)}]'
-                position = self.fixedPos[index]
-                if isinstance(position, int):
-                    tag = f'{AA}@R{position}'
-                    tags[index].append(tag)
-                else:
-                    if len(position) > 1:
-                        for pos in position:
-                            tag = f'{AA}@R{pos}'
-                            tags[index].append(tag)
-                    else:
-                        tag = f'{AA}@R{position[0]}'
-                        tags[index].append(tag)
-
-            # Define: Motif tags
-            for combo in zip(*tags):
-                self.motifTags.append(" ".join(combo))
-        else:
-            self.motifTags = []
-            if len(self.fixedAA) == 1:
-                if len(self.fixedAA[0]) == 1:
-                    AA = self.fixedAA[0]
-                else:
-                    AA = f'[{','.join(self.fixedAA[0])}]'
-                for pos in self.fixedPos:
-                    tag = f'{AA}@R{pos}'
-                    self.motifTags.append(tag)
-            else:
-                print(f'{orange}ERROR: Unable to handle this condition')
-                sys.exit(1)
-
-
-        # Exclude residues
-        excludeTag = None
-        if self.excludeAAs:
-            fixResidueList = []
-            for index, removedAA in enumerate(self.excludeAA):
-                fixResidueList.append(
-                    f'{removedAA}@R'
-                    f'{self.excludePosition[index]}'.replace(' ', ''))
-            excludeTag = f'Exclude {' '.join(fixResidueList)}'
-
-        # Define: File path
-        for motifTag in self.motifTags:
-            if self.excludeAAs:
-                file = (f'{self.enzymeName} - {excludeTag} Fixed {motifTag} - '
-                        f'FinalSort - MinCounts {self.minSubCount}'
-                        ).replace('/', '_')
-            else:
-                file = (f'{self.enzymeName} - {motifTag} - FinalSort - MinCounts '
-                        f'{self.minSubCount}').replace('/', '_')
-
-            paths.append(os.path.join(self.pathData, f'{dataset} - {file}'))
-        print(f'File paths:{greenDark}')
-        for path in paths:
-            print(f'     {path}')
-        print(f'{resetColor}\n')
-
-        return paths
-
-
-
-    def loadCounts(self, filter, fileType, datasetTag=None, dropColumn=False):
-        print('================================== Load Counts '
-              '==================================')
-        if filter:
-            labelFile = f'{self.enzymeName} {fileType} - Filter {datasetTag}'
-        else:
-            labelFile = f'{self.enzymeName} {fileType}'
-        print(f'Loading Counts: {purple}{labelFile}{resetColor}\n')
-        files = []
-        totalCounts = 0
-
-        # Define: File paths
-        if filter:
-            if self.pathFilteredCounts is None:
-                print(f'{orange}ERROR: {cyan}self.pathFilteredCounts {orange}needs '
-                      f'to be defined before you can load the counts.{resetColor}\n')
-                sys.exit(1)
-            files = [self.pathFilteredCounts]
-        else:
-            if 'initial' in fileType.lower():
-                fileNames = self.filesInit
-            else:
-                fileNames = self.filesFinal
-
-            for fileName in fileNames:
-                files.append(os.path.join(self.pathData, f'counts_{fileName}'))
-
-        print(f'Loading data:')
-        for filePath in files:
-            # Verify if the file exists at its specified path
-            if not os.path.exists(filePath):
-                print(f'{orange}ERROR: File not found\n'
-                      f'     {filePath}\n')
-                sys.exit(1)
-            print(f'     {greenDark}{filePath}{resetColor}')
-        print('\n')
-
-
-        #  Load: AA counts
-        countedData = None
-        for index, filePath in enumerate(files):
-            fileName = filePath.replace(self.pathData, '')
-
-            # Load: File
-            if index == 0:
-                data = pd.read_csv(filePath, index_col=0)
-                data = data.astype(int)
-                countedData = data
-            else:
-                data = pd.read_csv(filePath, index_col=0)
-                data = data.astype(int)
-                countedData += data
-
-            # Format values to have commas
-            formattedCounts = data.to_string(
-                formatters={column: '{:,.0f}'.format for column in
-                            data.select_dtypes(include='number').columns})
-
-            # Print: Counts
-            substrateCounts = sum(data.iloc[:, 0])
-            totalCounts += substrateCounts
-            print(f'Counts: {greenLightB}{fileName}{resetColor}\n'
-                  f'{formattedCounts}\n'
-                  f'Substrate Count: {red}'
-                  f'{substrateCounts:,}{resetColor}\n\n')
-
-        # Drop columns
-        if dropColumn:
-            countedData = self.dropColumnsFromMatrix(countMatrix=countedData,
-                                                     datasetType=fileType,
-                                                     dropColumn=dropColumn)
-
-        # Sum each column
-        columnSums = pd.DataFrame(np.sum(countedData, axis=0), columns=['Total Counts'])
-        columnSumsFormat = columnSums.apply(lambda x: x.map('{:,}'.format))
-        print(f'{columnSumsFormat}')
-
-        # Sanity Check: Do the sums of each column match the total number of substrates?
-        for indexColumn, columnSum in enumerate(columnSums.iloc[:, 0]):
-            if columnSum != totalCounts:
-                columnSums = columnSums.apply(lambda x: x.map('{:,}'.format))
-                print(f'{orange}ERROR: The total number of substrates '
-                      f'({cyan}{totalCounts:,}{orange}) =/= '
-                      f'the sum of column {pink}{columnSums.index[indexColumn]}{orange} '
-                      f'({cyan}{columnSum:,}{orange})\n')
-                sys.exit(1)
-        print('\n')
-
-        return countedData, totalCounts
-
-
-
-    def loadSubstrates(self, fileNames, fileType):
-        print('============================= Load: Substrate Files '
-              '=============================')
-        substrates = {}
-        substrateTotal = 0
-
-        print(f'Loading dataset: {purple}{self.enzymeName} {fileType}{resetColor}')
-        for fileName in fileNames:
-            print(f'     {greenLightB}{fileName}{resetColor}')
-        print()
-
-        # Function to load each file
-        def loadFile(fileName):
-            fileLocation = os.path.join(self.pathData, f'substrates_{fileName}.pkl')
-            print(f'File path:\n     {greenDark}{fileLocation}{resetColor}\n')
-            with open(fileLocation, 'rb') as openedFile:  # Open file
-                data = pk.load(openedFile) # Access the data
-                dataTotalSubs = sum(data.values())
-                print(f'     Total substrates in {greenLightB}{fileName}{resetColor}: '
-                      f'{red}{dataTotalSubs:,}{resetColor}\n')
-
-                # Combine the loaded dictionary into the main substrates
-                nonlocal substrates
-                for key, value in data.items():
-                    if key in substrates:
-                        substrates[key] += value
-                    else:
-                        substrates[key] = value
-
-                nonlocal substrateTotal
-                substrateTotal += dataTotalSubs
-
         threads = []
-        for fileName in fileNames:
-            thread = threading.Thread(target=loadFile, args=(fileName,))
-            threads.append(thread)
-            thread.start()
-
-        # Wait for all threads to complete
+        queuesExp = []
+        queuesExpLog = []
+        queuesExpRev = []
+        queuesExpRevLog = []
+        queuesBg = []
+        queuesBgLog = []
+        queuesBgRev = []
+        queuesBgRevLog = []
+        if self.fileExp:
+            for file in self.fileExp:
+                queueExp = queue.Queue()
+                queueLog = queue.Queue()
+                queuesExp.append(queueExp)
+                queuesExpLog.append(queueLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Exp'],
+                          queueExp, queueLog, False,)
+                )
+                threads.append(thread)
+                thread.start()
+        if self.fileExpRev:
+            for file in self.fileExpRev:
+                queueExpRev = queue.Queue()
+                queueExpRevLog = queue.Queue()
+                queuesExpRev.append(queueExpRev)
+                queuesExpRevLog.append(queueExpRevLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Exp'],
+                          queueExpRev, queueExpRevLog, True,)
+                )
+                threads.append(thread)
+                thread.start()
+        if self.fileBg:
+            for file in self.fileBg:
+                queueBg = queue.Queue()
+                queueLog = queue.Queue()
+                queuesBg.append(queueBg)
+                queuesBgLog.append(queueLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Bg'],
+                          queueBg, queueLog, False,)
+                )
+                threads.append(thread)
+                thread.start()
+        if self.fileBgRev:
+            for file in self.fileBgRev:
+                queueBgRev = queue.Queue()
+                queueBgRevLog = queue.Queue()
+                queuesBgRev.append(queueBgRev)
+                queuesBgRevLog.append(queueBgRevLog)
+                thread = threading.Thread(
+                    target=self.loadDNA,
+                    args=(file, self.datasetTypes['Bg'],
+                          queueBgRev, queueBgRevLog, True,)
+                )
+                threads.append(thread)
+                thread.start()
+        # Wait for all threads to finish
         for thread in threads:
             thread.join()
 
-        # Sort loaded data
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
+        # Log the output
+        if queuesExpLog:
+            for log in queuesExpLog:
+                self.logInQueue(log)
+        if queuesExpRevLog:
+            for log in queuesExpRevLog:
+                self.logInQueue(log)
+        if queuesBgLog:
+            for log in queuesBgLog:
+                self.logInQueue(log)
+        if queuesBgRevLog:
+            for log in queuesBgRevLog:
+                self.logInQueue(log)
 
-        # Print: Loaded data substrates
-        print(f'Loaded data: {purple}{fileType}{resetColor}')
-        iteration = 0
-        for substrate, count in substrates.items():
-            iteration += 1
-            print(f'     {pink}{substrate}{resetColor}, Counts: {red}{count:,}'
-                  f'{resetColor}')
-            if iteration >= self.printNumber:
-                break
-        print(f'\nTotal substrates: {purple}{fileType}\n'
-              f'     {red} {substrateTotal:,}{resetColor}\n\n')
+        def addSubs(data, subs):
+            for sub, count in subs.items():
+                if count >= self.minCounts:
+                    if sub in data.keys():
+                        data[sub] += count
+                    else:
+                        data[sub] = count
 
-        return substrates, substrateTotal
+        # Get results from queue
+        if self.fileExp:
+            subs = {}
+            for queueData in queuesExp:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in subs.keys():
+                        subs[substrate] += count
+                    else:
+                        subs[substrate] = count
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
+            addSubs(self.subsExp, subs)
+        if self.fileExpRev:
+            subs = {}
+            for queueData in queuesExpRev:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in subs.keys():
+                        subs[substrate] += count
+                    else:
+                        subs[substrate] = count
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
+            addSubs(self.subsExp, subs)
+        if self.fileBg:
+            subs = {}
+            for queueData in queuesBg:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in subs.keys():
+                        subs[substrate] += count
+                    else:
+                        subs[substrate] = count
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
+            addSubs(self.subsBg, subs)
+        if self.fileBgRev:
+            subs = {}
+            for queueData in queuesBgRev:
+                substrates = queueData.get()
+                for substrate, count in substrates.items():
+                    if substrate in subs.keys():
+                        subs[substrate] += count
+                    else:
+                        subs[substrate] = count
+            subs = dict(
+                sorted(subs.items(), key=lambda item: item[1], reverse=True)
+            )
+            addSubs(self.subsBg, subs)
+
+        # Make figures
+        if self.subsExp:
+            # Sort substrates and count AA
+            self.processSubs(substrates=self.subsExp, datasetType='Exp', filteredAA=False)
+
+            # Plot counts
+            self.figures['exp_counts'] = (
+                self.plotCounts(
+                    countedData=self.countsExp, totalCounts=self.countExpTotal,
+                    datasetType=self.datasetTypes['Exp']
+                )
+            )
+        if self.subsBg:
+            # Sort substrates and count AA
+            self.processSubs(substrates=self.subsBg, datasetType='Bg', filteredAA=False)
+
+            # Plot counts
+            self.figures['bg_counts'] = (
+                self.plotCounts(
+                    countedData=self.countsBg, totalCounts=self.countBgTotal,
+                    datasetType=self.datasetTypes['Bg']
+                )
+            )
+
+        if self.subsExp and self.subsBg:
+            self.calculateRF()
+            self.calculateEntropy()
+            self.evalEnrichment()
+        self.jobDone = True
 
 
+    def loadSubstrates(self, path, queueData, queueLog):
+        # with open(path, 'rb') as openedFile:  # Open file
+        #     data = pk.load(openedFile)  # Access the data
+        # queueData.put(data)
+        # queueLog.put(f'     {path}')
+        try:
+            path.seek(0)  # ensure at start
+            data = pk.load(path)  # BytesIO is already file-like
+            queueData.put(data)
+            queueLog.put(f'     {path}')
+        except Exception as e:
+            queueLog.put(self.logErrorFn(
+                function='loadSubstrates()',
+                msg=f'Failed to load file:\n     {path}\n     {e}',
+                getStr=True))
+            sys.exit(0)
 
-    def loadUnfilteredSubs(self, loadInitial=False, loadFinal=False):
-        def loadSubsThread(fileNames, fileType, result):
-            subsLoaded, totalSubs = self.loadSubstrates(fileNames=fileNames,
-                                                        fileType=fileType)
-            result[fileType] = (subsLoaded, totalSubs)
 
-        # Initialize result dictionary
-        loadedResults = {}
-        if loadInitial:
-            # Create threads for loading initial and final substrates
-            threadInitial = threading.Thread(target=loadSubsThread,
-                                             args=(self.filesInit, 'Initial Sort',
-                                                   loadedResults))
-            threadInitial.start() # Start the threads
-            threadInitial.join() # Wait for the threads to complete
+    def loadCounts(self, path, queueData, queueLog):
+        try:
+            # Load file
+            data = pd.read_csv(path, index_col=0)
+            data = data.astype(int)
+            queueData.put(data)
+            queueLog.put(f'     {path}\n')
+        except Exception as e:
+            queueLog.put(self.logErrorFn(
+                function='loadCounts()',
+                msg=f'Failed to load file:\n     {path}\n     {e}',
+                getStr=True)
+            )
 
-            # Retrieve the loaded substrates
-            substratesInitial, totalSubsInitial = loadedResults['Initial Sort']
 
-            return substratesInitial, totalSubsInitial
-        elif loadFinal:
-            # Create thread for the final substrates
-            threadFinal = threading.Thread(target=loadSubsThread,
-                                           args=(self.filesFinal, 'Final Sort',
-                                                 loadedResults))
-            threadFinal.start() # Start the thread
-            threadFinal.join() # Wait for the thread to complete
-
-            # Retrieve the loaded substrates
-            substrates, totalSubs = loadedResults['Final Sort']
-
-            return substrates, totalSubs
-
+    def evalSubs(self, form, filterMotifs=False, combineProfiles=False):
+        self.jobDone = False
+        if filterMotifs:
+            self.jobInit(form, job='Filter Motif')
+            self.initCOMET = True
+            self.motifFilter = True
+            self.saveData = False
+            self.setS = True
+        elif combineProfiles:
+            self.jobInit(form, job='Combine Motifs')
         else:
-            # Create threads for loading initial and final substrates
-            threadInitial = threading.Thread(target=loadSubsThread,
-                                             args=(self.filesInit, 'Initial Sort',
-                                                   loadedResults))
-            threadFinal = threading.Thread(target=loadSubsThread,
-                                           args=(self.filesFinal, 'Final Sort',
-                                                 loadedResults))
-            threadInitial.start()  # Start the threads
-            threadFinal.start()
-            threadInitial.join() # Wait for the threads to complete
-            threadFinal.join()
+            self.jobInit(form, job='Filter AA')
+        self.log('\n\n================================== Load Data '
+                 '=================================')
 
-            # Retrieve the loaded substrates
-            substratesInitial, totalSubsInitial = loadedResults['Initial Sort']
-            substratesFinal, totalSubsFinal = loadedResults['Final Sort']
+        # Load the data
+        self.subsBg, self.subsExp, self.profiles = {}, {}, []
+        threads = []
+        queuesExp, queuesExpLog = [], []
+        queuesExpCounts, queuesExpCountsLog = [], []
+        queuesBg, queuesBgLog = [], []
+        for file in self.fileExp:
+            queueExp = queue.Queue()
+            queueLog = queue.Queue()
+            queuesExp.append(queueExp)
+            queuesExpLog.append(queueLog)
+            thread = threading.Thread(
+                target=self.loadSubstrates, args=(file, queueExp, queueLog)
+            )
+            thread.start()
+            threads.append(thread)
+        for file in self.fileExpCounts:
+            queueExp = queue.Queue()
+            queueLog = queue.Queue()
+            queuesExpCounts.append(queueExp)
+            queuesExpCountsLog.append(queueLog)
+            thread = threading.Thread(
+                target=self.loadCounts, args=(file, queueExp, queueLog)
+            )
+            thread.start()
+            threads.append(thread)
+        for file in self.fileBg:
+            queueBg = queue.Queue()
+            queueLog = queue.Queue()
+            queuesBg.append(queueBg)
+            queuesBgLog.append(queueLog)
+            thread = threading.Thread(
+                target=self.loadCounts, args=(file, queueBg, queueLog)
+            )
+            thread.start()
+            threads.append(thread)
+        for thread in threads:
+            thread.join() # Wait for all threads to finish
 
-            return substratesInitial, totalSubsInitial, substratesFinal, totalSubsFinal
-
-
-
-    def loadSubstratesFiltered(self):
-        print('=========================== Load: Filtered Substrate '
-              '============================')
-        print(f'Loading substrates: {purple}{self.enzymeName} Fixed {self.datasetTag}\n'
-              f'     {greenDark}{self.pathFilteredSubs}{resetColor}\n\n')
-        with open(self.pathFilteredSubs, 'rb') as file:
-            substrates = pk.load(file)
-
-        iteration = 0
-        print(f'Substrates:')
-        for substrate, count in substrates.items():
-            print(f'     {pink}{substrate}{resetColor}, Count:{red} {count:,}'
-                  f'{resetColor}')
-            iteration += 1
-            if iteration >= self.printNumber:
-                print('')
-                break
-
-        totalSubsFinal = sum(substrates.values())
-        print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n\n')
-
-        return substrates, totalSubsFinal
-
-
-
-    def loadMotifCounts(self, motifLabel, motifIndex, returnList=False):
-        print('================================ Combine Motifs '
-              '=================================')
-        initialMotifFrame = self.xAxisLabels[motifIndex[0]:motifIndex[1]]
-        print('Combine Matrices: Substrate Profile')
-        print(f'Datasets: {purple}{self.datasetTag}{resetColor}\n'
-              f'Motif Label: {blue}{", ".join(motifLabel)}{resetColor}\n'
-              f'Motif Frame: {blue}{", ".join(initialMotifFrame)}{resetColor}\n\n')
-
-        frameLength = len(motifLabel)
-        countsMotifsAll = []
-        totalCountsFixedFrame = None
-
-
-        # Define: File paths
-        paths = self.getFilePathCombined(loadCountsRel=True)
-
-        # Load the counts
-        for index, pathFixedMotifRelCounts in enumerate(paths):
-            # Look for the file
-            if os.path.exists(pathFixedMotifRelCounts):
-                print(f'Loading ({index}): {greenLightB}Substrate Profile\n{greenDark}'
-                      f'     {pathFixedMotifRelCounts}{resetColor}\n')
-
-                # Load file
-                countsLoaded = pd.read_csv(pathFixedMotifRelCounts, index_col=0)
-
-                # Define motif positions and extract the sequence
-                startPosition = motifIndex[0]
-                startSubPrevious = startPosition
-                if index != 0:
-                    # Evaluate previous motif index
-                    # print(f'Pos ({index}): {self.fixedPos}')
-                    if isinstance(self.fixedPos[0], list):
-                        frame = self.fixedPos[0]
-                        # print(f'Frame: {frame}')
-                        pos = frame[index]
-                        pos2 = frame[index - 1]
-                        fixedPosDifference = pos - pos2
-                    else:
-                        pos = self.fixedPos[index]
-                        pos2 = self.fixedPos[index - 1]
-                        fixedPosDifference = pos - pos2
-                    # print(f'  Pos: {pos} - {pos2}')
-                    # print(f' Diff: {fixedPosDifference}\n')
-
-                    # Define: Frame indices
-                    startSubPrevious += fixedPosDifference
-                    startSub = index + startSubPrevious - 1
-                    endSub = startSub + frameLength
+        # Process input
+        if queuesExpLog:
+            self.log('Loading Substrates: Experimental')
+            # for log in queuesExpLog:
+            #     self.logInQueue(log)
+        if queuesExp:
+            for q in queuesExp:
+                substrates = q.get()
+                if combineProfiles:
+                    self.profiles.append(substrates)
                 else:
-                    startSub = startPosition
-                    endSub = motifIndex[-1]
-
-                fixedFramePos = countsLoaded.columns[startSub:endSub]
-                countsFixedFrame = countsLoaded.loc[:, fixedFramePos]
-                countsFixedFrame.columns = motifLabel
-                countsMotifsAll.append(countsFixedFrame.values)
-
-                formattedCounts = countsFixedFrame.to_string(
-                    formatters={column: '{:,.0f}'.format for column in
-                                countsFixedFrame.select_dtypes(include='number').columns})
-                print(f'Selecting Positions: {purple}Fixed Motif {self.motifTags[index]}'
-                      f'{resetColor}\n'
-                      f'Counts: {blue}{fixedFramePos}{resetColor}\n'
-                      f'{formattedCounts}\n\n')
-
-                # Track totals
-                if index == 0:
-                    totalCountsFixedFrame = countsFixedFrame
-                else:
-                    totalCountsFixedFrame += countsFixedFrame
-            else:
-                print(f'{orange}ERROR: The file was not found\n'
-                      f'     {pathFixedMotifRelCounts}\n')
-                sys.exit(1)
-
-        # Sum the columns
-        posSumsCombinedMotif = []
-        for column in motifLabel:
-            posSumsCombinedMotif.append(sum(totalCountsFixedFrame.loc[:, column]))
-
-        # Format the DataFrame with commas
-        formattedCounts = totalCountsFixedFrame.to_string(
-            formatters={column: '{:,.0f}'.format for column in
-                        totalCountsFixedFrame.select_dtypes(include='number').columns})
-
-        # Print: Counts
-        print(f'{pink}Combined Counts{resetColor}: {purple}{self.enzymeName} - '
-              f'{self.datasetTag}{resetColor}\n{formattedCounts}\n')
-        print('Total Counts:')
-        for index, position in enumerate(motifLabel):
-            print(f'     {position}: {red}{posSumsCombinedMotif[index]:,}{resetColor}')
-        print('\n')
-
-        if returnList:
-            # Convert a list into 3D array
-            countsMotifsAll = np.stack(countsMotifsAll, axis=0)
-
-            return countsMotifsAll, totalCountsFixedFrame, posSumsCombinedMotif
-        else:
-            return totalCountsFixedFrame, posSumsCombinedMotif
-
-
-
-    def loadMotifSeqs(self, motifLabel, motifIndex):
-        print('============================ Load: Substrate Motifs '
-              '=============================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-              f'Motif Label: {blue}{", ".join(motifLabel)}{resetColor}')
-        frameLength = len(motifLabel)
-        totalMotifs = 0
-        motifs = {}
-        substrates = {}
-        motifTag = None
-        foundMotifs = {}
-
-        # Assign: Motif parameters
-        self.motifIndex = motifIndex
-        print(f'Motif Index: {blue}{self.motifIndex}{resetColor}\n\n')
-
-
-        # Define: File paths
-        paths = self.getFilePathCombined(loadSubs=True)
-
-        # Load the substrates
-        for index, pathFixedMotifSubs in enumerate(paths):
-            # Look for the file
-            if os.path.exists(pathFixedMotifSubs):
-                print(f'Loading ({index}): {greenLightB}Filtered Substrates\n{greenDark}'
-                      f'     {pathFixedMotifSubs}{resetColor}\n')
-
-                # Load file
-                with open(pathFixedMotifSubs, 'rb') as file:
-                    loadedSubs = pk.load(file)
-                    if substrates == {}:
-                        substrates = loadedSubs
-                    else:
-                        for substrate, count in loadedSubs.items():
-                            if substrate in substrates.keys():
-                                substrates[substrate] += count
-                            else:
-                                substrates[substrate] = count
-
-                # Define motif positions and extract the sequence
-                startPosition = motifIndex[0]
-                startSubPrevious = startPosition
-                if index != 0:
-                    # Evaluate previous motif index
-                    # print(f'Pos ({index}): {self.fixedPos}')
-                    if isinstance(self.fixedPos[0], list):
-                        frame = self.fixedPos[0]
-                        # print(f'Frame: {frame}')
-                        pos = frame[index]
-                        pos2 = frame[index - 1]
-                        fixedPosDifference = pos - pos2
-                    else:
-                        pos = self.fixedPos[index]
-                        pos2 = self.fixedPos[index - 1]
-                        fixedPosDifference = pos - pos2
-                    # print(f'  Pos: {pos} - {pos2}')
-                    # print(f' Diff: {fixedPosDifference}\n')
-
-                    # Define: Frame indices
-                    startSubPrevious += fixedPosDifference
-                    startSub = index + startSubPrevious - 1
-                    endSub = startSub + frameLength
-                else:
-                    startSub = startPosition
-                    endSub = motifIndex[-1]
-
-                # Print: Loaded data
-                iteration = 0
-                print(f'Loaded Substrates: {purple}{motifTag}{resetColor}')
-                print(f'     Motif Indices: {blue}{self.xAxisLabels[startSub]}-'
-                      f'{self.xAxisLabels[endSub - 1]}{resetColor}')
-                for substrate, count in loadedSubs.items():
-                    print(f'          {pink}{substrate}{resetColor}, '
-                          f'{blue}{substrate[startSub:endSub]}{resetColor}, '
-                          f'Counts: {red}{count:,}'
-                          f'{resetColor}')
-                    iteration += 1
-                    if iteration >= self.printNumber:
+                    for substrate, count in substrates.items():
+                        if substrate in self.subsExp.keys():
+                            self.subsExp[substrate] += count
+                        else:
+                            self.subsExp[substrate] = count
+            if self.subsExp:
+                self.log('\nSubstrates:')
+                for i, (substrate, count) in enumerate(self.subsExp.items()):
+                    self.log(f'    {substrate}, {count:,}')
+                    if i >= self.printN:
                         break
-
-                # Record motifs
-                totalCounts = 0
-                for substrate, count in loadedSubs.items():
-                    if substrate in foundMotifs.keys():
-                        continue
-                    else:
-                        foundMotifs[substrate] = True
-                    totalMotifs += count
-                    totalCounts += count
-                    motif = substrate[startSub:endSub]
-                    if motif in motifs.keys():
-                        motifs[motif] += count
-                    else:
-                        motifs[motif] = count
-                print(f'\n     Total Counts: {red}{totalCounts:,}{resetColor}\n\n')
-
-                # seq = 'ATLQG'
-                # print(f'Search ({purple}{motifTag}{resetColor}): '
-                #       f'{orange}{seq}{resetColor}')
-                # for substrate, count in loadedSubs.items():
-                #     if seq in substrate:
-                #         print(f'     {pink}{substrate}{resetColor}, '
-                #               f'Count: {red}{count:,}{resetColor}')
-                # print('\n\n')
+                self.log(f'\nTotal Substrates: {sum(self.subsExp.values()):,}\n'
+                         f'Unique Substrates: {len(self.subsExp.keys()):,}')
+            elif self.profiles:
+                for idx, profile in enumerate(self.profiles):
+                    self.log(f'\nProfile: {idx}')
+                    for i, (substrate, count) in enumerate(profile.items()):
+                        self.log(f'    {substrate}, {count:,}')
+                        if i >= self.printN:
+                            break
+                self.getMotifSeq()
             else:
-                print(f'{orange}ERROR: The file was not found\n'
-                      f'     {pathFixedMotifSubs}\n')
-                sys.exit(1)
+                self.logErrorFn(function='loadSubstrates()',
+                                msg='No experimental substrates were loaded')
 
-            self.motifIndexExtracted.append((startSub, endSub))
+        if queuesExpCountsLog: ##
+            self.log('Loading Counts: Experimental')
+        if queuesExpCounts:
+            # Extract motif counts
+            for idx, q in enumerate(queuesExpCounts):
+                counts = q.get()
+                idxN = self.idxMotif[self.fileOrder[idx].replace('fileExpCounts',
+                                                                 'idxStart')]
+                idxC = idxN + self.seqLength
+                print(f'\nIdx: {idx}, {self.idxMotif}\n'
+                      f'* {self.fileOrder[idx]} -> {idxN}, {idxC}')
+                c = counts.iloc[:, idxN:idxC]
+                if len(queuesExpCounts) > 1:
+                    self.log(f'\nLoaded Counts: {idx}\n{counts}\n')
+                else:
+                    self.log(f'\nLoaded Counts:\n{counts}\n')
+                print(f'{c}\n')
+                self.log(f'Motif Counts:\n{c}\n')
+                c.columns = self.xAxisLabel
+                self.countsExp += c
 
-        # Evaluate: Loaded data
-        self.motifLen = len(next(iter(motifs)))
-
-        # Sort the substrate dictionary by counts
-        motifs = dict(sorted(motifs.items(), key=lambda x: x[1], reverse=True))
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
-
-        iteration = 0
-        print(f'Top Motifs:')
-        for motif, count, in motifs.items():
-            print(f'     {blue}{motif}{resetColor}, Counts: {red}{count:,}{resetColor}')
-            iteration += 1
-            if iteration >= self.printNumber:
-                break
-        print(f'\nTotal Motifs: {red}{totalMotifs:,}{resetColor}\n'
-              f'Unique Motifs: {red}{len(motifs.keys()):,}'
-              f'{resetColor}\n\n')
-
-        return motifs, totalMotifs, substrates
-
-
-
-    def scoreSubstrate(self, seq, matrix, sqroot=False):
-        score = 0
-        for index in range(len(seq)):
-            # Evaluate substrate
-            AA = seq[index]
-            pos = matrix.columns[index]
-            value = matrix.loc[AA, pos]
-            if score == 0:
-                score = value
-            else:
-                score *= value
-        if sqroot:
-            score = np.sqrt(score)
-        return score
-
-
-    def saveSubstrateCSV(self, seqs, initialRF, finalRF, minCounts=100,
-                         seqsBg=False, maxCountsBg=5, mod=25,
-                         combinedMotifs=False, chopSeq=False):
-        print('==============================  Save Substrate CSV '
-              '==============================')
-        print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')  ##
-
-        # Chop off the C-terminal AAs
-        print(f'Chop: {chopSeq}')
-        if chopSeq:
-            sub = next(iter(seqs))
-            subLen = len(sub)
-            print(f'Cutting substrates from {pink}{subLen} AA{resetColor} to '
-                  f'{blue}{chopSeq} AA{resetColor}')
-            x = subLen - chopSeq
-            s = {}
-            if self.filterSubs:
-                print(f'  {pink}{sub.replace(
-                    sub[0:chopSeq], f'{blue}{sub[0:chopSeq]}{pink}')}'
-                      f'{resetColor}')
-                for seq, counts in seqs.items():
-                    seq = seq[0:chopSeq]
-                    s[seq] = counts
-            else:
-                for i in range(x+1):
-                    print(f'  {pink}{sub.replace(
-                        sub[i:chopSeq+i], f'{blue}{sub[i:chopSeq+i]}{pink}')}'
-                          f'{resetColor}')
-                    for seq, counts in seqs.items():
-                        seq = seq[i:chopSeq+i]
-                        s[seq] = counts
-            seqs = s
-            seqs = dict(sorted(seqs.items(), key=lambda x: x[1], reverse=True))
-        subLen = len(next(iter(seqs)))
-
-        # Limit substrates by counts
-        subsCounts = {}
-        for seq, counts in seqs.items():
-            if counts >= minCounts:
-                subsCounts[seq] = counts
-            else:
-                break
-        N = len(subsCounts)
-        if N == 0:
-            print(f'{orange}ERROR: There were no substrates with '
-                  f'{cyan}counts{orange} >= {cyan}{minCounts}{resetColor}\n\n')
-            return
-
-        # Add bg substrates
-        if seqsBg:
-            bg = {}
-            print(f'Add Background substrates:\n')
-            i = 0
-            for seq, count in seqsBg.items():
-                i += 1
-                if count <= maxCountsBg and seq not in subsCounts.keys():
-                    if i % mod == 0:
-                        bg[seq] = count
-            bg = dict(sorted(bg.items(), key=lambda x: x[1], reverse=True))
-            print(f'Adding {red}{len(bg.keys()):,}{resetColor} Background Substrates:')
-            for i, (seq, count) in enumerate(bg.items()):
-                if i >= self.printNumber:
+            self.log(f'\nCounts: Substrate Profile\n{self.countsExp}\n')
+            print(f'\n{"="*70}\nCounts: Substrate Profile\n{self.countsExp}\n')
+            self.countExpTotal = self.countsExp.sum()
+            for pos in self.xAxisLabel:
+                if self.countExpTotal[pos] == 0:
+                    self.logErrorFn(
+                        function='loadCounts()',
+                        msg=f'Experimental count matrix contains an empty '
+                            f'column.\nTotal Counts:\n{self.countExpTotal}'
+                    )
                     break
-                print(f'    {pink}{seq}{resetColor}: Count {red}{count:,}{resetColor}')
-            print()
-            for seq, count in bg.items():
-                subsCounts[seq] = count
-            N = len(subsCounts)
+            print(f'Total Counts:\n{self.countExpTotal.to_string()}\n')
+            self.log(f'Total Counts:\n{self.countExpTotal.to_string()}\n')
 
-        # Normalize counts
-        subsCountsNorm = {}
-        maxCount = max(list(subsCounts.values()))
-        for seq, count in subsCounts.items():
-            subsCountsNorm[seq] = count / maxCount
+        if queuesBgLog:
+            if self.subsExp or self.profiles:
+                self.log('\n\nLoading Substrate Counts: Background')
+            else:
+                self.log('Loading Substrate Counts: Background')
+        if queuesBg:
+            for idx, q in enumerate(queuesBg):
+                counts = q.get()
+                self.countsBg += counts
+                if len(queuesBg) > 1:
+                    self.log(f'\nLoaded Counts: {idx}\n{counts}\n')
+                else:
+                    self.log(f'\nLoaded Counts:\n{counts}\n')
+            print(f'Counts Bg:\n{self.countsBg}\n')
+            self.countBgTotal = sum(self.countsBg.iloc[:, 0])
+            if self.countBgTotal == 0:
+                print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
+                self.logErrorFn(function='loadCounts()',
+                                msg='No background counts were loaded')
+            self.log(f'\nBackground Counts:\n{self.countsBg}')
 
-        # Get data paths
-        t = 'Counts'
-        tag = (f'{self.enzyme}_{t}_{subLen}AA_'
-               f'{self.datasetTag}_MinCounts{minCounts}.csv').replace(' ', '-')
-        if seqsBg:
-            tag = tag.replace('.csv', f'_MinBgCounts{maxCountsBg}_mod{mod}.csv')
-        pathCSV = os.path.join(self.pathFolder, 'CSV')
-        if not os.path.exists(pathCSV):
-            os.makedirs(pathCSV, exist_ok=True)
-        pathCSVFig = os.path.join(pathCSV, 'Figures')
-        if not os.path.exists(pathCSVFig):
-            os.makedirs(pathCSVFig, exist_ok=True)
-        paths = [
-            os.path.join(pathCSV, tag),
-            os.path.join(pathCSV, tag.replace(f'_{t}', '_CountsNorm')),
-            os.path.join(pathCSV, tag.replace(f'_{t}', '_ZCounts')),
-            os.path.join(pathCSV, tag.replace(f'_{t}','_ZPred'))
-        ]
-
-        # Define: Save location
-        figLabel = (f'{self.enzyme} - Bars - Counts - '
-                    f'{self.datasetTag} - {subLen} AA - N {N} - '
-                    f'Min Counts {minCounts}.png')
-        if combinedMotifs:
-            figLabel = figLabel.replace(self.datasetTag,
-                                        f'Substrate Profile {self.datasetTag}.png')
-        if minCounts:
-            figLabel.replace('.png', f' - MinCounts {minCounts}.png')
-        pathFigs = [
-            os.path.join(pathCSVFig, figLabel),
-            os.path.join(pathCSVFig, figLabel.replace(
-                '- Counts -', '- Counts Norm -')
-                         ),
-            os.path.join(pathCSVFig, figLabel.replace(
-                '- Counts -', '- Z Counts -')
-                         ),
-            os.path.join(pathCSVFig, figLabel.replace(
-                '- Counts -', '- Pred -')
-                         ),
-            os.path.join(pathCSVFig, figLabel.replace(
-                '- Counts -', '- Z Pred -')
-                         )
-        ]
-
-        # Get prediction matrix
-        matrix = self.normalizeProbRatios(
-            finalRF=finalRF, initialRF=initialRF, pData=False
-        )
-        if chopSeq:
-            dropCol = []
-            for i in range(len(matrix.columns)):
-                if i >= chopSeq:
-                    dropCol.append(matrix.columns[i])
-            matrix = matrix.drop(dropCol, axis=1)
-
-
-        # Calculate: Z-scores Counts
-        subsZCounts = {}
-        mu = np.average(list(subsCountsNorm.values()))
-        sigma = np.std(list(subsCountsNorm.values()))
-        for seq, count in subsCountsNorm.items():
-            subsZCounts[seq] = (count - mu) / sigma
-
-
-        # Predict substrate activity
-        subsZ = {}
-        subsZPred = {}
-        if subLen == len(matrix.columns):
-            print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n')
-            for seq, count in subsCounts.items():
-                subsZ[seq] = self.scoreSubstrate(seq, matrix)
-
-            # Normalize pred scores
-            maxVal = max(subsZ.values())
-            for seq, score in subsZ.items():
-                subsZ[seq] = score / maxVal
-
-            # Calculate: Z-scores Predicted
-            mu = np.average(list(subsZ.values()))
-            sigma = np.std(list(subsZ.values()))
-            for seq, score in subsZ.items():
-                subsZPred[seq] = (score - mu) / sigma
-
-
-        # Pre-format values
-        pSeqs = list(subsCounts)[:self.printNumber]
-        formattedCounts = [f'{seqs[seq]:,}' for seq in pSeqs]
-        formattedZCounts = [f'{subsZCounts[seq]:.3f}' for seq in pSeqs]
-
-        # Compute column widths
-        widthCount = max(len(val) for val in formattedCounts)
-        widthZCount = max(len(val) for val in formattedZCounts)
-
-        # Print data
-        print('Substrate Scores:')
-        if subsZPred:
-            formattedProducts = [f'{subsZ[seq]:.3f}' for seq in pSeqs]
-            formattedZ = [f'{subsZPred[seq]:,.3f}' for seq in pSeqs]
-            widthProd = max(len(val) for val in formattedProducts)
-            widthZ = max(len(val) for val in formattedZ)
-
-            for seq, countStr, zCountStr, prodStr, zStr in zip(
-                    pSeqs, formattedCounts, formattedZCounts, formattedProducts, formattedZ):
-                print(
-                    f'    {pink}{seq}{resetColor}, '
-                    f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
-                    f'Z Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}, '
-                    f'Z Score Pred: {red}{zStr:>{widthZ}}{resetColor}, '
-                    f'Pred: {red}{prodStr:>{widthProd}}{resetColor}'
-                )
+        # Use data
+        if filterMotifs:
+            self.figTag = 'Motif Filter'
+            self.subsExpAll = self.subsExp
+            self.filterSubs(plotEntropy=True)
+            self.selectMotifPos()
+        elif combineProfiles:
+            self.combineProfiles()
         else:
-            for seq, countStr, zCountStr in zip(
-                    pSeqs, formattedCounts, formattedZCounts):
-                print(f'    {pink}{seq}{resetColor}, '
-                      f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
-                      f'Z Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}'
-                )
-        print()
-        savedData = False
-        plotData = [False, False, False, False]
-
-        # CSV: Scores
-        savePath = paths[0]
-        if not os.path.exists(savePath):
-            if not savedData:
-                savedData = True
-                print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\n'
-                      f'Save path:')
-            print( f'    {greenDark}{savePath}{resetColor}')
-            plotData[0] = True
-            with open(savePath, 'w', newline='') as c:
-                writer = csv.writer(c)
-                writer.writerow(['sequence', self.enzyme])
-                for seq, count in subsCounts.items():
-                    writer.writerow([seq, count])
-
-        # CSV: Normalized scores
-        savePath = paths[1]
-        if not os.path.exists(savePath):
-            if not savedData:
-                savedData = True
-                print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\n'
-                      f'Save path:')
-            print(f'    {greenDark}{savePath}{resetColor}')
-            plotData[1] = True
-            with open(savePath, 'w', newline='') as c:
-                writer = csv.writer(c)
-                writer.writerow(['sequence', self.enzyme])
-                for seq, value in subsCountsNorm.items():
-                    writer.writerow([seq, value])
-
-        # CSV: Z Scores
-        savePath = paths[2]
-        if not os.path.exists(savePath):
-            if not savedData:
-                savedData = True
-                print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\n'
-                      f'Save path:')
-            print(f'    {greenDark}{savePath}{resetColor}')
-            plotData[2] = True
-            with open(savePath, 'w', newline='') as c:
-                writer = csv.writer(c)
-                writer.writerow(['sequence', self.enzyme])
-                for seq, score in subsZCounts.items():
-                    writer.writerow([seq, score])
-
-        # CSV: Z-Pred
-        savePath = paths[3]
-        if subsZPred and not os.path.exists(savePath):
-            if not savedData:
-                savedData = True
-                print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\n'
-                      f'Save path:')
-            print(f'    {greenDark}{savePath}{resetColor}')
-            plotData[3] = True
-            with open(savePath, 'w', newline='') as c:
-                writer = csv.writer(c)
-                writer.writerow(['sequence', self.enzyme])
-                for seq, score in subsZPred.items():
-                    writer.writerow([seq, f'{score:.2f}'])
-        if not savedData:
-            print(f'Print no data was saved. Files already saved at:')
-            for path in paths:
-                print(f'    {greenDark}{path}{resetColor}')
-        print('\n')
+            self.filterSubs(plotEntropy=True)
+            self.evalEnrichment()
+        self.jobDone = True
 
 
-        # Plot bar graphs
-        if not os.path.exists(pathFigs[0]):
-            self.plotBarGraphCSV(
-                substrates=subsCounts, dataType='Counts',
-                combinedMotifs=combinedMotifs, minCounts=minCounts,
-                saveLocation=pathFigs[0]
-            )
-        if not os.path.exists(pathFigs[1]):
-            self.plotBarGraphCSV(
-                substrates=subsCountsNorm, dataType='Normalized Counts',
-                combinedMotifs=combinedMotifs, minCounts=minCounts,
-                saveLocation=pathFigs[1]
-            )
-        if not os.path.exists(pathFigs[2]):
-            self.plotBarGraphCSV(
-                substrates=subsZCounts, dataType='Z Counts',
-                combinedMotifs=combinedMotifs, minCounts=minCounts,
-                saveLocation=pathFigs[2]
-            )
-        if subsZ and not os.path.exists(pathFigs[3]):
-            self.plotBarGraphCSV(
-                substrates=subsZ, dataType='Pred',
-                combinedMotifs=combinedMotifs, minCounts=minCounts,
-                saveLocation=pathFigs[3]
-            )
-        if subsZPred and not os.path.exists(pathFigs[4]):
-            self.plotBarGraphCSV(
-                substrates=subsZPred, dataType='Z Pred',
-                combinedMotifs=combinedMotifs, minCounts=minCounts,
-                saveLocation=pathFigs[4]
-            )
+    def filterSubs(self, allSubs=False, plotEntropy=False, subProfile=False):
+        self.log('\n\n============================== Filter Substrates '
+                 '=============================')
+        self.getDatasetTag()
+
+        # Select data
+        if allSubs:
+            substrates = self.subsExpAll
+        else:
+            substrates = self.subsExp
+        totalSubs = 0
+        for count in substrates.values():
+            totalSubs += count
+        totalSubsUnique = len(substrates.keys())
+        self.log(f'Unfiltered Substrates:\n'
+                 f'     Total: {totalSubs:,}\n'
+                 f'    Unique: {totalSubsUnique:,}')
 
 
-
-    def plotBarGraphCSV(self, substrates, dataType, barColor='#BF5700', barWidth=3,
-                     combinedMotifs=False, minCounts=False, saveLocation=False):
-        print('================================ Plot: Bar Graph '
-              '================================')
-        if minCounts:
-            print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')
-        print(f'Substrates:')
-
-        # Evaluate data
-        NSubs = len(substrates.keys())
-        iteration = 0
-        if ('counts' in dataType.lower() and 'z ' not in dataType.lower()
-                and 'norm' not in dataType.lower()):
+        if self.fixAA or self.exclAA:
+            subs = {}
             for substrate, count in substrates.items():
-                print(f'     {blue}{substrate}{resetColor}, '
-                      f'Counts: {red}{count:,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            countTotal = 0
-            for count in substrates.values():
-                countTotal += count
-            print(f'Total Counts: {red}{countTotal:,}{resetColor}')
-        else:
-            for substrate, score in substrates.items():
-                print(f'     {blue}{substrate}{resetColor}, '
-                      f'Score: {red}{np.round(score, self.roundVal):,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            scoreTotal = 0.0
-            for score in substrates.values():
-                scoreTotal += score
-            scoreTotal = np.round(scoreTotal, self.roundVal)
-            print(f'Total Values: {red}{scoreTotal:,}{resetColor}')
-        print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n')
+                if count < self.minCounts:
+                    continue
 
-        # Collect substrates
-        x = []
-        y = []
-        for substrate, count in substrates.items():
-            x.append(str(substrate))
-            y.append(count)
-        N, val = len(x), 5000
-        if N < 200:
-            val = 50
-            barWidth = 0.5
-            while val < N:
-                barWidth += 0.5
-                val += 50
-        else:
-            while val < N:
-                barWidth += 1
-                val += 5000
+                keepSub = True
+                for posExcl, exclAA in self.exclAA.items():
+                    if exclAA:
+                        if not isinstance(exclAA, list):
+                            exclAA = list(exclAA)
+                        idx = int(posExcl.replace('R', '')) - 1
+                        if substrate[idx] in exclAA:
+                            keepSub = False
+                            break
+                if not keepSub:
+                    continue
 
-        # Evaluate: Y axis
-        maxValue = math.ceil(max(y))
-        minValue = math.floor(min(y))
-        yTicks = []
-        if maxValue == 1:
-            step = 0.1
-            yMax = math.ceil(max(y)) + step
-            yMin = math.floor(min(y))
-            yTicks = np.arange(yMin, yMax+(step/2), 0.2)
-            # print(f'Max Value: {blue}{maxValue:,}{resetColor}\n'
-            #       f'Y Max: {blue}{yMax:,}{resetColor}\n'
-            #       f'Y Min: {blue}{yMin:,}{resetColor}\n'
-            #       f'Y Ticks: {pink}{yTicks}{resetColor}\n')
-        else:
-            if minValue < 0:
-                diff = (maxValue - minValue)
-                step = diff / 10
-                ymax, ymin = max(y), min(y)
-                if ymax + step / 2 > maxValue:
-                    ymax = maxValue
-                if ymin - step / 2 < minValue:
-                    ymin = minValue
+                for posFix, fixAA in self.fixAA.items():
+                    if fixAA:
+                        if not isinstance(fixAA, list):
+                            fixAA = list(fixAA)
+                        idx = int(posFix.replace('R', '')) - 1
+                        if substrate[idx] not in fixAA:
+                            keepSub = False
+                            break
+                if keepSub:
+                    subs[substrate] = count
+            self.subsExp = subs
+        self.countExpTotal = sum(self.subsExp.values())
+        self.countExpUnique = len(self.subsExp.keys())
+        self.subsExp = dict(sorted(
+            self.subsExp.items(), key=lambda item: item[1], reverse=True)
+        )
 
-                yMax, yMin = 0, 0
-                while yMax <= ymax:
-                    yMax += step
-                    # print(ymax, yMax)
-                while yMin >= ymin:
-                    yMin -= step
-                yTicks = np.arange(yMin, yMax + step, step)
-                # print(f'\nDiff: {blue}{diff:,}{resetColor}\n'
-                #       f'Max Value: {blue}{maxValue:,}{resetColor}\n'
-                #       f'Min Value: {blue}{minValue:,}{resetColor}\n'
-                #       f'Step: {blue}{step:,}{resetColor}\n'
-                #       f'Y Max: {blue}{yMax:,}{resetColor}\n'
-                #       f'Y Min: {blue}{yMin:,}{resetColor}\n'
-                #       f'Y Ticks: {pink}{yTicks}{resetColor}\n')
+        # Log substrates
+        self.log(f'\nFiltered Substrates:\n'
+                 f'     Total: {self.countExpTotal:,}\n'
+                 f'    Unique: {self.countExpUnique:,}\n')
+        self.log('Substrates:')
+        for i, (substrate, count) in enumerate(self.subsExp.items()):
+            self.log(f'    {substrate}, {count:,}')
+            i += 1
+            if i >= self.printN:
+                break
+
+        # Save data
+        if self.saveData:
+            self.saveSubstrates(
+                substrates=self.subsExp, datasetType='Exp', subProfile=subProfile
+            )
+
+        # Count AAs
+        self.countsExp = self.countAA(
+            substrates=self.subsExp, countMatrix=self.countsExp,
+            datasetType='Exp', subProfile=subProfile
+        )
+        self.calculateRF()
+        self.calculateEntropy(plotFig=plotEntropy)
+
+
+    def comet(self, form):
+        self.jobDone = False
+        self.evalEnrichment(skipFigs=True)
+        self.log('\n\n================================ Filter Motif '
+                 '================================')
+        self.minS = float(form['minS'])
+        self.log(f'Minimum ∆S: {self.minS}')
+        self.minES = float(form['minES'])
+        self.log(f'Minimum ES: {self.minES}')
+        self.minESRel = float(form['minESRel'])
+        self.log(f'Minimum ES Release: {self.minESRel}')
+        self.selectMotifPos()
+        self.log('\nRecognition Sites:')
+        self.log(pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S']))
+
+        # Average Bg data
+        self.rfBg = np.sum(self.rfBg, axis=1) / len(self.rfBg.columns)
+        self.rfBg = pd.DataFrame(self.rfBg, index=self.rfBg.index,
+                                 columns=['Average RF'])
+
+        def evalAAs(position, minES):
+            self.fixAA[position] = []
+            for aa in self.eMap.index:
+                if self.eMap.loc[aa, position] >= minES:
+                    self.fixAA[position].append(aa)
+            # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
+
+        # Apply Filter
+        for pos in self.motifPos.keys():
+            if pos not in self.fixAA.keys():
+                evalAAs(pos, self.minES)
+                self.filterSubs()
+                self.evalEnrichment(skipFigs=True)
+
+
+        # Refine Filter
+        for posRel in self.motifPos.keys():
+            print(f'Refine: {posRel}')
+            self.fixAA = {}
+            filter = []
+            for pos in self.motifPos.keys():
+                if pos != posRel:
+                    filter.append(pos)
+            for posFix in filter: # Release
+                evalAAs(posFix, self.minESRel)
+            self.filterSubs(allSubs=True)
+            self.evalEnrichment(skipFigs=True)
+
+            # Refilter
+            evalAAs(posRel, self.minESRel)
+            self.filterSubs(allSubs=True)
+            self.evalEnrichment(skipFigs=True)
+
+
+        # Release filter
+        print('Release Filter:')
+        self.fixAA = {}
+        self.figTag = 'Substrate Profile'
+        idxEnd = len(self.motifPos.keys()) - 1
+        counts = self.countsExp.copy()
+        self.substrateProfile = pd.DataFrame(0, index=self.eMap.index,
+                                             columns=self.eMap.columns)
+        for idx, posRel in enumerate(self.motifPos.keys()):
+            print(f'Release Pos: {posRel}')
+            self.fixAA = {}
+            filter = []
+            for pos in self.motifPos.keys():
+                if pos != posRel:
+                    filter.append(pos)
+            for posFix in filter:
+                evalAAs(posFix, self.minESRel)
+            if idx == idxEnd:
+                self.saveData = True
+                self.filterSubs(allSubs=True, subProfile=True)
             else:
-                magnitude = math.floor(math.log10(maxValue))
-                step = 10 ** (magnitude) / 5
-                yMax = 0
-                while yMax <= maxValue:
-                    yMax += step
-                    yTicks = np.arange(0, yMax + 1, step, dtype=int)
-                yMin = 0
-            # print(f'Max Value: {blue}{maxValue:,}{resetColor}\n'
-            #       f'Magnitude: {blue}{magnitude:,}{resetColor}\n'
-            #       f'Step: {blue}{step:,}{resetColor}\n'
-            #       f'Y Max: {blue}{yMax:,}{resetColor}\n'
-            #       f'Y Min: {blue}{yMin:,}{resetColor}\n')
+                self.filterSubs(allSubs=True)
+            self.substrateProfile.loc[:, posRel] = self.countsExp.loc[:, posRel]
+            self.countsExp = self.substrateProfile.copy()
+            # if idx != idxEnd:
+            self.calculateRF()
+            self.calculateEntropy(plotFig=False)
+            self.evalEnrichment(releasedCounts=True, skipFigs=True)
+
+        # Populate non-motif pos
+        print(f'Populate remaining')
+        for pos in counts.columns:
+            if pos not in self.motifPos.keys():
+                self.substrateProfile.loc[:, pos] = counts.loc[:, pos]
+                self.countsExp.loc[:, pos] = counts.loc[:, pos]
+        self.subProfile = True
+        self.calculateRF()
+        self.calculateEntropy()
+        self.evalEnrichment(releasedCounts=True, noFigs=True)
+        self.saveCounts(counts=self.substrateProfile, datasetType='Exp', subProfile=True)
+
+        # Plot profile
+        self.figures['eMapProfile'] = (
+            self.plotEnrichmentScores(dataType='Enrichment')
+        )
+        self.figures['eMapScProfile'] = (
+            self.plotEnrichmentScores(dataType='Scaled Enrichment')
+        )
+        self.plotEnrichmentLogo()
+        self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
+
+        self.jobDone = True
+        time.sleep(5)
+        print(f'Job Done: {self.jobDone}')
+
+    def getMotifSeq(self):
+        motifs = {}
+        for idx, profile in enumerate(self.profiles):
+            # print(f'\nProfile {idx}, {list(self.idxMotif.keys())[idx]}')
+            idxN = self.idxMotif[list(self.idxMotif.keys())[idx]]
+            idxC = idxN + self.seqLength
+            # print(f'Profile ({idx}): {idxN}-{idxC}')
+            for i, (substrate, count) in enumerate(profile.items()):
+                motifs[substrate[idxN:idxC]] = count
+                #print(f'* {substrate[idxN:idxC]}: {count}')
+                if i >= self.printN:
+                    break
+
+        self.log('\nMotifs:')
+        for i, (motif, count) in enumerate(motifs.items()):
+            self.log(f'* {motif}: {count:,}')
+            if i >= self.printN:
+                break
+        self.subsExp = motifs
 
 
-        # Evaluate: X axis
-        magnitude = math.floor(math.log10(NSubs))
-        step = 10 ** (magnitude) / 2
-        xMax = 0
-        while xMax < NSubs:
-            xMax += step
-        xTicks = np.arange(0, xMax+1, step, dtype=int)
-        # print(f'N Subs: {blue}{NSubs:,}{resetColor}\n'
-        #       f'Magnitude: {blue}{magnitude:,}{resetColor}\n'
-        #       f'Step: {blue}{step:,}{resetColor}\n'
-        #       f'X Max: {blue}{xMax:,}{resetColor}\n'
-        #       f'X Labels: {pink}{", ".join([str(x) for x in xTicks])}{resetColor}\n')
-
-        # Define: Figure title
-        title = f'{self.enzymeName}\n{self.datasetTag}'
-        if minCounts:
-            title += f'\nMinimum Substrate Count: {minCounts:,}'
-        else:
-            title += f'\nTop {NSubs:,} Substrates'
+    def combineProfiles(self):
+        print('Combining Profiles') ##
+        print(f'Exp Counts:\n{self.countsExp}')
+        # self.countsExp = self.countAA(
+        #     substrates=self.subsExp, countMatrix=self.countsExp, datasetType='Exp'
+        # )
+        # self.calculateRF()
+        #self.calculateEntropy()
+        #self.evalEnrichment()
 
 
-        # Plot the data
+    def selectMotifPos(self):
+        self.motifPos = {}
+        entropy = self.entropy.sort_values(by=self.entropy.columns[0], ascending=False)
+        for pos in entropy.index:
+            S = round(float(self.entropy.loc[pos, self.entropy.columns[0]]), 2)
+            if S >= self.minS:
+                self.motifPos[pos] = S
+        if not self.motifPos:
+            self.motifPos = {False: 'No Positions Selected'}
+        # print(f'Motif Pos:\n{self.motifPos}')
+
+
+    def countAA(self, substrates, countMatrix,
+                datasetType, subProfile=False):
+        self.log('\n\n================================== Count AA '
+                 '==================================')
+        self.log(f'Dataset: {self.datasetTypes[datasetType]}')
+        countMatrix.loc[:, :] = 0
+        totalCounts = pd.DataFrame(0, index=self.xAxisLabel, columns=['Sum'])
+
+        def splitData(data, matrix):
+            cores = os.cpu_count()
+            size = max(1, int(np.ceil(len(data) / cores)))
+            batches = list(batched(data.items(), size))
+            #print(f'Cores: {cores}, Batches: {len(batches)}, Seq/Batch: {size:,}')
+            args = [(dict(batch), matrix.columns.tolist(), matrix.index.tolist())
+                    for batch in batches]
+
+            with ProcessPoolExecutor(max_workers=cores) as executor:
+                results = list(executor.map(counter, args))
+            return sum(results[1:], results[0])
+
+        start = time.time()
+        countMatrix = splitData(substrates, countMatrix)
+        end = time.time()
+        runtime = (end - start) / 60
+        runtime = round(runtime, 3)
+        print(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
+        self.log(f'\nCounts:\n{countMatrix}')
+
+        for pos in countMatrix.columns:
+            counts = sum(countMatrix.loc[:, pos])
+            totalCounts.loc[pos, 'Sum'] = counts
+        self.log(f'\nCount Totals:\n{totalCounts}')
+
+        if self.saveData and not subProfile:
+            print('Saving Data: Counts')
+            self.saveCounts(
+                counts=countMatrix, datasetType=datasetType, subProfile=subProfile
+            )
+        return countMatrix
+
+
+    def plotCounts(self, countedData, totalCounts, datasetType):
+        countedData.index = self.AA
+
+        # Create color map
+        cMapCustom = self.createCustomColorMap(colorType='Counts')
+
+        # Set figure title
+        title = f'{self.enzymeName}\n{datasetType} Substrates\nN={totalCounts:,}'
+
+        # Define the yLabel
+        if self.residueLabelType == 0:
+            countedData.index = [residue[0] for residue in self.residues]
+        elif self.residueLabelType == 1:
+            countedData.index = [residue[1] for residue in self.residues]
+        elif self.residueLabelType == 2:
+            countedData.index = [residue[2] for residue in self.residues]
+
+        # Define color bar limit
+        maxCount = np.max(countedData.values)
+        mag = math.floor(math.log10(maxCount)) - 1
+        maxNorm = maxCount / (10 ** mag)
+        maxRound = (math.ceil(maxNorm)) * (10**mag)
+        # print(f'Max: {maxCount}\n'
+        #       f'Magnitude: {mag}\n'
+        #       f'Norm: {maxNorm}\n'
+        #       f'Round: {maxRound}\n')
+
+
+        # Plot the heatmap with numbers centered inside the squares
         fig, ax = plt.subplots(figsize=self.figSize)
-        bars = plt.bar(x, y, color=barColor, width=barWidth)
-        plt.xlabel('Substrates', fontsize=self.labelSizeAxis)
-        plt.ylabel(dataType, fontsize=self.labelSizeAxis)
-        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.axhline(y=0, color='black', linewidth=self.lineThickness)
-
-        # Set: x ticks
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(xTicks, ha='center')
-        ax.set_xlim(-step/10, xTicks[-1])
-
-        # Set: y ticks
-        plt.ylim(yMin, yMax)
-        plt.yticks(yTicks)
-
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
+        sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
+                    cbar=False, linewidths=self.lineThickness-1, square=False,
+                    linecolor='black', center=None, vmax=maxRound,
+                    annot_kws={'fontweight': 'bold'}, cbar_kws={'pad': 0.02})
+        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
+        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
+        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks, width=self.lineThickness)
+        ax.tick_params(axis='y', labelrotation=0)
 
-        # Save the figure
-        if self.saveFigures:
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-        else:
-            print()
+        # Set x-ticks
+        xTicks = np.arange(len(countedData.columns)) + 0.5
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(countedData.columns)
 
+        # Set y-ticks
+        yTicks = np.arange(len(countedData.index)) + 0.5
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(countedData.index)
 
+        # Set colorbar
+        normalize = Normalize(vmin=0, vmax=maxRound)  # Normalize the entropy values
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
 
-    def saveData(self, substrates, counts, saveTag=None, countsReleased=None):
-        if not isinstance(substrates, dict):
-            print(f'{orange}ERROR: The substrates need to be stored in a dictionary\n'
-                  f'     Current data structure: {type(substrates)}')
-            sys.exit(1)
-        if not isinstance(counts, pd.DataFrame):
-            print(f'{orange}ERROR: The counts need to be stored in a Pandas DataFrame\n'
-                  f'     Current data structure: {type(counts)}')
-            sys.exit(1)
+        # File path
+        figName = f'counts-{self.enzymeName}-{datasetType}.png'
+        path = os.path.join(self.pathFigs, figName)
+        print(f'Saving Figure: {path}')
 
-        # Define: Save path
-        filePathCountsReleased = None
-        if self.expressDNA:
-            folder = os.path.join(self.pathFolder, 'Data')
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
 
-            if not os.path.exists(folder):
-                os.makedirs(folder, exist_ok=True)
+        # Close the figure to free memory
+        plt.close(fig)
 
-            self.pathSaveFigs = os.path.join(self.pathFolder, 'Figures')
-
-            filePathSubs = os.path.join(folder, f'substrates_{saveTag}.pkl')
-            filePathCounts = os.path.join(folder, f'counts_{saveTag}')
-        else:
-            if self.datasetTag == 'Unfiltered':
-                return
-
-            if countsReleased is None:
-                (filePathSubs,
-                 filePathCounts) = self.getFilePath(datasetTag=self.datasetTag)
-            else:
-                # Define: File paths
-                (filePathSubs,
-                 filePathCounts,
-                 filePathCountsReleased) = self.getFilePath(datasetTag=self.datasetTag,
-                                                            motifPath=True)
-
-        if not os.path.exists(filePathSubs) or not os.path.exists(filePathCounts):
-            print('================================= Save The data '
-                  '=================================')
-            if countsReleased is None:
-                print(f'Substrate data saved at:\n'
-                      f'     {greenDark}{filePathSubs}\n'
-                      f'     {filePathCounts}{resetColor}\n\n')
-
-                # Save the substrates
-                with open(filePathSubs, 'wb') as file:
-                    pk.dump(substrates, file)
-
-                # Save the counts
-                counts.to_csv(filePathCounts)
-            else:
-                print(f'Substrate data saved at:\n'
-                      f'     {greenDark}{filePathSubs}\n'
-                      f'     {filePathCounts}\n'
-                      f'     {filePathCountsReleased}{resetColor}\n\n')
-
-                # Save the substrates
-                with open(filePathSubs, 'wb') as file:
-                    pk.dump(substrates, file)
-
-                # Save the counts
-                counts.to_csv(filePathCounts)
-                countsReleased.to_csv(filePathCountsReleased)
+        return figName
 
 
+    def calculateRF(self):
+        self.log('\n\n=============================== Calculate: RF '
+                 '================================')
+        self.log(f'Filter: {self.datasetTag}\n')
+        self.rfExp = pd.DataFrame(
+            0.0, index=self.countsExp.index, columns=self.countsExp.columns
+        )
+        for pos in self.countsExp.columns:
+            self.rfExp.loc[:, pos] = self.countsExp[pos] / sum(self.countsExp[pos])
+        self.log(f'RF Experimental:\n{self.rfExp}')
+        # print(f'RF Experimental:\n{self.rfExp}\n')
 
-    def saveFig(self, fig, path):
-        if os.path.exists(path):
-            print(f'{yellow}The figure was not saved\n\n'
-                  f'File was already found at path:\n'
-                  f'     {path}{resetColor}\n\n')
-        else:
-            print(f'Saving figure at path:\n'
-                  f'     {greenDark}{path}{resetColor}\n\n')
-            fig.savefig(path, dpi=self.figureResolution)
-
-
-
-    def saveFigure(self, fig, figType, seqLen, N=False,
-                   combinedMotifs=False, releasedCounts=False):
-        # Define: Save location
-        figLabel = ''
-        if self.motifFilter and not releasedCounts:
-            figLabel = (f'{self.enzymeName} - {figType} '
-                        f'{self.saveFigureIteration} - {self.datasetTagMotif} - '
-                        f'{seqLen} AA - MinCounts {self.minSubCount}.png')
-        elif combinedMotifs:
-            figLabel = (f'{self.enzymeName} - {figType} - Substrate Profile '
-                        f'{self.datasetTag} - '
-                        f'{seqLen} AA - MinCounts {self.minSubCount}.png')
-        elif releasedCounts:
-            figLabel = (f'{self.enzymeName} - {figType} - Substrate Profile '
-                        f'{self.datasetTagMotif} - {seqLen} AA - '
-                        f'MinCounts {self.minSubCount}.png')
-        else:
-            figLabel = (f'{self.enzymeName} - {figType} - '
-                        f'{self.datasetTag} - '
-                        f'N {self.nSubsFinal} - {seqLen} AA - '
-                        f'MinCounts {self.minSubCount}.png')
-        if '/' in figLabel:
-            figLabel = figLabel.replace('/', '_')
-        if N:
-            figLabel = figLabel.replace(f'N {self.nSubsFinal}', f'N {N}')
-
-        saveLocation = os.path.join(self.pathSaveFigs, figLabel)
+        if self.rfBg is None:
+            self.rfBg = pd.DataFrame(
+                0.0, index=self.countsBg.index, columns=self.countsBg.columns
+            )
+            for pos in self.countsBg.columns:
+                totalCounts = sum(self.countsBg[pos])
+                for AA in self.countsBg.index:
+                    count = self.countsBg.loc[AA, pos]
+                    if count == 0:
+                        count = 1
+                    self.rfBg.loc[AA, pos] = count / totalCounts
+            if self.combineRegisters:
+                self.rfBg = np.sum(self.rfBg, axis=1) / len(self.rfBg.columns)
+                self.rfBg = pd.DataFrame(self.rfBg, index=self.rfBg.index,
+                                         columns=['Average RF'])
+            self.log(f'\nRF Background:\n{self.rfBg}')
 
 
-        # Save figure
-        if os.path.exists(saveLocation):
-            print(f'{yellow}WARNING{resetColor}: '
-                  f'{yellow}The figure already exists at the path\n'
-                  f'     {saveLocation}\n\n'
-                  f'We will not overwrite the figure{resetColor}\n\n')
-        else:
-            print(f'Saving figure at path:\n'
-                  f'     {greenDark}{saveLocation}{resetColor}\n\n')
-            fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def recordSampleSize(self, NInitial, NFinal, NFinalUnique):
-        print('============================== Current Sample Size '
-              '==============================')
-        self.nSubsFinalUniqueSeqs = NFinalUnique
-        if isinstance(NInitial, int) and isinstance(NFinal, int):
-            # Update: Sample size
-            self.nSubsInitial = NInitial
-            self.nSubsFinal = NFinal
-            print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-                  f'Initial Sort: {red}{self.nSubsInitial:,}{resetColor}\n'
-                  f'Final Sort: {red}{self.nSubsFinal:,}{resetColor}\n\n')
-        else:
-            print(f'Sample size was not recorded.\n'
-                  f'N values must be integers:\n'
-                  f'     N Initial: {pink}{type(NInitial)}{resetColor}\n'
-                  f'     N Final: {pink}{type(NFinal)}{resetColor}\n\n')
-
-        # Set figure titles
-        self.titleReleased = (f'{self.enzymeName}\n'
-                              f'{self.datasetTagMotif}\n'
-                              f'Substrate Profile')
-        if self.showSampleSize:
-            self.title = (f'{self.enzymeName}\n'
-                          f'N Unsorted = {self.nSubsInitial:,}\n'
-                          f'N Sorted = {self.nSubsFinal:,}')
-            self.titleWeblogo = f'{self.enzymeName}\nN = {self.nSubsFinal:,}'
-            self.titleWeblogoCombined = (f'{self.enzymeName}\n'
-                                         f'{self.datasetTagMotif}\n'
-                                         f'N = {self.nSubsFinal:,}')
-        else:
-            self.title = f'{self.enzymeName}'
-            self.titleWeblogo = f'{self.enzymeName}'
-            self.titleWeblogoCombined = (f'{self.enzymeName}\n'
-                                         f'{self.datasetTagMotif}')
-        if self.filterSubs:
-            if self.motifFilter:
-                self.titleWords = f'{self.enzymeName}\n{self.motifTag}'
-            else:
-                self.titleWords = f'{self.enzymeName}\n{self.datasetTagMotif}'
-        else:
-            self.titleWords = f'{self.enzymeName}\nUnfiltered'
-
-
-
-    def calculateRFCombinedMotif(self, countsCombinedMotifs):
-        print('====================== Calculate: Fixed Motif Probability '
-              '=======================')
-        # Sum each column
-        columnSums = np.sum(countsCombinedMotifs, axis=0)
-        columnSums = pd.DataFrame(columnSums, index=countsCombinedMotifs.columns,
-                                  columns=['Sum'])
-
-        rf = pd.DataFrame(0.0, index=countsCombinedMotifs.index,
-                            columns=countsCombinedMotifs.columns)
-
-        # Calculate: Residue Probability
-        for position in countsCombinedMotifs.columns:
-            rf.loc[:, position] = (countsCombinedMotifs.loc[:, position] /
-                                     columnSums.loc[position, 'Sum'])
-        print(f'Dataset: {purple}{self.datasetTag}\n'
-              f'{green}{rf}{resetColor}\n\n')
-
-        return rf
-
-
-
-    def calculateProbCodon(self, codonSeq):
-        print('======================= Calculate: Residue Probabilities '
-              '========================')
-        print(f'Possible codons for: {codonSeq}')
-        nucleotides = ['A', 'C', 'G', 'T']
-        S = ['C', 'G']
-        K = ['G', 'T']
-
-        # Define what codons are associated with each residue
-        codonsAA = {
-            'A': ['GCT', 'GCC', 'GCA', 'GCG'],
-            'R': ['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'],
-            'N': ['AAT', 'AAC'],
-            'D': ['GAT', 'GAC'],
-            'C': ['TGT', 'TGC'],
-            'E': ['GAA', 'GAG'],
-            'Q': ['CAA', 'CAG'],
-            'G': ['GGT', 'GGC', 'GGA', 'GGG'],
-            'H': ['CAT', 'CAC'],
-            'I': ['ATT', 'ATC', 'ATA'],
-            'L': ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'],
-            'K': ['AAA', 'AAG'],
-            'M': ['ATG'],
-            'F': ['TTT', 'TTC'],
-            'P': ['CCT', 'CCC', 'CCA', 'CCG'],
-            'S': ['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'],
-            'T': ['ACT', 'ACC', 'ACA', 'ACG'], # Count occurrences
-            'W': ['TGG'],
-            'Y': ['TAT', 'TAC'],
-            'V': ['GTT', 'GTC', 'GTA', 'GTG']
-        }
-
-        codonsRes = {aa: [] for aa in codonsAA.keys()}
-
-        # Initialize a list to store all possible combinations
-        codons = []
-        codonToAA = {codon: aa for aa, codons in codonsAA.items() for codon in codons}
-
-        # Generate all possible combinations
-        for combination in product(nucleotides, repeat=len(codonSeq)):
-            # Check if the combination satisfies the conditions
-            if all((c == 'N') or (c == 'S' and s in S) or (c == 'K' and s in K)
-                   for c, s in zip(codonSeq, combination)):
-                codon = ''.join(combination)
-                if codon in codonToAA.keys():
-                    AA = codonToAA[codon]
-                codons.append(codon)
-                codonsRes[AA].append(codon)
-
-        # Print: All possible codon combinations
-        for index, codon in enumerate(codons, 1):
-            print(f'Codon {index}: {codon}')
-        print('')
-
-        print('Available Codons:')
-        for AA, cod in codonsRes.items():
-            print(f'     {AA}: {", ".join(cod)}')
-        print('')
-
-        # Count the possible codon combinations for each AA
-        codonCounts = pd.DataFrame(index=self.letters, columns=['Counts'], data=0)
-        for sequence in codons:
-            for residue, codonsResidue in codonsAA.items():
-                if sequence in codonsResidue:
-                    if residue in codonCounts.index:
-                        codonCounts.loc[residue, 'Counts'] += 1
-                    break
-        codonProbability = pd.DataFrame(index=self.letters,
-                                        columns=['Probability'],
-                                        data=0)
-        codonProbability['Probability'] = codonCounts['Counts'] / len(codons)
-
-        print('Amino Acid Probabilities:')
-        for index, row in codonProbability.iterrows():
-            print(f'     {index}    {round(row["Probability"] * 100, 2)} %')
-        codonProb = round(sum(codonProbability["Probability"]) * 100, 2)
-        print(f'Total probability of AA with {codonSeq}: {codonProb} %')
-        print(f'Stop codon probability: {round(100 - codonProb, 2)} %\n\n')
-
-        return codonProbability
-
-
-
-    def calculateRF(self, counts, N, fileType, calcAvg=False):
-        print('======================== Calculate: Residue Probability '
-              '=========================')
-        if self.filterSubs and 'initial' not in fileType.lower():
-            print(f'Dataset: {purple}{self.enzymeName} {fileType} - Filter '
-                  f'{self.datasetTag}{resetColor}\n')
-        else:
-            print(f'Dataset: {purple}{self.enzymeName} - {fileType}{resetColor}\n')
-
-        # Calculate: Probability
-        rf = counts / N
-        print(f'{np.round(rf, 4)}\n\n')
-
-        if calcAvg:
-            rfAvg = np.sum(rf, axis=1) / len(rf.columns)
-            rf = pd.DataFrame(rfAvg, index=rfAvg.index, columns=['Average RF'])
-            print(f'{np.round(rf, 4)}\n\n')
-
-        return rf
-
-
-
-    def getDatasetTag(self, useCodonProb=False, codon=None, combinedMotifs=False):
-        if combinedMotifs:
-            continuous = True
-            if len(self.fixedPos) == 1:
-                # tags = []
-                # for idxList in range(len(self.fixedAA)):
-                #     tag = ''
-                #     # print(self.fixedPos, idxList)
-                #     for idx, AA in enumerate(self.fixedAA[idxList]):
-                #         tag += f'{AA}@R{self.fixedPos[idxList][idx]}_'
-                #     tag = tag[:-1] # Remove the last char: "_"
-                #     tags.append(tag)
-                # print('tags', ','.join(tags))
-                if isinstance(self.fixedAA[0], list):
-                    self.datasetTag = f'[{",".join(self.fixedAA[0])}]@R{self.fixedPos[0]}'
+    def calculateEntropy(self, plotFig=True):
+        self.log('\n\n============================= Calculate: Entropy '
+                 '=============================')
+        self.log(f'Filter: {self.datasetTag}\n')
+        self.entropyMax = np.log2(len(self.rfExp.index))
+        for indexColumn in self.rfExp.columns:
+            S = 0
+            for indexRow, probRatio in self.rfExp.iterrows():
+                prob = probRatio[indexColumn]
+                if prob == 0:
+                    continue
                 else:
-                    self.datasetTag = f'{self.fixedAA[0]}@R{self.fixedPos[0]}'
+                    S += -prob * np.log2(prob)
+            self.entropy.loc[indexColumn, self.entropy.columns[0]] = self.entropyMax - S
+        self.log(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}')
+
+        if self.setS:
+            self.selectMotifPos()
+
+        if plotFig:
+            if self.subProfile:
+                self.figures['entropyProfile'] = self.plotEntropy()
             else:
-                fixedPos = sorted(self.fixedPos)
-                # print(f'Fixed Pos: {fixedPos}')
-                multiCombinedFrames = False
-                for index in range(len(fixedPos) - 1):
-                    # print(f'Idx: {index}')
-                    pos1, pos2 = fixedPos[index], fixedPos[index + 1]
-                    # print(f'Pos:\n'
-                    #       f'     {pos1}\n'
-                    #       f'     {pos2}\n\n')
-                    if isinstance(pos1, int) and isinstance(pos2, int):
-                        if pos1 == pos2 - 1 or pos1 == pos2 + 1:
-                            continue
-                        else:
-                            if isinstance(pos1, list):
-                                for indexPos in range(len(pos1)-1):
-                                    if (pos1[indexPos] == pos1[indexPos + 1] - 1 or
-                                            pos1[indexPos] == pos1[indexPos + 1] + 1):
-                                        continue
-                                    else:
-                                        continuous = False
-                            else:
-                                continuous = False
-                    elif isinstance(pos1, list) or isinstance(pos2, list):
-                        multiCombinedFrames = True
-                        continue
-                        # Evaluate combined frames with multiple fixed positons
-                        print(f'Pos1: {pos1}')
-                        if isinstance(pos1, list):
-                            for indexPos, posA in enumerate(pos1[:-1]):
-                                posB = pos1[indexPos + 1]
-                                if posB - posA != 1:
-                                    continuous = False
-                                    break
-                        else:
-                            for indexPos, posA in enumerate(pos2[:-1]):
-                                posB = pos2[indexPos + 1]
-                                if posB - posA != 1:
-                                    continuous = False
-                                    break
-                    else:
-                        continuous = False
-                        break
+                self.figures['entropy'] = self.plotEntropy()
+            if self.setS:
+                self.jobDone = True
+                self.setS = False
 
-                # Define subtags
-                fixedAA1 = self.fixedAA[0]
-                if isinstance(fixedAA1, list):
-                    fixedAA1 = f'[{','.join(fixedAA1)}]'
-                fixedPos1 = self.fixedPos[0]
-                if isinstance(fixedPos1, list):
-                    fixedPos1 = f'[{','.join(map(str, fixedPos1))}]'
-                fixedAA2 = self.fixedAA[-1]
-                if isinstance(fixedAA2, list):
-                    fixedAA2 = f'[{','.join(fixedAA2)}]'
-                fixedPos2 = self.fixedPos[-1]
-                if isinstance(fixedPos2, list):
-                    fixedPos2 = f'[{','.join(map(str, fixedPos2))}]'
 
-                # Define the tag
-                if continuous:
-                    if multiCombinedFrames:
-                        self.datasetTag = (f'{fixedAA1}@R{fixedPos1}-'
-                                           f'{fixedAA2}@R{fixedPos2}')
-                    else:
-                        self.datasetTag = (f'{fixedAA1}@R'
-                                           f'{fixedPos1}-R{fixedPos2}')
-                else:
-                    self.datasetTag = f'{fixedAA1}@'
-                    tags = []
-                    for idx, pos in enumerate(fixedPos):
-                        tags.append(f'R{pos}')
-                    self.datasetTag += ','.join(tags)
-
-            # Exclude residues
-            if self.excludeAAs:
-                fixResidueList = []
-                for index, removedAA in enumerate(self.excludeAA):
-                    fixResidueList.append(
-                        f'{removedAA}@R'
-                        f'{self.excludePosition[index]}'.replace(' ', ''))
-                excludeTag = f'Exclude {' '.join(fixResidueList)}'
-                self.datasetTag = f'{excludeTag} Fixed {self.datasetTag}'
+    def plotEntropy(self):
+        # Set figure title
+        if self.initCOMET:
+            title = (f'{self.enzymeName}\n'
+                     f'{self.datasetTag.replace('Fix', 'Register')}')
+        elif self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
+        elif self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
         else:
-            if self.filterSubs:
-                fixResidueList = []
-                if self.excludeAAs:
-                    # Exclude residues
-                    for index, removedAA in enumerate(self.excludeAA):
-                        if index == 0:
-                            fixResidueList.append(
-                                f'Exclude_{removedAA}@R'
-                                f'{self.excludePosition[index]}'.replace(
-                                    ' ', ''))
-                        else:
-                            fixResidueList.append(
-                                f'{removedAA}@R{self.excludePosition[index]}'.replace(
-                                    ' ', ''))
-    
-                    # Fix residues
-                    for index in range(len(self.fixedAA)):
-                        tagFixedAA = self.fixedAA[index]
-                        if isinstance(tagFixedAA, list) and len(tagFixedAA) == 1:
-                            tagFixedAA = tagFixedAA[0]
+            title = self.enzymeName
 
-                        if index == 0:
-                            fixResidueList.append(
-                                f'Fixed_{tagFixedAA}@R{self.fixedPos[index]}'.replace(
-                                    ' ', ''))
-                        else:
-                            fixResidueList.append(
-                                f' {tagFixedAA}@R{self.fixedPos[index]}'.replace(
-                                    ' ', ''))
-                    self.datasetTag = '_'.join(fixResidueList)
-                else:
-                    # Fix residues
-                    try:
-                        for index in range(len(self.fixedAA)):
-                            fixResidueList.append(
-                                f' {self.fixedAA[index]}@R'
-                                f'{self.fixedPos[index]}'.replace(' ', ''))
-                    except Exception as exc:
-                        print(f'{orange}ERROR: {exc}\n')
-                        print(f'Does the length of Fixed AA '
-                              f'({cyan}{len(self.fixedAA)}{orange}) '
-                              f'match the length of Fixed Pos '
-                              f'({cyan}{len(self.fixedPos)}{orange})\n'
-                              f'Fixed AA: {cyan}{self.fixedAA}{orange}\n'
-                              f'Fixed Pos : {cyan}{self.fixedPos}{orange}\n')
-                        sys.exit()
-                    self.datasetTag = ' '.join(fixResidueList)
-            else:
-                if self.excludeAAs:
-                    # Exclude residues
-                    fixResidueList = []
-                    for index, removedAA in enumerate(self.excludeAA):
-                        if index == 0:
-                            fixResidueList.append(
-                                f'Exclude_{removedAA}@R'
-                                f'{self.excludePosition[index]}'.replace(
-                                    ' ', ''))
-                        else:
-                            fixResidueList.append(
-                                f'{removedAA}@R{self.excludePosition[index]}'.replace(
-                                    ' ', ''))
-                    self.datasetTag = ' '.join(fixResidueList)
-                else:
-                    self.datasetTag = 'Unfiltered'
-            # Condense the string
-            if "'" in self.datasetTag:
-                self.datasetTag = self.datasetTag.replace("'", '')
-            self.datasetTag = self.datasetTag.replace("_", ' ')
+        # Figure parameters
+        yMax = self.entropyMax + 0.2
+        xMax = len(self.entropy.iloc[:, 0])
 
-            if self.excludeAAs:
-                # Clean up fixed sequence tag
-                if self.substrateLength == 9:
-                    removeTag = 'Excl-Y@R1_Y@R2_Y@R3_Y@R4_Y@R6_Y@R7_Y@R8_Y@R9'
-                    if removeTag in self.datasetTag:
-                        # This should be reserved for simplifying dataset tags
-                        self.datasetTag = self.datasetTag.replace(removeTag, '')
-                        self.datasetTag = f'Exclude Y{self.datasetTag}'
-                self.datasetTag = self.datasetTag.replace('_', ' ')
+        # Map entropy values to colors using the colormap
+        colors = [(0, 'navy'),
+                  (0.3 / self.entropyMax, 'navy'),
+                  (0.7 / self.entropyMax, 'dodgerblue'),
+                  (0.97 / self.entropyMax, 'white'),
+                  (0.98 / self.entropyMax, 'white'),
+                  (1.0 / self.entropyMax, 'white'),
+                  (1.65 / self.entropyMax, 'red'),
+                  (3 / self.entropyMax, 'firebrick'),
+                  (1, 'darkred')]
+        colorBar = LinearSegmentedColormap.from_list('custom_colormap', colors)
 
-        # Define: Dataset Label
-        if useCodonProb:
-            self.datasetTag = f'{codon} Enrichment - {self.datasetTag}'
-        if self.initialize:
-            self.datasetTagMotif = self.datasetTag
-            self.initialize = False
-        # print(f'Dataset Tag: {purple}{self.datasetTag}{resetColor}\n\n')
+        # Map entropy values to colors using the colormap
+        normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
+        cMap = [
+            colorBar(normalize(value))
+            for value in self.entropy[self.entropy.columns[0]].astype(float)
+        ]
 
-        return self.datasetTag
+        # Plotting the entropy values as a bar graph
+        fig, ax = plt.subplots(figsize=self.figSize)
+        plt.bar(self.entropy.index, self.entropy[self.entropy.columns[0]], color=cMap,
+                edgecolor='black', linewidth=self.lineThickness, width=0.8)
+        plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis,
+                   rotation=0, labelpad=15)
+        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        plt.tight_layout()
 
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks)
+
+        # Set x-ticks
+        xTicks = np.arange(0, xMax, 1)
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(self.entropy.index, rotation=0, ha='center')
+        for tick in ax.xaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set y-ticks
+        yTicks = range(0, 5)
+        yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}' for tick in yTicks]
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(yTickLabels)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set the edge thickness
+        for spine in ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
+        # Set axis limits
+        ax.set_xlim(-0.5, xMax-0.5)
+        ax.set_ylim(0, yMax)
+
+        # Set colorbar
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
+
+        # File path
+        figName = self.getFileNameFig('entropy')
+        print('Saving:', figName)
+        path = os.path.join(self.pathFigs, figName)
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
 
 
-    def fixResidue(self, substrates, fixedString, printRankedSubs, sortType):
-        print('=============================== Filter Substrates '
-              '===============================')
-        fixedSubs = {}
-        fixedSubsTotal = 0
-        print(f'Selecting {purple}{sortType} {resetColor}substrates with: '
-              f'{purple}{fixedString}{resetColor}\n')
-
-        # Sort the substrate dictionary by counts
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
-
-
-        # Select substrates that contain selected AA at a specified position in the substrate
-        if self.excludeAAs:
-            # Verify if the substrates contain the residue(s) you wish to remove
-            for substrate, count in substrates.items():
-                # Inspect substrate count
-                if count < self.minSubCount:
-                    break
-
-                keepSub = True
-                for indexExclude, AAExclude in enumerate(self.excludeAA):
-                    if len(AAExclude) == 1:
-                        indexRemoveAA = self.excludePosition[indexExclude] - 1
-
-                        # Is the AA acceptable?
-                        if substrate[indexRemoveAA] == AAExclude:
-                            keepSub = False
-                            continue
-                    else:
-                        # Remove Multiple AA at a specific position
-                        for AAExcludeMulti in AAExclude:
-                            indexRemoveAA = self.excludePosition[indexExclude] - 1
-                            for AAExclude in AAExcludeMulti:
-
-                                # Is the AA acceptable?
-                                if substrate[indexRemoveAA] == AAExclude:
-                                    keepSub = False
-                                    continue
-
-                # If the substrate has not been blacklisted, look for the desired AA
-                if keepSub:
-                    if len(self.fixedAA) == 1 and len(self.fixedAA[0]) == 1:
-                        # Fix only one AA
-                        if substrate[self.fixedPos[0] - 1] != self.fixedAA[0]:
-                            keepSub = False
-                    else:
-                        for indexFixed, fixedAA in enumerate(self.fixedAA):
-                            indexFixAA = self.fixedPos[indexFixed] - 1
-
-                            if len(fixedAA) == 1:
-                                # Fix one AA at a given position
-                                if substrate[indexFixAA] != fixedAA:
-                                    keepSub = False
-                                    break
-                            else:
-                                # Fix multiple AAs at a given position
-                                if substrate[indexFixAA] not in fixedAA:
-                                    keepSub = False
-                                    break
-                # Extract the substrate
-                if keepSub:
-                    fixedSubs[substrate] = count
-                    fixedSubsTotal += count
+    def calculateWebLogo(self):
+        # Evaluate weblogo
+        self.rfExpScaled = pd.DataFrame(
+            0.0, index=self.countsExp.index, columns=self.countsExp.columns
+        )
+        for pos in self.entropy.index:
+            self.rfExpScaled.loc[:, pos] = (
+                    self.rfExp.loc[:, pos] *
+                    self.entropy.loc[pos, self.entropy.columns[0]]
+            )
+        if self.subProfile:
+            self.figures['wLogoProfile'] = self.plotWebLogo()
         else:
-            # Fix AAs, and dont exclude any AAs
-            if len(self.fixedAA) == 1 and len(self.fixedAA[0]) == 1:
-                for substrate, count in substrates.items():
-                    # Inspect substrate count
-                    if count < self.minSubCount:
-                        break
-
-                    subAA = substrate[self.fixedPos[0] - 1]
-                    if subAA in self.fixedAA[0]:
-                        fixedSubs[substrate] = count
-                        fixedSubsTotal += count
-                        continue
-            else:
-                for substrate, count in substrates.items():
-                    # Inspect substrate count
-                    if count < self.minSubCount:
-                        break
-
-                    keepSub = []
-                    for index in range(len(self.fixedAA)):
-                        fixIndex = self.fixedPos[index] - 1
-                        subAA = substrate[fixIndex]
-                        selectAA = self.fixedAA[index]
-
-                        if subAA in selectAA:
-                            keepSub.append(True)
-                        else:
-                            keepSub.append(False)
-
-                    if False not in keepSub:
-                        fixedSubs[substrate] = count
-                        fixedSubsTotal += count
+            self.figures['wLogo'] = self.plotWebLogo()
 
 
-        # Rank fixed substrates
-        rankedFixedSubstrates = dict(sorted(fixedSubs.items(),
-                                            key=lambda x: x[1], reverse=True))
-
-        # Print: Fixed substrates
-        if printRankedSubs:
-            iteration = 0
-            fixedUniqueSubsTotal = len(rankedFixedSubstrates)
-            print('Ranked Fixed Substrates:')
-            if fixedUniqueSubsTotal == 0:
-                print('')
-                print(f'{orange}ERROR:\n'
-                      f'     No substrates in {purple}{sortType}{orange} contained: '
-                      f'{red}{fixedString}{resetColor}\n')
-                sys.exit(1)
-            else:
-                for substrate, count in rankedFixedSubstrates.items():
-                    print(f'     {pink}{substrate}{resetColor}, Counts: {red}{count:,}'
-                          f'{resetColor}')
-                    iteration += 1
-                    if iteration >= self.printNumber:
-                        break
-
-
-        print(f'\nNumber of substrates with fixed {purple}{fixedString}{resetColor}: '
-              f'{red}{fixedSubsTotal:,}{resetColor}\n\n')
-
-        return rankedFixedSubstrates, fixedSubsTotal
-
-
-
-
-    def exclResidue(self, substrates, fixedString, printRankedSubs, sortType):
-        print('=============================== Filter Substrates '
-              '===============================')
-        fixedSubs = {}
-        fixedSubsTotal = 0
-        print(f'Selecting {purple}{sortType} {resetColor}substrates with: '
-              f'{purple}{fixedString}{resetColor}\n')
-
-        # Sort the substrate dictionary by counts
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
-
-
-        # Select substrates that contain selected AA at a specified position in the substrate
-        if self.excludeAAs:
-            # Verify if the substrates contain the residue(s) you wish to remove
-            for substrate, count in substrates.items():
-                # Inspect substrate count
-                if count < self.minSubCount:
-                    break
-
-                keepSub = True
-                for indexExclude, AAExclude in enumerate(self.excludeAA):
-                    if len(AAExclude) == 1:
-                        indexRemoveAA = self.excludePosition[indexExclude] - 1
-
-                        # Is the AA acceptable?
-                        if substrate[indexRemoveAA] == AAExclude:
-                            keepSub = False
-                            continue
-                    else:
-                        # Remove Multiple AA at a specific position
-                        for AAExcludeMulti in AAExclude:
-                            indexRemoveAA = self.excludePosition[indexExclude] - 1
-                            for AAExclude in AAExcludeMulti:
-
-                                # Is the AA acceptable?
-                                if substrate[indexRemoveAA] == AAExclude:
-                                    keepSub = False
-                                    continue
-
-                # Extract the substrate
-                if keepSub:
-                    fixedSubs[substrate] = count
-                    fixedSubsTotal += count
-
-        # Rank fixed substrates
-        rankedFixedSubstrates = dict(sorted(fixedSubs.items(),
-                                            key=lambda x: x[1], reverse=True))
-
-        # Print: Fixed substrates
-        if printRankedSubs:
-            iteration = 0
-            fixedUniqueSubsTotal = len(rankedFixedSubstrates)
-            print('Ranked Fixed Substrates:')
-            if fixedUniqueSubsTotal == 0:
-                print('')
-                print(f'{orange}ERROR:\n'
-                      f'     No substrates in {purple}{sortType}{orange} contained: '
-                      f'{red}{fixedString}{resetColor}\n')
-                sys.exit(1)
-            else:
-                for substrate, count in rankedFixedSubstrates.items():
-                    print(f'     {pink}{substrate}{resetColor}, Counts: {red}{count:,}'
-                          f'{resetColor}')
-                    iteration += 1
-                    if iteration >= self.printNumber:
-                        break
-
-
-        print(f'\nNumber of substrates with fixed {purple}{fixedString}{resetColor}: '
-              f'{red}{fixedSubsTotal:,}{resetColor}\n\n')
-
-        return rankedFixedSubstrates, fixedSubsTotal
-
-
-
-    def identifyMotif(self, fixFullFrame):
-        print('================================ Identify Motif '
-              '=================================')
-        if fixFullFrame:
-            print(f'Selecting continuous motif')
-        else:
-            print(f'Selecting non-continuous motif')
-        print(f'Minimum ΔS Value:{red} {self.minEntropy} Bits{resetColor}\n\n'
-              f'Entropy:\n'
-              f'{self.entropy}{resetColor}\n')
-        subFrame = self.entropy.copy()
-        lastPosition = len(self.entropy) - 1
-
-        # Determine Substrate Frame
-        if fixFullFrame:
-            for indexPos, position in enumerate(self.entropy.index):
-                if indexPos == 0 or indexPos == lastPosition:
-                    if self.entropy.loc[position, 'ΔS'] < self.minEntropy:
-                        subFrame.drop(position, inplace=True)
-                else:
-                    if self.entropy.loc[position, 'ΔS'] < self.minEntropy:
-                        if (self.entropy.iloc[indexPos - 1, 0] > self.minEntropy and
-                                self.entropy.iloc[indexPos + 1, 0] > self.minEntropy):
-                            pass
-                        else:
-                            subFrame.drop(position, inplace=True)
-        else:
-            for indexPos, position in enumerate(self.entropy.index):
-                if self.entropy.loc[position, 'ΔS'] < self.minEntropy:
-                    subFrame.drop(position, inplace=True)
-
-        # Sort the frame
-        self.subFrame = subFrame.sort_values(by='ΔS', ascending=False).copy()
-        print(f'Frame:\n'
-              f'{blue}{subFrame}{resetColor}\n\n'
-              f'Ranked Motif Frame:\n'
-              f'{blue}{self.subFrame}{resetColor}\n\n')
-
-        # Define motif label
-        indexSubFrameList = list(self.entropy.index)
-        self.motifIndex = [indexSubFrameList.index(idx) for idx in self.subFrame.index]
-        self.xAxisLabelsMotif = self.xAxisLabels[
-                                min(self.motifIndex):max(self.motifIndex)+1]
-
-        return self.subFrame
-
-
-
-    def getMotif(self, substrates):
-        print('================================= Extract Motif '
-              '=================================')
-        if self.motifIndex is None:
-            print(f'The motif index is {cyan}{self.motifIndex}{resetColor}\n'
-                  f'NGS.getMotif(substrates) will return the full length substrate '
-                  f'sequences\n\n')
-            return substrates
-        motifs = {}
-        indexStart = min(self.motifIndex)
-        indexEnd = max(self.motifIndex) + 1
-        print(f'Frame: {purple}{self.datasetTag}{resetColor}\n')
-
-        # Print: data
-        iteration = 0
-        print(f'Substrates:')
-        for substrate, count in substrates.items():
-            print(f'     {pink}{substrate}{resetColor}, '
-                  f'{blue}{substrate[indexStart:indexEnd]}{resetColor}, '
-                  f'Count:{red} {count:,}{resetColor}')
-            iteration += 1
-            if iteration >= self.printNumber:
-                break
-        print(f'\nUnique Substrates: {red}{len(substrates):,}{resetColor}\n\n')
-
-        # Extract motif
-        countTotalSubstrates = 0
-        for substrate, count in substrates.items():
-            countTotalSubstrates += count
-            motif = substrate[indexStart:indexEnd]
-            if motif in motifs.keys():
-                motifs[motif] += count
-            else:
-                motifs[motif] = count
-        self.motifLen = len(next(iter(motifs)))
-        motifs = dict(sorted(motifs.items(), key=lambda x: x[1], reverse=True))
-
-        # Print: data
-        iteration = 0
-        print(f'Motifs:')
-        for motif, count in motifs.items():
-            print(f'     {blue}{motif}{resetColor}, Count:{red} {count:,}{resetColor}')
-            iteration += 1
-            if iteration >= self.printNumber:
-                print()
-                break
-
-        print(f'Unique Motifs: {red}{len(motifs):,}{resetColor}\n\n')
-
-        return motifs
-
-
-
-    def calculateEnrichment(self, rfInitial, rfFinal, releasedCounts=False,
-                            combinedMotifs=False, posFilter=False, relFilter=False,
-                            relIteration=False):
-        print('========================== Calculate: Enrichment Score '
-              '==========================')
-        print(f'Enrichment Scores:\n'
-              f'     {magenta}log₂(RF FinalAA / RF InitialAA){resetColor}\n')
-        print(f'RF Final:\n{rfFinal}\n\n'
-              f'RF Initial:\n{rfInitial}\n\n')
-        # Calculate: Enrichment scores
-        if len(rfInitial.columns) == 1:
-            matrix = pd.DataFrame(0.0, index=rfFinal.index,
-                                  columns=rfFinal.columns)
-            ln = False
-            if ln:
-                print(f'Using {purple}Natural Logarithmic{resetColor} Matrix')
-                for position in rfFinal.columns:
-                    # for AA in rfFinal.index:
-                    matrix.loc[:, position] = np.log(
-                        rfFinal.loc[:, position] / rfInitial.iloc[:, 0]
-                    )
-            else:
-                for position in rfFinal.columns:
-                    matrix.loc[:, position] = np.log2(rfFinal.loc[:, position] /
-                                                      rfInitial.iloc[:, 0])
-        else:
-            if len(rfInitial.columns) != len(rfFinal.columns):
-                print(f'{orange}ERROR: The number of columns in the Initial Sort '
-                      f'({cyan}{len(rfInitial.columns)}{orange}) needs to equal to the '
-                      f'number of columns in the Final Sort '
-                      f'({cyan}{len(rfFinal.columns)}{orange})\n'
-                      f'     Initial: {cyan}{rfInitial.columns}{orange}\n'
-                      f'       Final: {cyan}{rfFinal.columns}\n\n')
-                sys.exit(1)
-
-            rfInitial.columns = rfFinal.columns
-            matrix = np.log2(rfFinal / rfInitial)
-            # matrix = rfFinal
-        if releasedCounts:
-            print(f'Enrichment Score: {purple}Substrate Profile{resetColor}\n'
-                  f'{matrix.round(self.roundVal)}\n\n')
-            print(f'Prob Initial:\n{rfInitial}\n\n'
-                  f'Prob Final:\n{rfFinal}\n\n')
-        else:
-            print(f'Enrichment Score: {purple}{self.datasetTag}{resetColor}\n'
-                  f'{matrix.round(self.roundVal)}\n\n')
-
-        print('====================== Calculate: Scaled Enrichment Score '
-              '=======================')
-        if releasedCounts:
-            print(f'Scale Enrichment Scores: {purple}Substrate Profile{resetColor}\n'
-                  f'     {magenta}Enrichment Scores * ΔS{resetColor}\n')
-        else:
-            print(f'Scale Enrichment Scores:\n'
-                  f'     {magenta}Enrichment Scores * ΔS{resetColor}\n')
-
-        # if releasedCounts:
-        #     print(f'Set Values: Fraud!!!')
-        #     matrix.loc['G', 'R4'] = -0.556
-        #     matrix.loc['S', 'R4'] = -0.762
-        #     matrix.loc['R', 'R5'] = -0.352
-
+    def scaleMatrix(self, data):
+        self.log(f'\n\nScale Enrichment Scores:\n'
+                 f'     Enrichment Scores * ΔS\n')
         # Calculate: Letter heights
-        heights = pd.DataFrame(0, index=matrix.index,
-                               columns=matrix.columns, dtype=float)
-        for indexColumn in heights.columns:
-            heights.loc[:, indexColumn] = (matrix.loc[:, indexColumn] *
-                                           self.entropy.loc[indexColumn, 'ΔS'])
-
-        # Record values
-        if releasedCounts:
-            self.eMapReleased = matrix
-            self.eMapReleasedScaled = heights.copy()
-        else:
-            self.eMap = matrix
-            self.eMapScaled = heights.copy()
+        heights = pd.DataFrame(0, index=data.index,
+                               columns=data.columns, dtype=float)
+        for idxColumn in heights.columns:
+            heights.loc[:, idxColumn] = (
+                    data.loc[:, idxColumn] * self.entropy.loc[idxColumn,
+                    self.entropy.columns[0]]
+            )
 
         # Calculate: Max positive
         columnTotals = []
-        for indexColumn in heights.columns:
+        for pos in heights.columns:
             totalPos = 0
-            for value in heights.loc[:, indexColumn]:
+            for value in heights.loc[:, pos]:
                 if value > 0:
                     totalPos += value
             columnTotals.append(totalPos)
@@ -2804,94 +1745,137 @@ class NGS:
 
         # Adjust values
         for column in heights.columns:
-            if heights.loc[:, column].isna().any():
+            if (heights[column] == 0).all():
+                heights.loc[:, column] = -np.inf
+                print(f'NaN: {column}:\n{heights[column]}')
+            elif heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
-                print(f'Number non NaN values in {column}: {nValues}')
+                if nValues > 0:
+                    self.log(
+                        f'{len(heights[column]) - nValues} NaN values at: {column}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
-                heights.loc[:, column] = heights.loc[:, column].fillna(0)
-        print()
+        if self.datasetTagMotif:
+            self.log(f'Residue Heights: {self.datasetTagMotif}\n'
+                     f'{heights}\n')
+        else:
+            self.log(f'Residue Heights: {self.datasetTag}\n'
+                     f'{heights}\n')
+        return heights
 
-        heights = heights.replace([np.inf, -np.inf], 0)
-        self.heights = heights
-        print(f'Residue Heights: {purple}{self.datasetTag}{resetColor}\n'
-              f'{heights}\n\n')
 
+    def evalEnrichment(self, releasedCounts=False, skipFigs=False, noFigs=False):
+        def evalMatrix(data):
+            stacks = pd.DataFrame(0.0, index=data.columns,
+                                  columns=['+Stack', '-Stack'])
+            for pos in data.columns:
+                totalPos = 0
+                totalNeg = 0
+                for value in data.loc[:, pos]:
+                    if value > 0:
+                        totalPos += value
+                    if value < 0:
+                        totalNeg += value
+                stacks.loc[pos, '+Stack'] = totalPos
+                stacks.loc[pos, '-Stack'] = totalNeg
+            self.log(f'Stack Heights:\n{stacks}')
+
+        matrix = pd.DataFrame(0.0, index=self.rfExp.index,
+                              columns=self.rfExp.columns)
+        if releasedCounts:
+            self.log('\n\n============================= Substrate Profile '
+                     '==============================')
+        else:
+            self.log('\n\n======================== Calculate: Enrichment Score '
+                     '=========================')
+        self.log(f'Enrichment Scores:\n'
+                 f'     log₂(RF Experimental / RF Background)\n')
+
+        # Calculate: Enrichment scores
+        if len(self.rfBg.columns) == 1:
+            # Eval: ES
+            for pos in self.rfExp.columns:
+                for AA in self.rfExp.index:
+                    rf = self.rfExp.loc[AA, pos]
+                    if rf == 0:
+                        matrix.loc[AA, pos] = -np.inf
+                    else:
+                        rfBg = self.rfBg.loc[AA, self.rfBg.columns[0]]
+                        matrix.loc[AA, pos] = np.log2(rf / rfBg)
+        else:
+            if len(self.rfBg.columns) != len(self.rfExp.columns):
+                self.log(f'ERROR: The number of columns in the Initial Sort '
+                      f'({len(self.rfBg.columns)}) needs to equal to the '
+                      f'number of columns in the Final Sort '
+                      f'({len(self.rfExp.columns)})\n'
+                      f'     Initial: {self.rfBg.columns}\n'
+                      f'       Final: {self.rfExp.columns}\n\n')
+                sys.exit(1)
+
+            # Eval: ES
+            for pos in self.rfExp.columns:
+                for AA in self.rfExp.index:
+                    rf = self.rfExp.loc[AA, pos]
+                    if rf == 0:
+                        matrix.loc[AA, pos] = -np.inf
+                    else:
+                        matrix.loc[AA, pos] = np.log2(rf / self.rfBg.loc[AA, pos])
+        self.eMap = matrix.copy()
+        self.log(f'Enrichment Score: {self.datasetTag}\n'
+              f'{matrix.round(self.roundVal)}\n')
+        # print('============================= Eval Enrichment '
+        #       '==============================')
+        # print(f'RF Experimental:\n{self.rfExp}\n')
+        # print(f'Substrate Profile:\n{self.substrateProfile}\n')
+        # print(f'E Map:\n{self.eMap}\n')
+        # print(f'Matrix:\n{matrix}\n')
+        # for posFix, fixAA in self.fixAA.items():
+        #     print(f'Fix {posFix}: {fixAA}')
+
+
+        # Evaluate stack heights
+        evalMatrix(matrix.replace([np.inf, -np.inf], 0))
+        self.eMapScaled = self.scaleMatrix(self.eMap)
+        evalMatrix(self.eMapScaled)
+
+        if noFigs:
+            return
 
         # Plot: Enrichment Map
-        if self.plotFigEM:
-            self.plotEnrichmentScores(dataType='Enrichment',
-                                      releasedCounts=releasedCounts,
-                                      combinedMotifs=combinedMotifs,
-                                      posFilter=posFilter,
-                                      relFilter=relFilter,
-                                      relIteration=relIteration)
-        if self.plotFigEMScaled:
-            self.plotEnrichmentScores(dataType='Scaled Enrichment',
-                                      releasedCounts=releasedCounts,
-                                      combinedMotifs=combinedMotifs,
-                                      posFilter=posFilter,
-                                      relFilter=relFilter,
-                                      relIteration=relIteration)
-
+        self.figures['eMap'] = (
+            self.plotEnrichmentScores(dataType='Enrichment')
+        )
+        self.figures['eMapSc'] = (
+            self.plotEnrichmentScores(dataType='Scaled Enrichment')
+        )
+        
         # Plot: Enrichment Logo
-        if self.plotFigLogo:
-            self.plotEnrichmentLogo(releasedCounts=releasedCounts,
-                                    combinedMotifs=combinedMotifs,
-                                    posFilter=posFilter,
-                                    relFilter=relFilter,
-                                    relIteration=relIteration)
+        self.plotEnrichmentLogo()
 
-        # Calculate & Plot: Weblogo
-        if self.plotFigWebLogo:
-            self.calculateWeblogo(probability=rfFinal,
-                                  releasedCounts=releasedCounts,
-                                  combinedMotifs=combinedMotifs,
-                                  relIteration=relIteration)
+        if not skipFigs:
+            # Plot: Weblogo
+            self.calculateWebLogo()
 
-        return self.eMap
+            # Plot: Wordcloud
+            self.figures['words'] = self.plotWordCloud(self.subsExp)
 
-
-
-    def plotEnrichmentScores(self, dataType, combinedMotifs=False, releasedCounts=False,
-                             posFilter=False, relFilter=False, relIteration=False):
-        print('============================ Plot: Enrichment Score '
-              '=============================')
-        # Select: Dataset
-        if 'scaled' in dataType.lower():
-            if releasedCounts:
-                scores = self.eMapReleasedScaled
-            else:
-                scores = self.eMapScaled
-        else:
-            if releasedCounts:
-                scores = self.eMapReleased
-            else:
-                scores = self.eMap
-
-        # Define: Figure title
-        if releasedCounts or combinedMotifs:
-            title = self.titleReleased
-        else:
-            title = self.title
-        # if ' - ' in title:
-        #     title = title.replace(' - ', '\n')
-        if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
-            title = title.replace('Register ', 'Register\n')
-
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-              f'Unique Substrates: {red}{self.nSubsFinalUniqueSeqs:,}{resetColor}')
         if self.motifFilter:
-            print(f'Figure Number: '
-                  f'{magenta}{self.saveFigureIteration}{resetColor}')
-        if posFilter:
-            if relFilter:
-                print(f'Releasing Filter: {magenta}{posFilter}{resetColor}')
-            else:
-                print(f'Applying Filter: {magenta}{posFilter}{resetColor}')
+            self.iteration += 1
 
-        print(f'\n\nEnrichment Scores:\n'
-              f'{scores}\n\n')
 
+    def plotEnrichmentScores(self, dataType):
+        # Select: Dataset
+        scaleData = False
+        if 'scaled' in dataType.lower():
+            scaleData = True
+            scores = self.eMapScaled
+        else:
+            scores = self.eMap
+
+        # Set figure title
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
+        else:
+            title = self.enzymeName
 
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='EM')
@@ -2906,34 +1890,34 @@ class NGS:
 
         # Define color bar limits
         if np.max(scores) >= np.min(scores):
-            cBarMax = np.max(scores)
+            cBarMax = np.ceil(np.max(scores) * 10) / 10
             cBarMin = -1 * cBarMax
         else:
-            cBarMin = np.min(scores)
+            cBarMin = np.floor(np.min(scores) * 10) / 10
             cBarMax = -1 * cBarMin
 
         # Plot the heatmap with numbers centered inside the squares
-        fig, ax = plt.subplots(figsize=self.figSizeEM)
         if self.figEMSquares:
-            heatmap = sns.heatmap(scores, annot=False, cmap=cMapCustom, cbar=True,
-                                  linewidths=self.lineThickness - 1, linecolor='black',
-                                  square=self.figEMSquares, center=None,
-                                  vmax=cBarMax, vmin=cBarMin)
+            fig, ax = plt.subplots(figsize=self.figSizeSq)
+            heatmap = sns.heatmap(
+                scores, annot=False, cmap=cMapCustom, cbar=True,
+                linewidths=self.lineThickness - 1, linecolor='black',
+                square=True, center=None, vmax=cBarMax, vmin=cBarMin,
+                cbar_kws={'pad': 0.02}
+            )
         else:
-            heatmap = sns.heatmap(scores, annot=True, fmt='.3f', cmap=cMapCustom,
-                                  cbar=True, linewidths=self.lineThickness - 1,
-                                  linecolor='black', square=self.figEMSquares,
-                                  center=None, vmax=cBarMax, vmin=cBarMin,
-                                  annot_kws={'fontweight': 'bold'})
+            fig, ax = plt.subplots(figsize=self.figSize)
+            heatmap = sns.heatmap(
+                scores, annot=True, fmt='.3f', cmap=cMapCustom, cbar=True,
+                linewidths=self.lineThickness - 1, linecolor='black',
+                square=False, center=None, vmax=cBarMax, vmin=cBarMin,
+                annot_kws={'fontweight': 'bold'}, cbar_kws={'pad': 0.02}
+            )
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        if self.figEMSquares:
-            figBorders = [0.852, 0.075, 0, 0.895]
-        else:
-            figBorders = [0.852, 0.075, 0.117, 1]  # Top, bottom, left, right
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
+        fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -2958,85 +1942,62 @@ class NGS:
         cmap = plt.cm.get_cmap(cMapCustom)
         cmap.set_bad(color='lightgrey')
 
-        # Modify the colorbar
+        # Set colorbar
+        normalize = Normalize(vmax=cBarMax, vmin=cBarMin)
+        sm = plt.cm.ScalarMappable(norm=normalize, cmap=cMapCustom)
+        sm.set_array([])
         cbar = heatmap.collections[0].colorbar
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth(self.lineThickness)
-        cbar.outline.set_edgecolor('black')
+        for tick in cbar.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
+        # File path
+        figName = self.getFileNameFig('eMap')
+        if scaleData:
+            figName = figName.replace('eMap', 'eMap_Scaled')
+        path = os.path.join(self.pathFigs, figName)
+        self.log(f'\nSaving EM at:\n   {path}')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
+
+
+    def plotEnrichmentLogo(self):
+        # Set figure title
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
-            plt.show()
+            title = self.enzymeName
 
-
-        # Save the figure
-        if self.saveFigures:
-            if 'Scaled' in dataType:
-                datasetType = 'EM Scaled'
-            elif 'Enrichment' in dataType:
-                datasetType = 'EM'
-            else:
-                print(f'{orange}ERROR: What do I do with this dataset type -'
-                      f'{cyan} {dataType}{resetColor}\n')
-                sys.exit(1)
-            if not isinstance(relIteration, bool):
-                datasetType += f' {relIteration}'
-            self.saveFigure(fig=fig, figType=datasetType, seqLen=len(xTicks),
-                            combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
-
-
-
-    def plotEnrichmentLogo(self, combinedMotifs=False, releasedCounts=False,
-                           posFilter=False, relFilter=False, relIteration=False):
-        print('============================= Plot: Enrichment Logo '
-              '=============================')
-        # Define: Figure title
-        if releasedCounts or combinedMotifs or len(self.motifIndexExtracted) > 1:
-            title = self.titleReleased
-        else:
-            title = self.title
-        if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
-            title = title.replace('Register ', 'Register\n')
-
-        # Print: data
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-              f'Unique Substrates: {red}{self.nSubsFinalUniqueSeqs:,}{resetColor}')
-        if self.motifFilter:
-            print(f'Figure Number: '
-                  f'{magenta}{self.saveFigureIteration}{resetColor}')
-        if posFilter:
-            if relFilter:
-                print(f'Releasing Filter: {magenta}{posFilter}{resetColor}')
-            else:
-                print(f'Applying Filter: {magenta}{posFilter}{resetColor}')
-        print(f'\nResidue heights:\n'
-              f'{self.heights}\n')
-
-        # Set local parameters
+        # Set parameters
         if self.bigAAonTop:
             stackOrder = 'big_on_top'
         else:
             stackOrder = 'small_on_top'
 
-        # Set: Figure borders
-        if self.showSampleSize:
-            figBorders = [0.852, 0.075, 0.164, 0.938]
-        else:
-            figBorders = [0.852, 0.075, 0.164, 0.938]
+        # Rename columns for logomaker script
+        # print(f'EMap Scaled:\n{self.eMapScaled}\n')
+        scores = self.eMapScaled.copy().replace([np.inf, -np.inf], 0).replace(np.nan, 0)
+        # print(f'Logo:\n{scores}')
+        xticks = scores.columns
+        scores.columns = range(len(scores.columns))
 
         # Calculate: Max and min
         columnTotals = [[], []]
-        for indexColumn in self.heights.columns:
+        for indexColumn in scores.columns:
             totalPos = 0
             totalNeg = 0
-            for value in self.heights.loc[:, indexColumn]:
+            for value in scores.loc[:, indexColumn]:
                 if value > 0:
                     totalPos += value
                 elif value < 0:
@@ -3045,22 +2006,16 @@ class NGS:
             columnTotals[1].append(totalNeg)
         yMax = max(columnTotals[0])
         yMin = min(columnTotals[1])
-        print(f'y Max: {red}{np.round(yMax, 4)}{resetColor}\n'
-              f'y Min: {red}{np.round(yMin, 4)}{resetColor}\n')
-
-        # Rename columns for logomaker script
-        data = self.heights.copy()
-        data.columns = range(len(data.columns))
 
 
-        def plotLogo(limitYAxis=False):
+        def plotLogo(matrix, limitYAxis=False):
             # Plot the sequence motif
             fig, ax = plt.subplots(figsize=self.figSize)
-            motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
+            motif = logomaker.Logo(matrix.transpose(), ax=ax, color_scheme=self.colorsAA,
                                    width=0.95, stack_order=stackOrder)
             motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                                left=figBorders[2], right=figBorders[3])
+            fig.tight_layout()
+            fig.set_size_inches(self.figSize)
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -3073,8 +2028,8 @@ class NGS:
                 spine.set_linewidth(self.lineThickness)
 
             # Set x-ticks
-            motif.ax.set_xticks([pos for pos in range(len(self.heights.columns))])
-            motif.ax.set_xticklabels(self.heights.columns, fontsize=self.labelSizeTicks,
+            motif.ax.set_xticks([pos for pos in range(len(xticks))])
+            motif.ax.set_xticklabels(xticks, fontsize=self.labelSizeTicks,
                                      rotation=0, ha='center')
 
             # Set y-ticks
@@ -3099,2644 +2054,58 @@ class NGS:
             motif.ax.axhline(y=0, color='black', linestyle='-',
                              linewidth=self.lineThickness)
 
-            # Evaluate dataset for fixed residues
-            spacer = np.diff(motif.ax.get_xticks())  # Find the space between each tick
-            spacer = spacer[0] / 2
+            # File path
+            figName = self.getFileNameFig('eLogo')
+            if limitYAxis:
+                figName = figName.replace('eLogo', 'eLogo_yMin')
+            path = os.path.join(self.pathFigs, figName)
+            # self.log(f'\nSaving Enrichment Logo:\n     {path}')
 
-            # Use the spacer to set a gray background to fixed residues
-            for index, position in enumerate(self.xAxisLabels):
-                if position in self.fixedPos:
-                    # Plot gray boxes on each side of the xtick
-                    motif.ax.axvspan(index - spacer, index + spacer,
-                                     facecolor='darkgrey', alpha=0.2)
+            # Encode the figure
+            figBase64 = self.encodeFig(fig)
+            with open(path, "wb") as file:
+                file.write(base64.b64decode(figBase64))
 
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            if self.setFigureTimer:
-                plt.ion()
-                plt.show()
-                plt.pause(self.figureTimerDuration)
-                plt.close(fig)
-                plt.ioff()
-            else:
-                plt.show()
+            # Close the figure to free memory
+            plt.close(fig)
 
-            # Save the figure
-            if self.saveFigures:
-                datasetType = 'Logo'
-                if limitYAxis:
-                    datasetType += ' yMin'
-                if not isinstance(relIteration, bool):
-                    datasetType += f' {relIteration}'
-                self.saveFigure(
-                    fig=fig, figType=datasetType, seqLen=len(data.columns),
-                    combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
+            return figName
 
         # Plot figure
-        plotLogo() # Full y-axis
+        if self.subProfile: # Full y-axis
+            self.figures['eLogoProfile'] = plotLogo(scores)
+        else:
+            self.figures['eLogo'] = plotLogo(scores)
 
         # Adjust yMin to fit the largest negative AA
         yMin = 0
-        for col in self.heights.columns:
-            for row in self.heights.index:
-                if self.heights.loc[row, col] < yMin:
-                    yMin = self.heights.loc[row, col]
-        print(f'Adjusting Y Min:\n'
-              f'y Max: {red}{np.round(yMax, 4)}{resetColor}\n'
-              f'y Min: {red}{np.round(yMin, 4)}{resetColor}\n\n')
-        plotLogo(limitYAxis=True) # Limited y-axis
-
-
-
-    def calculateWeblogo(self, probability, combinedMotifs=False, releasedCounts=False,
-                         relIteration=False):
-        print('============================= Calculate: Weblogo '
-              '================================')
-        print(f'Probability: {self.datasetTag}\n{probability}\n\n'
-              f'Max Entropy: {red}{self.entropyMax.round(6)}{resetColor}\n\n')
-
-        # Calculate: Weblogo
-        self.weblogo = pd.DataFrame(0, index=probability.index,
-                                    columns=probability.columns, dtype=float)
-        for indexColumn in self.weblogo.columns:
-            self.weblogo.loc[:, indexColumn] = (probability.loc[:, indexColumn] *
-                                                self.entropy.loc[indexColumn, 'ΔS'])
-
-        if self.plotFigWebLogo:
-            self.plotWeblogo(combinedMotifs=combinedMotifs, releasedCounts=releasedCounts,
-                             relIteration=False)
-
-        return self.weblogo
-
-
-
-    def plotWeblogo(self, combinedMotifs=False, releasedCounts=False, relIteration=False):
-        print('================================= Plot: Weblogo '
-              '=================================')
-        if self.motifFilter:
-            print(f'Figure Number: '
-                  f'{magenta}{self.saveFigureIteration}{resetColor}')
-        print(f'Letter Heights: {purple}{self.datasetTag}{resetColor}\n'
-              f'{self.weblogo}\n\n')
-
-        # Define: Figure title
-        if releasedCounts:
-            title = self.titleReleased
-        elif combinedMotifs or len(self.motifIndexExtracted) > 1:
-            title = self.titleWeblogoCombined
+        for col in scores.columns:
+            for row in scores.index:
+                if scores.loc[row, col] < yMin:
+                    yMin = scores.loc[row, col]
+        if self.subProfile: # Limited y-axis
+            self.figures['eLogoMinProfile'] = plotLogo(scores, limitYAxis=True)
         else:
-            title = self.titleWeblogo
+            self.figures['eLogoMin'] = plotLogo(scores, limitYAxis=True)
 
-        # Set: Figure borders
-        figBorders = [0.852, 0.075, 0.112, 0.938]
 
-        # Set local parameters
-        if self.bigAAonTop:
-            stackOrder = 'big_on_top'
-        else:
-            stackOrder = 'small_on_top'
-
-        # Rename column headers
-        dataColumnsReceived = self.weblogo.columns
-        self.weblogo.columns = range(len(self.weblogo.columns))
-
-        # Set -inf to zero
-        if self.weblogo.isin([np.inf, -np.inf]).any().any():
-            self.weblogo.replace([np.inf, -np.inf], 0, inplace=True)
-
-        # Plot the sequence motif
-        fig, ax = plt.subplots(figsize=self.figSize)
-        motif = logomaker.Logo(self.weblogo.transpose(), ax=ax,
-                               color_scheme=self.colorsAA, width=0.95,
-                               stack_order=stackOrder)
-        motif.ax.set_title(title, fontsize=self.labelSizeTitle,
-                           fontweight='bold')
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks)
-
-        # Set borders
-        motif.style_spines(visible=False)
-        motif.style_spines(spines=['left', 'bottom'], visible=True)
-        for spine in motif.ax.spines.values():
-            spine.set_linewidth(self.lineThickness)
-
-        # Set x-ticks
-        if len(dataColumnsReceived) == len(self.xAxisLabels):
-            motif.ax.set_xticks([pos for pos in range(len(self.xAxisLabels))])
-            motif.ax.set_xticklabels(self.xAxisLabels, fontsize=self.labelSizeTicks,
-                                     rotation=0, ha='center')
-        else:
-            motif.ax.set_xticks([pos for pos in range(len(dataColumnsReceived))])
-            motif.ax.set_xticklabels(dataColumnsReceived, fontsize=self.labelSizeTicks,
-                                     rotation=0, ha='center')
-
-        for tick in motif.ax.xaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness)  # Set tick width
-
-        # Set y-ticks
-        yTicks = range(0, 5)
-        yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}'
-                       for tick in yTicks]
-        motif.ax.set_yticks(yTicks)
-        motif.ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
-        motif.ax.set_ylim(0, self.entropyMax)
-        for tick in motif.ax.yaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-
-        # Label the axes
-        motif.ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        motif.ax.set_ylabel('Bits', fontsize=self.labelSizeAxis)
-
-        # Set horizontal line
-        motif.ax.axhline(y=0, color='black', linestyle='-', linewidth=self.lineThickness)
-
-        # Evaluate dataset for fixed residues
-        spacer = np.diff(motif.ax.get_xticks()) # Find the space between each tick
-        spacer = spacer[0] / 2
-
-        # Use the spacer to set a gray background to fixed residues
-        for index, position in enumerate(self.xAxisLabels):
-            if position in self.fixedPos:
-                # Plot gray boxes on each side of the xtick
-                motif.ax.axvspan(index - spacer, index + spacer,
-                                 facecolor='darkgrey', alpha=0.2)
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
-
-
-        # Save the figure
-        if self.saveFigures:
-            datasetType = 'Weblogo'
-            if not isinstance(relIteration, bool):
-                datasetType += f' {relIteration}'
-            self.saveFigure(
-                fig=fig, figType=datasetType, seqLen=len(self.weblogo.columns),
-                combinedMotifs=combinedMotifs, releasedCounts=releasedCounts)
-
-
-
-    def fixedMotifStats(self, countsList, initialRF, motifFrame, datasetTag):
-        print('================== Statistical Evaluation: Fixed Motif Counts '
-              '===================')
-        print(f'Count Lists: {len(countsList)}\n{countsList}\n\n')
-        print(f'Evaluate: {purple}{datasetTag}{resetColor}\n')
-        countsFrameTotal = pd.DataFrame(0, index=range(0, len(self.fixedPos)),
-                                        columns=motifFrame)
-        frameRF = pd.DataFrame(0.0, index=initialRF.index,
-                                 columns=motifFrame)
-        frameES = frameRF.copy()
-        frameESList = []
-
-        for index, countsFrame in enumerate(countsList):
-            countsFrame = pd.DataFrame(countsFrame, index=initialRF.index,
-                                       columns=motifFrame)
-
-            # Format values to have commas
-            formattedCounts = countsFrame.to_string(
-                formatters={column: '{:,.0f}'.format for column in
-                            countsFrame.select_dtypes(include='number').columns})
-            print(f'Counts: {purple}{self.motifTags[index]}{resetColor}\n'
-                  f'{formattedCounts}\n')
-
-            for column in countsFrame.columns:
-                countsFrameTotal.loc[index, column] = countsFrame[column].sum()
-
-                # Calculate: RF
-                frameRF.loc[:, column] = (countsFrame.loc[:, column] /
-                                            countsFrameTotal.loc[index, column])
-
-                # Calculate: ES
-                frameES.loc[:, column] = np.log2(
-                    frameRF.loc[:, column] / initialRF['Average RF'])
-
-            print(f'Enrichment Score: {purple}{self.motifTags[index]}\n'
-                  f'{greenLight}{frameES}{resetColor}\n\n')
-            frameESList.append(frameES.copy())
-
-        # Combine the ES DFs
-        frameESCombined = pd.concat(frameESList, axis=0, keys=range(len(frameESList)))
-
-        def calcAverage(x):
-            # Function to calculate standard deviation ignoring -inf values
-
-            # Remove -inf values
-            xFiltered = x.replace([-np.inf, np.inf], np.nan).dropna()
-
-            return np.average(xFiltered)
-
-        def calcStDev(x):
-            # Function to calculate standard deviation ignoring -inf values
-
-            # Remove -inf values
-            xFiltered = x.replace([-np.inf, np.inf], np.nan).dropna()
-
-            return np.std(xFiltered)
-
-        # Calculate standard deviation for each value across the corresponding positions
-        frameESAvg = frameESCombined.groupby(level=1, sort=False).agg(calcAverage)
-        frameESStDev = frameESCombined.groupby(level=1, sort=False).agg(calcStDev)
-
-        print(f'Average: {purple}Enrichment Score{resetColor}\n'
-              f'{frameESAvg}\n\n'
-              f'Standard Deviation: {purple}Enrichment Score{resetColor}\n'
-              f'{frameESStDev}{resetColor}\n\n')
-
-
-        # Plot: Standard deviation
-        self.plotStats(
-            data=frameESStDev, totalCounts=None,
-            dataType='Standard Deviation', combinedMotifs=True
-        )
-
-
-
-    def plotStats(self, data, totalCounts, dataType,
-                  combinedMotifs=False, releasedCounts=False):
-        print('========================= Plot: Statistical Evaluation '
-              '==========================')
-        print(f'{dataType}: {purple}{self.datasetTag}{resetColor}\n{data}\n\n')
-
-        # Set figure title
-        if totalCounts is not None and self.showSampleSize:
-            title = f'{self.enzymeName}\n{self.datasetTag}\n{dataType}\nN={totalCounts:,}'
-        else:
-            if combinedMotifs:
-                title = f'\n{self.enzymeName}\n{self.datasetTag}\n{dataType}'
-                if len(self.datasetTag.replace('[', '').replace(
-                        ']', '').replace('-', '')) > 40:
-                    title = title.replace('Register ', 'Register\n')
-            else:
-                title = f'\n{self.enzymeName}\n{self.datasetTag}\n{dataType}'
-
-
-        # Create heatmap
-        cMapCustom = self.createCustomColorMap(colorType=dataType)
-
-        # Convert the counts to a data frame for Seaborn heatmap
-        if self.residueLabelType == 0:
-            data.index = [residue[0] for residue in self.residues]
-        elif self.residueLabelType == 1:
-            data.index = [residue[1] for residue in self.residues]
-        elif self.residueLabelType == 2:
-            data.index = [residue[2] for residue in self.residues]
-
-        # Define color bar limits
-        cBarMax = np.max(data)
-        cBarMax = math.ceil(cBarMax * 10) / 10 # Round up the 1st decimal
-        if int(cBarMax * 10) % 2 != 0:
-            # Set max to an even value
-            cBarMax = (cBarMax * 10 + 1) / 10
-
-
-        # Plot the heatmap with numbers centered inside the squares
-        fig, ax = plt.subplots(figsize=self.figSizeEM)
-        heatmap = sns.heatmap(data, annot=True, fmt='.3f', cmap=cMapCustom,
-                              cbar=True, linewidths=self.lineThickness-1,
-                              linecolor='black', square=False, center=None,
-                              annot_kws={'fontweight': 'bold'}, vmax=cBarMax, vmin=0)
-        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        figBorders = [0.852, 0.075, 0.117, 1]
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
-
-
-        # Set the thickness of the figure border
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-            spine.set_linewidth(self.lineThickness)
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
-        ax.tick_params(axis='y', labelrotation=0)
-
-        # Set x-ticks
-        xTicks = np.arange(len(data.columns)) + 0.5
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(data.columns)
-
-        # Set y-ticks
-        yTicks = np.arange(len(data.index)) + 0.5
-        ax.set_yticks(yTicks)
-        ax.set_yticklabels(data.index)
-
-        # Set the edge thickness
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-
-        # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
-        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth(self.lineThickness)
-        cbar.outline.set_edgecolor('black')
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
-
-        # Save the figure
-        if self.saveFigures:
-            self.saveFigure(
-                fig=fig, figType=dataType, seqLen=len(xTicks),
-                combinedMotifs=combinedMotifs, releasedCounts=releasedCounts
-            )
-
-
-
-    def processSubstrates(self, subsInit, subsFinal, motifs, subLabel,
-                          combinedMotifs=False, predActivity=False, predModel=False):
-        if predActivity:
-            # Calculate: Motif enrichment
-            for predType, predictions in motifs.items():
-                print(f'Evaluating Predictions: {purple}{predType}{resetColor}\n'
-                      f'Predictions: {type(predictions)}')
-                motifES = self.motifEnrichment(
-                    subsInit=subsInit, subsFinal=subsFinal, motifs=predictions,
-                    predActivity=predActivity, predModel=predModel, predType=predType)
-
-                # Plot: Word cloud
-                self.plotWordCloud(substrates=motifES, combinedMotifs=combinedMotifs,
-                                   predActivity=predActivity, predModel=predModel)
-
-            return None
-        else:
-            # Calculate: Motif enrichment
-            motifES = self.motifEnrichment(
-                subsInit=subsInit, subsFinal=subsFinal, motifs=motifs,
-                predActivity=predActivity, predModel=predModel)
-
-        # Plot: Word cloud
-        if self.plotFigWords:
-            self.plotWordCloud(substrates=motifES, combinedMotifs=combinedMotifs)
-
-
-        predMotif = False
-        if predMotif:
-            # Predict: Motif enrichment
-            self.predMotifEnrichment(motifES=motifES)
-
-        # Plot: Bar graphs
-        if self.plotFigBars:
-            self.plotBarGraph(substrates=motifs, dataType='Counts',
-                              combinedMotifs=combinedMotifs)
-            self.plotBarGraph(substrates=motifs, dataType='Relative Frequency',
-                              combinedMotifs=combinedMotifs)
-
-        # PCA
-        if self.plotFigPCA:
-            # Convert substrate data to numerical
-            tokensESM, subsESM, subCountsESM = self.ESM(
-                substrates=motifES, subLabel=subLabel)
-
-            # Cluster substrates
-            subPopulations = self.plotPCA(substrates=motifES, data=tokensESM,
-                                          indices=subsESM, N=subCountsESM,
-                                          combinedMotifs=combinedMotifs)
-            for NCluster, motifCluster in enumerate(subPopulations):
-                NClusterAdj = NCluster + 1
-
-                # Plot: Motif enrichment for this selected cluster
-                if self.plotFigMotifEnrich:
-                    self.plotMotifEnrichment(motifs=motifCluster,
-                                             combinedMotifs=combinedMotifs,
-                                             clusterNumPCA=NClusterAdj)
-
-                    # Limit the number of substrates
-                    self.plotMotifEnrichment(motifs=motifCluster,
-                                             combinedMotifs=combinedMotifs,
-                                             clusterNumPCA=NClusterAdj,
-                                             limitNBars=True)
-
-                # Plot: Word cloud
-                self.plotWordCloud(substrates=motifCluster, clusterNumPCA=NClusterAdj,
-                                   combinedMotifs=combinedMotifs)
-
-        # Suffix tree
-        if self.plotSuffixTree:
-            tree = None
-
-        return motifES
-
-
-
-    def plotMotifEnrichment(self, motifs, barColor='#BF5700', barWidth=0.65,
-                            clusterNumPCA=None, combinedMotifs=False, limitNBars=False,
-                            predActivity=False, predModel=None, predType=None,
-                            scaleEMap=False):
-        NSubs = len(motifs.keys())
-        if predActivity:
-            if predType.lower() == 'custom':
-                # Collect all datapoints
-                x, y = [], []
-                for motif, count in motifs.items():
-                    x.append(str(motif))
-                    y.append(count)
-            else:
-                # Collect top datapoints
-                iteration = 0
-                x, y = [], []
-                for motif, count in motifs.items():
-                    x.append(str(motif))
-                    y.append(count)
-                    iteration += 1
-                    if iteration == self.NSubBars:
-                        break
-        else:
-            if limitNBars:
-                # Collect top datapoints
-                iteration = 0
-                x, y = [], []
-                for motif, count in motifs.items():
-                    x.append(str(motif))
-                    y.append(count)
-                    iteration += 1
-                    if iteration == self.NSubBars:
-                        break
-            else:
-                # Collect all datapoints
-                x, y = [], []
-                for motif, count in motifs.items():
-                    x.append(str(motif))
-                    y.append(count)
-        plotNSubs = len(x)
-        motifLen = len(x[0])
-
-        # Evaluate: Y axis
-        maxValue = math.ceil(max(y))
-        magnitude = math.floor(math.log10(abs(maxValue)))
-        unit = 10 ** (magnitude - 1)
-        yMax = math.ceil(maxValue / unit) * unit
-        yMax += 3 * unit # Increase yMax
-        if min(y) < 0:
-            minValue = math.floor(min(y))
-            magnitude = math.floor(math.log10(abs(minValue)))
-            unit = 10 ** (magnitude - 1)
-            yMin = math.floor(minValue / unit) * unit
-            while yMin > min(y):
-                yMin -= unit  # Decrease yMin
-        else:
-            yMin = 0
-        # print(f'\nY Axis:\n'
-        #       f'  Max: {yMax}\n'
-        #       f'  Min: {yMin}\n')
-
-
-        # # Calculate: Decay constant
-        # k = ngs.decayRate(y=y)
-
-        # Plot the data
-        fig, ax = plt.subplots(figsize=self.figSize)
-        if limitNBars:
-            bars = plt.bar(x, y, color=barColor, width=barWidth)
-
-            # Determine x values
-            xTicks = np.arange(0, len(x))
-            ax.set_xticks(xTicks)
-            ax.set_xticklabels(x, rotation=90, ha='center')
-            ax.set_xlim(left=xTicks[0] - barWidth, right=xTicks[-1] + barWidth)
-
-            # Set the edge color
-            for bar in bars:
-                bar.set_edgecolor('black')
-                bar.set_linewidth(self.lineThickness)
-        else:
-            bars = plt.bar(x, y, color=barColor, width=barWidth)
-
-            # Determine x values
-            magnitude = np.floor(np.log10(NSubs))
-            div = 10 ** (magnitude - 1)
-            xMax = int(np.ceil(NSubs))
-            step = int(div * 10)  # int(xMax / 10)
-            xTicks = np.arange(0, xMax + step, step)
-            ax.set_xticks(xTicks)
-            ax.set_xticklabels(xTicks)
-            ax.set_xlim(left=-NSubs/30, right=xTicks[-1])
-
-            # Set the edge color
-            for bar in bars:
-                bar.set_edgecolor(barColor)
-                bar.set_linewidth(self.lineThickness)
-
-        # Define: Figure title
-        if self.useEF:
-            yLabel = 'Enrichment Factor'
-        else:
-            yLabel = 'Counts'
-        if predActivity:
-            datasetTag = self.datasetTag.replace(' - ', '\n')
-            if predModel is None:
-                if '\n' in datasetTag:
-                    title = f'{self.enzymeName}\n{datasetTag}'
-                else:
-                    title = f'\n{self.enzymeName}\n{datasetTag}'
-            else:
-                title = (f'{self.enzymeName}\n{predModel}\n'
-                             f'{NSubs:,} {predType} Sequences')
-            yLabel = 'Predicted Activity'
-        else:
-            if clusterNumPCA is not None:
-                title = (f'{self.enzymeName}\n{self.datasetTag}\n'
-                         f'{NSubs:,} Unique Motifs - PCA Cluster #{clusterNumPCA}')
-            else:
-                title = (f'{self.enzymeName}\n{self.datasetTag}\n'
-                         f'{NSubs:,} Unique Motifs')
-        if scaleEMap:
-            title = title.replace(self.datasetTag, f'Scaled {self.datasetTag}')
-
-        # print(f'Prediction Type: {predType}\n\n')
-        # if (limitNBars
-        #         and predType is not None
-        #         and predType.lower() != 'chosen'
-        #         and predModel is not None):
-        if limitNBars and predType is not None and predModel is not None:
-            title = title.replace(f'{NSubs:,}', f'Top {plotNSubs:,}')
-        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.ylabel(yLabel, fontsize=self.labelSizeAxis)
-        plt.axhline(y=0, color='black', linewidth=self.lineThickness)
-
-
-        # Set: y ticks
-        plotYTicks = True
-        yTicks = []
-        if max(y) == 1.0:
-            yMax = 1.0
-            if yMin == 0:
-                yTicks = np.linspace(yMin, yMax, 6)
-            else:
-                plotYTicks = False
-                dist = yMax - yMin
-                vals = [0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55]
-                for val in vals:
-                    ratio = dist/val
-                    if ratio == int(ratio) and ratio < 10:
-                        plotYTicks = True
-                        yTicks = np.arange(yMin, yMax + val, val)
-                        break
-            yMax += 0.1
-        elif yMax > 0 and yMax < 1:
-            ticks = [0, 0.2, 0.4, 0.6, 0.8, 1]
-        else:
-            step = abs((yMax - yMin) / 10)
-            yTicks = np.arange(yMin, yMax + step, step)
-        plt.ylim(yMin, yMax)
-        plt.xticks(rotation=90, ha='center')
-        if plotYTicks:
-            plt.yticks(yTicks)
-
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
-
-        # Set the thickness of the figure border
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-            spine.set_linewidth(self.lineThickness)
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
-
-        # Save the figure
-        if self.saveFigures:
-            if self.useEF:
-                scoreType = 'EF'
-            else:
-                scoreType = 'Counts'
-
-            # Define: Save location
-            if predActivity:
-                if predType.lower() == 'chosen':
-                    figLabel = (f'{self.enzymeName} - Predicted Activity - '
-                                f'{self.datasetTag} - {predType} Subs - {predModel} - '
-                                f'{motifLen} AA - Plot N {plotNSubs} - '
-                                f'MinCounts {self.minSubCount}.png')
-                else:
-                    if predModel is None:
-                        predType = predType.replace('/', '_')
-                        figLabel = (f'{self.enzymeName} - Predicted Activity - '
-                                    f'{self.datasetTag} - {predType} - '
-                                    f'{motifLen} AA - N {plotNSubs} - '
-                                    f'MinCounts {self.minSubCount}.png')
-                    else:
-                        figLabel = (f'{self.enzymeName} - Predicted Activity - '
-                                    f'{self.datasetTag} - {predType} Subs - '
-                                    f'{predModel} - {motifLen} AA - '
-                                    f'Select N {self.NSubBars} Plot N {plotNSubs} - '
-                                    f'MinCounts {self.minSubCount}.png')
-            else:
-                if limitNBars:
-                    figLabel = (f'{self.enzymeName} - Motif Enrichment - '
-                                f'{self.datasetTag} - {motifLen} AA - '
-                                f'Select N {self.NSubBars} Plot N {plotNSubs} - '
-                                f'MinCounts {self.minSubCount}.png')
-                else:
-                    figLabel = (f'{self.enzymeName} - Motif Enrichment - '
-                                f'{self.datasetTag} - {motifLen} AA - '
-                                f'N {plotNSubs} - MinCounts {self.minSubCount}.png')
-                if clusterNumPCA is not None:
-                    figLabel = figLabel.replace('Motif Enrichment',
-                        f'Motif Enrichment - PCA {clusterNumPCA}')
-            figLabel = figLabel.replace('MinCounts',
-                                        f'{scoreType} - MinCounts')
-            if scaleEMap:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'Scaled {self.datasetTag}')
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def predMotifEnrichment(self, motifES, scaledMatrix=False):
-        print('=========================== Predict: Motif Enrichment '
-              '===========================')
-        if scaledMatrix:
-            matrixType = 'Released Count Scaled Enrichment Scores'
-            matrix = self.eMapReleasedScaled
-        else:
-            matrixType = 'Released Count Enrichment Scores'
-            matrix = self.eMapReleased
-        print(f'Prediction Matrix: {magenta}{matrixType}{resetColor}\n'
-              f'{self.eMap}\n\n')
-
-        predScores = {}
-        maxScore, minScore = 0, 0
-        normalizeValues = True
-
-        for motif in motifES:
-            score = 0
-            for index, AA in enumerate(motif):
-                position = self.xAxisLabelsMotif[index]
-                score += matrix.loc[AA, position]
-            # score = np.log2(score)
-            predScores[motif] = score
-            if score > maxScore:
-                maxScore = score
-            if score < minScore:
-                minScore = score
-
-        if normalizeValues:
-            # Set minimum predicted score = 0
-            if minScore < 0:
-                for substrate, score in predScores.items():
-                    newScore = score - minScore
-                    predScores[substrate] = newScore
-
-                    # Update max score
-                    if newScore > maxScore:
-                        maxScore = newScore
-                minScore -= minScore
-            else:
-                for substrate, score in predScores.items():
-                    newScore = score + minScore
-                    predScores[substrate] = newScore
-                maxScore += minScore
-
-            # Normalize Values
-            for substrate, score in predScores.items():
-                predScores[substrate] = score / maxScore
-
-        iteration = 0
-        print(f'Predicted Scores:')
-        for substrate, score in predScores.items():
-            print(f'     {pink}{substrate}{resetColor}, '
-                  f'Score: {red}{np.round(score, 2)}{resetColor}')
-            iteration += 1
-            if iteration >= self.printNumber:
-                print('\n')
-                break
-
-        self.plotScatter(valuesExp=motifES, valuesPred=predScores, matrixType=matrixType)
-
-
-
-    def plotScatter(self, valuesExp, valuesPred, matrixType, color='#BF5700'):
-        x, y = valuesExp.values(), valuesPred.values()
-
-        # Normalize predicted values
-        xMax, xMin, xNorm = max(x), min(x), []
-        xAdj = xMax - xMin
-        for value in x:
-            xNorm.append((value - xMin) / xAdj)
-        print(f'Experimental Values:\n'
-              f'     Max: {red}{max(x)}{resetColor}'
-              f'     Min: {red}{min(x)}{resetColor}\n'
-              f'Normalized Experimental Values:\n'
-              f'     Max: {red}{max(xNorm)}{resetColor}'
-              f'     Min: {red}{min(xNorm)}{resetColor}\n\n'
-              f'Predicted Values:\n'
-              f'     Max: {red}{max(y)}{resetColor}'
-              f'     Min: {red}{min(y)}{resetColor}\n\n')
-
-
-        accuracy = 1.0
-        label = f'R² = {np.round(accuracy, 3)}'
-        title = (f'{self.enzymeName}\n'
-                 f'{self.datasetTag}\n'
-                 f'{matrixType}')
-
-        # Create scatter plot
-        fig, ax = plt.subplots(figsize=self.figSize)
-        ax.scatter(xNorm, y, color=color)
-        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.xlabel('Motif Enrichment', fontsize=self.labelSizeAxis)
-        plt.ylabel('Predicted Scores', fontsize=self.labelSizeAxis)
-        plt.subplots_adjust(top=0.852, bottom=0.076, left=0.145, right=0.938)
-
-        # Define: Axis ticks
-        ticks = np.linspace(0, 1, 5)
-        tickLabels = ['0', '0.25', '0.5', '0.75', '1']
-
-        # Set x-ticks
-        ax.set_xticks(ticks)
-        ax.set_xticklabels(tickLabels)
-        ax.set_xlim(-0.03, 1.03)
-
-        # Set y-ticks
-        ax.set_yticks(ticks)
-        ax.set_yticklabels(tickLabels)
-        ax.set_ylim(-0.03, 1.03)
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
-
-        # Set the thickness of the figure border
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-            spine.set_linewidth(self.lineThickness)
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.show()
-
-
-
-    def motifEnrichment(self, subsInit, subsFinal, motifs,
-                        predActivity=False, predModel=False, predType=False):
-        print('=============================== Motif Enrichment '
-              '================================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n\n'
-              f'Normalizing substrate counts in the '
-              f'{purple}Final Sort{resetColor} library:\n'
-              f'     Enrichment Ratio (ER) = {magenta}Counts Final{resetColor} / '
-              f'{magenta}Counts Initial{resetColor}\n')
-        combinedMotifs = False
-        if len(self.motifIndexExtracted) > 1:
-            combinedMotifs = True
-
-        if predActivity:
-            motifEnrichment = motifs
-        else:
-            k = None
-            motifEnrichment = {}
-            ratios = {}
-            totalCountsInit = 0
-            totalCountsFinal = 0
-            totalMissingSubs = 0
-            totalUniqueSubsFinal = len(subsFinal)
-
-
-            # ============================================================================
-
-            # Calc: ER
-                # Use: CountFinal / CountInit
-
-                # Or Use: (CountFinal / NFinalSubs) / (CountInit / NInitSubs)
-
-                # Use?: log2(ratio)
-
-            # ============================================================================
-
-
-            # Sort input sequences
-            subsFinal = dict(sorted(subsFinal.items(),
-                                    key=lambda x: x[1], reverse=True))
-
-            # Print: Substrates
-            iteration = 0
-            print(f'Substrates: {magenta}Final Sort{resetColor}')
-            for substrate, count in subsFinal.items():
-                print(f'     {pink}{substrate}{resetColor}, '
-                      f'Count:{red} {count:,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    print('')
-                    break
-
-
-            # Evaluate: Motif enrichment
-            print(f'Use EF: {self.useEF}')
-            if self.useEF:
-                for substrate, count in subsFinal.items():
-                    totalCountsFinal += count
-                    if substrate in subsInit.keys():
-                        # Limit subInit length to match frame extraction zones
-                        countInit = subsInit[substrate]
-                    else:
-                        totalMissingSubs += 1
-                        countInit = 1
-                        totalCountsFinal += 1
-                    totalCountsInit += countInit
-                    # if countInit == 1:
-                    #     totalCountsInitAdj += countInit
-                    ratios[substrate] = count / countInit
-
-                # Sort collected substrates and add to the list
-                ratios = dict(sorted(ratios.items(), key=lambda x: x[1], reverse=True))
-
-                iteration = 0
-                print('Enrichment Ratios:')
-                for substrate, ratio in ratios.items():
-                    # if int(ratio) != subsFinal[substrate]:
-                    iteration += 1
-                    print(f'     {pink}{substrate}{resetColor}, '
-                          f'ER: {red}{round(ratio, 1):,}{resetColor}')
-                    if iteration >= self.printNumber:
-                        print('')
-                        break
-            else:
-                for substrate in subsFinal.keys():
-                    if substrate not in subsInit.keys():
-                        totalMissingSubs += 1
-            print(f'Dataset Evaluation:\n'
-                  f'    Total substrates in the Final Sort: '
-                  f'{red}{totalUniqueSubsFinal:,}{resetColor}\n'
-                  f'    Final Sort substrates missing in the Initial Sort: '
-                  f'{red}{totalMissingSubs:,}{resetColor}\n'
-                  f'    Percentage of unaccounted Final Sort substrates: {yellow}'
-                  f'{round(100*(totalMissingSubs / 
-                                totalUniqueSubsFinal), self.roundVal)} %'
-                  f'{resetColor}')
-
-
-            # Evaluate: Motifs
-            for motif in motifs.keys():
-                for substrate, ratio in ratios.items():
-                    if motif in substrate:
-                        if motif in motifEnrichment.keys():
-                            motifEnrichment[motif] += ratio
-                        else:
-                            motifEnrichment[motif] = ratio
-            totalMotifs = len(motifs.keys())
-            print(f'Unique Motifs: {red}{totalMotifs:,}{resetColor}\n')
-
-            # Sort collected substrates and add to the list
-            motifEnrichment = dict(sorted(motifEnrichment.items(),
-                                          key=lambda x: x[1], reverse=True))
-
-        # Select data
-        if not self.useEF:
-            # Use counts, not enrichment factor
-            motifEnrichment = motifs
-
-        iteration = 0
-        if predActivity:
-            print(f'Predicted Activity: {pink}Top {predType} Sequences{resetColor}')
-            print(f'Model: {purple}{predModel}{resetColor}')
-            for substrate, values in motifEnrichment.items():
-                print(f'Value: {type(values)}')
-                for key, value in values.items():
-                    print(f'     {key}: {value}')
-                value = float(value)
-                print(f'     {pink}{substrate}{resetColor}: {red}{round(value, 3):,}'
-                      f'{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            print('\n')
-        else:
-            print(f'Enrichment Motifs: {pink}Top Sequences{resetColor}')
-            for motif, value in motifEnrichment.items():
-                value = float(value)
-                print(f'     {blue}{motif}{resetColor}, '
-                      f'ER: {red}{round(value, 3):,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            print('\n')
-
-
-        # Plot: Motif enrichment
-        if predActivity and self.plotFigMotifEnrich:
-            self.plotMotifEnrichment(
-                motifs=motifEnrichment, combinedMotifs=combinedMotifs,
-                limitNBars=True, predActivity=predActivity, predModel=predModel,
-                predType=predType)
-        else:
-            if self.plotFigMotifEnrich:
-                self.plotMotifEnrichment(
-                    motifs=motifEnrichment, combinedMotifs=combinedMotifs,
-                    predActivity=predActivity, predModel=predModel, predType=predType)
-
-        return motifEnrichment
-
-
-    def decayRate(self, y):
-        print('========================= Calculate: Exponential Decay '
-              '==========================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n')
-
-        # Set: xValues 
-        x = np.arange(0, len(y))
-        smoothx = np.linspace(x[0], x[-1], 20)
-
-        guessA, guessB, guessC = 4000, -0.005, 100
-        guess = [guessA, guessB, guessC]
-
-        exp_decay = lambda x, A, t, y0: A * np.exp(x * t) + y0
-
-        params, cov = curve_fit(exp_decay, x, y, p0=guess)
-
-        A, t, y0 = params
-
-        print("A = %s\nt = %s\ny0 = %s\n" % (A, t, y0))
-
-
-
-    def plotBarGraph(self, substrates, dataType, barColor='#BF5700',
-                     barWidth=0.75, combinedMotifs=False, plotAllSubs=False):
-        print('================================ Plot: Bar Graph '
-              '================================')
-        print(f'Plot all: {plotAllSubs}')
-        if plotAllSubs:
-            limitNSubs = len(substrates.keys())
-            print(f'Plotting {red}{limitNSubs:,}{resetColor} substrates\n')
-        else:
-            limitNSubs = self.NSubBars
-            print(f'Collecting the top {red}{limitNSubs:,}{resetColor} substrates\n')
-
-        # Evaluate data
-        iteration = 0
-        valTotal = 0
-        print(f'Substrates:')
-        if 'counts' in dataType.lower():
-            for substrate, count in substrates.items():
-                print(f'     {blue}{substrate}{resetColor}, '
-                      f'Counts: {red}{count:,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            for count in substrates.values():
-                valTotal += count
-            print(f'Total Counts: {red}{valTotal:,}{resetColor}')
-        else:
-            for substrate, value in substrates.items():
-                print(f'     {blue}{substrate}{resetColor}, '
-                      f'Value: {red}{value:,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            valTotal = 0
-            for value in substrates.values():
-                valTotal += value
-            print(f'Total Values: {red}{valTotal:,}{resetColor}')
-
-
-        # Collect substrates
-        x = []
-        y = []
-        iteration = 0
-        if 'counts' in dataType.lower():
-            # Evaluate: Substrates
-            for substrate, count in substrates.items():
-                x.append(str(substrate))
-                y.append(count)
-                iteration += 1
-                if iteration == limitNSubs:
-                    break
-
-            # Evaluate: Y axis
-            yMin = 0
-            maxValue = max(y)
-            magnitude = math.floor(math.log10(maxValue))
-            val = 5 * 10 ** (magnitude - 1)
-            yMax = val
-            while yMax < maxValue:
-                yMax += val
-            # print(f'\nY Axis:\n'
-            #       f'  Max: {yMax}\n'
-            #       f'  Min: {yMin}\n')
-        elif 'relative frequency' in dataType.lower():
-            # Evaluate: Substrates
-            for substrate, value in substrates.items():
-                x.append(str(substrate))
-                y.append(value / valTotal)
-                iteration += 1
-                if iteration == limitNSubs:
-                    break
-
-            # Evaluate: Y axis
-            maxValue = max(y)
-            magnitude = math.floor(math.log10(maxValue))
-            adjustedMax = maxValue * 10**abs(magnitude)
-            yMax = math.ceil(adjustedMax) * 10**magnitude
-            adjVal = 5 * 10**(magnitude-1)
-            yMaxAdjusted = yMax - adjVal
-            if yMaxAdjusted > maxValue:
-                yMax = yMaxAdjusted
-            yMin = 0
-        else:
-            # Evaluate: Substrates
-            for substrate, count in substrates.items():
-                x.append(str(substrate))
-                y.append(count)
-                iteration += 1
-                if iteration == limitNSubs:
-                    break
-
-            # Evaluate: Y axis
-            spacer = 0.2
-            yMax = math.ceil(max(y)) + spacer
-            yMin = math.floor(min(y))
-        NSubs = len(x)
-        print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n\n')
-
-
-        # Define: Figure title
-        title = (f'{self.enzymeName}\n{self.datasetTag}'
-                 f'\nTop {NSubs:,} Substrates')
-
-
-        # Plot the data
-        fig, ax = plt.subplots(figsize=self.figSize)
-        bars = plt.bar(x, y, color=barColor, width=barWidth)
-        plt.ylabel(dataType, fontsize=self.labelSizeAxis)
-        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.axhline(y=0, color='black', linewidth=self.lineThickness)
-        plt.ylim(yMin, yMax)
-        # plt.subplots_adjust(top=0.873, bottom=0.12, left=0.101, right=0.979)
-
-        # Determine x values
-        xTicks = np.arange(0, NSubs)
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(x, rotation=90, ha='center')
-        ax.set_xlim(left=xTicks[0] - barWidth, right=xTicks[-1] + barWidth)
-
-        # Set: y ticks
-        plotYTicks = True
-        yTicks = []
-        if max(y) == 1.0:
-            yMax = 1.0
-            if yMin == 0:
-                yTicks = np.linspace(yMin, yMax, 6)
-            else:
-                plotYTicks = False
-                dist = yMax - yMin
-                vals = [0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55]
-                for val in vals:
-                    ratio = dist / val
-                    if ratio == int(ratio) and ratio < 10:
-                        plotYTicks = True
-                        yTicks = np.arange(yMin, yMax + val, val)
-                        break
-            yMax += 0.1
-        else:
-            step = yMax / 10
-            yTicks = np.linspace(yMin, yMax, 11)
-        plt.ylim(yMin, yMax)
-        plt.xticks(rotation=90, ha='center')
-        if plotYTicks:
-            plt.yticks(yTicks)
-
-        # Set the edge color
-        for bar in bars:
-            bar.set_edgecolor('black')
-            bar.set_linewidth(self.lineThickness)
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
-        plt.xticks(rotation=90, ha='center')
-
-        # Set the thickness of the figure border
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-            spine.set_linewidth(self.lineThickness)
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
-
-        # Save the figure
-        if self.saveFigures:
-            if self.motifLen == None:
-                seqLength = len(self.xAxisLabels)
-            else:
-                seqLength = self.motifLen
-
-            # Define: Save location
-            figLabel = (f'{self.enzymeName} - Bars - {dataType} - '
-                        f'{self.datasetTag} - {seqLength} AA - '
-                        f'N {NSubs} - MinCounts {self.minSubCount}.png')
-            if combinedMotifs:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'Substrate Profile {self.datasetTag}')
-            if 'relative frequency' in dataType.lower():
-                figLabel = figLabel.replace(dataType, 'RF')
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def ESM(self, substrates, subLabel, useSubCounts=True):
-        print('================== Convert Substrates To Numerical Values: ESM '
-              '==================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n\n'
-              f'Collecting up to {red}{self.NSubsPCA:,}{resetColor} substrates\n'
-              f'Total unique substrates: {red}{len(substrates):,}{resetColor}')
-
-        # Extract: Datapoints
-        iteration = 0
-        collectedTotalValues = 0
-        evaluateSubs = {}
-        for substrate, value in substrates.items():
-            evaluateSubs[str(substrate)] = value
-            iteration += 1
-            collectedTotalValues += value
-            if iteration >= self.NSubsPCA:
-                break
-        sampleSize = len(evaluateSubs)
-        print(f'Collected substrates:{red} {sampleSize:,}{resetColor}')
-        if isinstance(collectedTotalValues, float):
-              print(f'Total Values:{red} {round(collectedTotalValues, 1):,}'
-                    f'{resetColor}\n\n')
-        else:
-            print(f'Total Values:{red} {collectedTotalValues:,}{resetColor}\n\n')
-
-        # Step 1: Convert substrates to ESM model format and generate embeddings
-        subs = []
-        counts = []
-        if useSubCounts:
-            for index, (seq, count) in enumerate(evaluateSubs.items()):
-                subs.append((f'Sub{index}', seq))
-                counts.append(count)
-        else:
-            for index, seq in enumerate(evaluateSubs.keys()):
-                subs.append((f'Sub{index}', seq))
-
-
-        # Step 2: Load the ESM model and batch converter
-        model, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
-        # model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-
-        batch_converter = alphabet.get_batch_converter()
-
-
-        # Step 3: Convert substrates to ESM model format and generate embeddings
-        try:
-            batchLabels, batchSubs, batchTokens = batch_converter(subs)
-        except Exception as exc:
-            print(f'{orange}ERROR: The ESM has failed to evaluate your substrates\n\n'
-                  f'Exception:\n{exc}\n\n'
-                  f'Suggestion:'
-                  f'     Try replacing: {cyan}esm.pretrained.esm2_t36_3B_UR50D()'
-                  f'{orange}\n'
-                  f'     With: {cyan}esm.pretrained.esm2_t33_650M_UR50D()'
-                  f'{resetColor}\n')
-            sys.exit(1)
-
-        print(f'Batch Tokens:{greenLight} {batchTokens.shape}{resetColor}\n'
-              f'{greenLight}{batchTokens}{resetColor}\n\n')
-        slicedTokens = pd.DataFrame(batchTokens[:, 1:-1],
-                                    index=batchSubs,
-                                    columns=subLabel)
-        if useSubCounts:
-            slicedTokens['Counts'] = counts
-        print(f'Sliced Tokens:\n'
-              f'{greenLight}{slicedTokens}{resetColor}\n\n')
-
-        return slicedTokens, batchSubs, sampleSize
-
-
-
-    def plotPCA(self, substrates, data, indices, N, combinedMotifs=False):
-        print('====================================== PCA '
-              '======================================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n')
-        print(f'Data:\n{data}\n\n')
-
-        # Initialize lists for the clustered substrates
-        self.selectedSubstrates = []
-        self.selectedDatapoints = []
-        rectangles = []
-
-        # Define component labels
-        pcaHeaders = []
-        for componentNumber in range(1, self.numPCs + 1):
-            pcaHeaders.append(f'PC{componentNumber}')
-        headerCombinations = list(combinations(pcaHeaders, 2))
-
-        # # Cluster the datapoints
-        # Step 1: Apply PCA on the standardized data
-        print(f'NPC: {self.numPCs}\n\n')
-        pca = PCA(n_components=self.numPCs) # Adjust the number of components as needed
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
-        dataPCA = pca.fit_transform(data)
-        # loadings = pca.components_.T
-
-        # Step 2: Create a DataFrame for PCA results
-        dataPCA = pd.DataFrame(dataPCA, columns=pcaHeaders, index=indices)
-        print(f'PCA data:{red} # of components = {self.numPCs}\n'
-              f'{greenLight}{dataPCA}{resetColor}\n\n')
-
-        # Step 3: Print explained variance ratio
-        varRatio = pca.explained_variance_ratio_ * 100
-        print(f'Explained Variance Ratio: '
-              f'{red}{" ".join([f"{x:.3f}" for x in varRatio])}{resetColor} %\n\n')
-
-
-        # Define: Figure title
-        if combinedMotifs:
-            title = (f'\n{self.enzymeName}\n'
-                     f'{self.datasetTagMotif}\n'
-                     f'{N:,} Unique Substrates')
-            if 'Excl' in self.datasetTagMotif:
-                title = title.replace('Excl', 'Exclude')
-        else:
-            title = (f'\n{self.enzymeName}\n'
-                     f'{self.datasetTag}\n'
-                     f'{N:,} Unique Substrates')
-            if 'Excl' in self.datasetTag:
-                title = title.replace('Excl', 'Exclude')
-
-        # Plot the data
-        for components in headerCombinations:
-            fig, ax = plt.subplots(figsize=self.figSize)
-
-            def selectDatapoints(eClick, eRelease):
-                # # Function to update selection with a rectangle
-
-                nonlocal ax, rectangles
-
-                # Define x, y coordinates
-                x1, y1 = eClick.xdata, eClick.ydata  # Start of the rectangle
-                x2, y2 = eRelease.xdata, eRelease.ydata  # End of the rectangle
-
-                # Collect selected datapoints
-                selection = []
-                selectedSubs = []
-                for index, (x, y) in enumerate(zip(dataPCA.loc[:, 'PC1'],
-                                                   dataPCA.loc[:, 'PC2'])):
-                    if (min(x1, x2) <= x <= max(x1, x2) and
-                            min(y1, y2) <= y <= max(y1, y2)):
-                        selection.append((x, y))
-                        selectedSubs.append(dataPCA.index[index])
-                if selection:
-                    self.selectedDatapoints.append(selection)
-                    self.selectedSubstrates.append(selectedSubs)
-
-                # Draw the boxes
-                if self.selectedDatapoints:
-                    for index, box in enumerate(self.selectedDatapoints):
-                        # Calculate the bounding box for the selected points
-                        padding = 0.05
-                        xMinBox = min(x for x, y in box) - padding
-                        xMaxBox = max(x for x, y in box) + padding
-                        yMinBox = min(y for x, y in box) - padding
-                        yMaxBox = max(y for x, y in box) + padding
-
-                        # Draw a single rectangle around the bounding box
-                        boundingRect = plt.Rectangle((xMinBox, yMinBox),
-                                                     width=xMaxBox - xMinBox,
-                                                     height=yMaxBox - yMinBox,
-                                                     linewidth=2,
-                                                     edgecolor='black',
-                                                     facecolor='none')
-                        ax.add_patch(boundingRect)
-                        self.rectangles.append(boundingRect)
-
-                        # Add text only if there are multiple boxes
-                        if len(self.selectedDatapoints) > 1:
-                            # Calculate the center of the rectangle for text positioning
-                            centerX = (xMinBox + xMaxBox) / 2
-                            centerY = (yMinBox + yMaxBox) / 2
-
-                            # Number the boxes
-                            text = ax.text(centerX, centerY, f'{index + 1}',
-                                           horizontalalignment='center',
-                                           verticalalignment='center',
-                                           fontsize=25,
-                                           color='#F8971F',
-                                           fontweight='bold')
-                            text.set_path_effects(
-                                [path_effects.Stroke(linewidth=2, foreground='black'),
-                                 path_effects.Normal()])
-                plt.draw()
-            plt.scatter(dataPCA[components[0]], dataPCA[components[1]],
-                        c='#BF5700', edgecolor='black')
-            plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.xlabel(f'Principal Component {components[0][-1]} '
-                       f'({np.round(varRatio[0], self.roundVal)} %)',
-                       fontsize=self.labelSizeAxis)
-            plt.ylabel(f'Principal Component {components[1][-1]} '
-                       f'({np.round(varRatio[1], self.roundVal)} %)',
-                       fontsize=self.labelSizeAxis)
-            plt.subplots_adjust(top=0.852, bottom=0.075, left=0.13, right=0.938)
-
-
-            # Set tick parameters
-            ax.tick_params(axis='both', which='major', length=self.tickLength,
-                           labelsize=self.labelSizeTicks, width=self.lineThickness)
-
-            # Set the thickness of the figure border
-            for _, spine in ax.spines.items():
-                spine.set_visible(True)
-                spine.set_linewidth(self.lineThickness)
-
-
-            # Create a RectangleSelector
-            selector = RectangleSelector(ax,
-                                         selectDatapoints,
-                                         useblit=True,
-                                         minspanx=5,
-                                         minspany=5,
-                                         spancoords='pixels',
-                                         interactive=True)
-
-            # Change rubber band color
-            selector.set_props(facecolor='none', edgecolor='green', linewidth=3)
-
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            # fig.tight_layout()
-            plt.show()
-
-
-        # Save the Figure
-        if self.saveFigures:
-            # Define: Save location
-            figLabel = (f'{self.enzymeName} - PCA - {self.datasetTag} - '
-                        f'{N} - MinCounts {self.minSubCount}.png')
-            if combinedMotifs and len(self.motifIndexExtracted) > 1:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'Combined {self.datasetTag}')
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-        # Create a list of collected substrate dictionaries
-        if self.selectedSubstrates:
-            collectedSubs = []
-            for index, substrateSet in enumerate(self.selectedSubstrates):
-                print(f'PCA Cluster: {greenLightB}{index + 1}{resetColor}')
-                iteration = 0
-                collectionSet = {}
-                for substrate in substrateSet:
-                    collectionSet[substrate] = substrates[substrate]
-
-                # Sort collected substrates and add to the list
-                collectionSet = dict(sorted(collectionSet.items(),
-                                            key=lambda x: x[1], reverse=True))
-                collectedSubs.append(collectionSet)
-
-                # Print: Collected substrates
-                for substrate, score in collectionSet.items():
-                    if isinstance(score, float):
-                        print(f'     {blue}{substrate}{resetColor}, '
-                              f'Counts: {red}{round(score, 1):,}{resetColor}')
-                    else:
-                        print(f'     {blue}{substrate}{resetColor}, '
-                              f'Counts: {red}{score:,}{resetColor}')
-                    iteration += 1
-                    if iteration >= self.printNumber:
-                        print('\n')
-                        break
-
-            return collectedSubs
-        else:
-            return None
-
-
-
-    def KLDivergence(self, P, Q, printProb, scaler):
-        print('================================= KL Divergence '
-              '=================================')
-        P.columns = Q.columns
-        if printProb:
-            print(f'Baseline Probability Distribution:\n{Q}\n\n\n'
-                  f'Probability Distribution:\n{P}\n\n')
-
-        divergence = pd.DataFrame(0, columns=Q.columns,
-                                  index=[self.datasetTag], dtype=float)
-        divergenceMatrix = pd.DataFrame(0, columns=Q.columns,
-                                        index=Q.index, dtype=float)
-
-        for position in Q.columns:
-            p = P.loc[:, position]
-            q = Q.loc[:, position]
-            divergence.loc[self.datasetTag, position] = (
-                np.sum(np.where(p != 0, p * np.log2(p / q), 0)))
-
-            for residue in Q.index:
-                initial = Q.loc[residue, position]
-                final = P.loc[residue, position]
-                if initial == 0 or final == 0:
-                    divergenceMatrix.loc[residue, position] = 0
-                else:
-                    divergenceMatrix.loc[residue, position] = (final *
-                                                               np.log2(final / initial))
-
-        # Scale the values
-        if scaler is not None:
-            for position in Q.columns:
-                divergenceMatrix.loc[:, position] = (divergenceMatrix.loc[:, position] *
-                                                     scaler.loc[position, 'ΔS'])
-
-        print(f'{greyDark}KL Divergence:'
-              f'{pink} Fixed Final Sort - {self.datasetTag}{resetColor}\n'
-              f'{divergence}\n\n\n{greyDark}Divergency Matrix:'
-              f'{pink} Fixed Final Sort - {self.datasetTag}'
-              f'{resetColor}\n{divergenceMatrix.round(4)}\n\n')
-
-        return divergenceMatrix, divergence
-
-
-
-    def optimalWord(self, matrix, matrixType, maxResidues, dropPos,
-                    printOptimalAA, normalizeValues):
-        print('========================= Synthesize Optimal Substrates '
-              '=========================')
-
-        # Determine the OS
-        combinations = 1
-        optimalAA = []
-        substratesOS = {}
-
-        # Drop irrelevant positions
-        if dropPos:
-            dropColumns = []
-            for indexDropPosition in dropPos:
-                dropColumns.append(matrix.columns[indexDropPosition])
-            # print(f'Dropping positions: {dropColumns}\n')
-            matrix = matrix.drop(columns=dropColumns)
-        # print(f'Values used to synthesize optimal substrates:\n{matrix}\n\n')
-
-
-
-        for indexColumn, column in enumerate(matrix.columns):
-            # Find the best residues at this position
-            optimalAAPos = matrix[column].nlargest(maxResidues)
-
-            # Filter the data
-            for rank, (AA, score) in (enumerate(
-                    zip(optimalAAPos.index, optimalAAPos.values), start=1)):
-                if score <= 0:
-                    optimalAAPos = optimalAAPos.drop(index=AA)
-            optimalAA.append(optimalAAPos)
-
-
-        if printOptimalAA:
-            print(f'Optimal Residues: {purple}{self.enzymeName} - '
-                  f'Fixed {self.datasetTag}{resetColor}')
-            for index, data in enumerate(optimalAA, start=1):
-                # Determine the number of variable residues at this position
-                numberAA = len(data)
-                combinations *= numberAA
-
-                # Define substrate position
-                positionSub = self.xAxisLabels[index-1]
-                print(f'Position: {purple}{positionSub}{resetColor}')
-
-                for AA, datapoint in data.items():
-                    print(f'     {AA}:{red} {datapoint:.6f}{resetColor}')
-                print('\n')
-        else:
-            for index, data in enumerate(optimalAA, start=1):
-                # Determine the number of variable residues at this position
-                combinations *= len(data)
-
-        print(f'Possible Substrate Combinations:{pink} {combinations:,}{resetColor}\n')
-
-        # Use the optimal residues to determine OS
-        substrate = ''
-        score = 0
-        for index, data in enumerate(optimalAA, start=1):
-            # Select the top-ranked AA for each position
-            topAA = data.idxmax()
-            topES = data.max()
-
-            # Construct the OS
-            substrate += ''.join(topAA)
-            score += topES
-
-        # Update OS dictionary
-        substratesOS[substrate] = score
-
-        # Create additional substrates
-        for indexColumn, column in enumerate(matrix.columns):
-
-            # Collect new substrates to add after the iteration
-            newSubstratesList = []
-
-            for substrate, ESMax in list(substratesOS.items()):
-                AAOS = substrate[indexColumn]
-                scoreSubstrate = optimalAA[indexColumn][AAOS]
-
-                # Access the correct filtered data for the column
-                optimalAAPos = optimalAA[indexColumn]
-                # print(f'optimalAA:\n{optimalAA}\n\n'
-                #       f'     optimalAAPos:\n{optimalAAPos}\n\n')
-
-                for AA, score in optimalAAPos.items():
-                    # print(f'AA: {AA}\nScore: {score}\n\n')
-                    if AA != AAOS:
-
-                        # Replace AAOS with AA
-                        newSubstrate = (substrate[:indexColumn] + AA +
-                                        substrate[indexColumn + 1:])
-                        newES = ESMax + (score - scoreSubstrate)
-                        # print(f'{greyDark}New Substrate{resetColor}:'
-                        #       f'{greenLightB} {newSubstrate}{resetColor}, '
-                        #       f'ES:{red} {newES}{resetColor}\n'
-                        #       f'     Residue Score New:{red} {score}{resetColor}\n'
-                        #       f'     Residue Score Old:{red} {scoreSubstrate}'
-                        #       f'{resetColor}\n\n')
-
-                        # Collect new substrate and ES to add later
-                        newSubstratesList.append((newSubstrate, newES))
-            # Update substratesOS with new substrates after the iteration
-            for newSubstrate, newES in newSubstratesList:
-                substratesOS[newSubstrate] = newES
-
-        substratesOS = dict(sorted(substratesOS.items(),
-                                   key=lambda x: x[1], reverse=True))
-        if normalizeValues:
-            _, topScore = substratesOS.popitem(last=False) # Top score
-            print(f'Top Score:{red} {topScore}{resetColor}\n')
-
-            # Normalize the values
-            substratesOS = {key: value / topScore for key, value in substratesOS}
-            # substratesOS = sorted(substratesOS.items(), key=lambda x: x[1], reverse=True)
-
-        print(f'Top {self.printNumber} Optimal Substrates:{greyDark} '
-              f'{matrixType}{resetColor}')
-        iteration = 0
-        for substrate, ES in substratesOS.items():
-            print(f'     Substrate:{red} {substrate}{resetColor}, '
-                  f'ES:{red} {ES:.6f}{resetColor}')
-            iteration += 1
-            if iteration == self.printNumber:
-                break
-
-        print(f'\nNumber of synthesized substrates:'
-              f'{pink} {len(substratesOS):,}{resetColor}\n\n')
-
-        return substratesOS
-
-
-
-    def substrateEnrichment(self, initialSubs, finalSubs, NSubs, saveData):
-        print('========================= Evaluate Substrate Enrichment '
-              '=========================')
-        if self.datasetTag == None:
-            datasetType = 'NNS'
-        else:
-            datasetType = f'{self.datasetTag}'
-
-        # Define headers
-        headersInitial = ['Initial Subs', 'Counts']
-        headersFinal = ['Final Subs', 'Counts']
-        headersEnriched = ['Enriched Subs', 'log₂(RF Final / RF Initial)']
-        # headerWidth = {1: 14.6,
-        #                4: 14.6,
-        #                7: 14.6,
-        #                8: 24} # Adjust column width at these indices for an excel sheet
-
-
-        iteration = 0
-        totalSubstratesInitial = 0
-        totalUniqueSubstratesInitial = len(initialSubs)
-        totalsubstrates = 0
-        totalUniquesubstrates = len(finalSubs)
-
-        # Evaluate the substrates
-        if self.datasetTag == None:
-            # Process: initial sort
-            print(f'Ranked Substrates: {purple}Initial Sort{resetColor} -'
-                  f'{red} NNS{resetColor}')
-            if totalUniqueSubstratesInitial >= self.printNumber:
-                for substrate, count in initialSubs.items():
-                    if iteration <= self.printNumber:
-                        print(f'     {pink}{substrate}{resetColor}, '
-                              f'Counts: {red}{count:,}{resetColor}')
-                        iteration += 1
-                        totalSubstratesInitial += count
-                    else:
-                        totalSubstratesInitial += count
-            else:
-                print(f'{orange}The number of unique substrates '
-                      f'({red}{totalUniqueSubstratesInitial}'
-                      f'{orange}) is less than the number you requested to be see '
-                      f'({red}{self.printNumber}{orange}){resetColor}')
-                for substrate, count in initialSubs.items():
-                    print(f'     {pink}{substrate}{resetColor}, Counts: {red}{count:,}'
-                          f'{resetColor}')
-                    totalSubstratesInitial += count
-            iteration = 0
-            # Print: Dataset totals
-            print(f'\n     Total substrates {purple}Initial Sort{resetColor}:'
-                  f'{red} {totalSubstratesInitial:,}{resetColor}\n'
-                  f'     Unique substrates {purple}Initial Sort{resetColor}:'
-                  f'{red} {totalUniqueSubstratesInitial:,}{resetColor}\n\n')
-
-
-            # Process: final sort
-            print(f'Ranked Substrates: {purple}Final Sort{resetColor} -'
-                  f'{red} NNS{resetColor}')
-            if totalUniquesubstrates >= self.printNumber:
-                for substrate, count in finalSubs.items():
-                    if iteration <= self.printNumber:
-                        print(f'     {pink}{substrate}{resetColor}, '
-                              f'Counts: {red}{count:,}{resetColor}')
-                        iteration += 1
-                        totalsubstrates += count
-                    else:
-                        totalsubstrates += count
-            else:
-                print(f'{orange}The number of unique substrates '
-                      f'({red}{totalUniquesubstrates}'
-                      f'{orange}) is less than the number you requested to be see '
-                      f'({red}{self.printNumber}{orange}){resetColor}\n')
-                for substrate, count in finalSubs.items():
-                    print(f'     {pink}{substrate}{resetColor}, '
-                          f'Counts: {red}{count:,}{resetColor}')
-                    totalsubstrates += count
-            iteration = 0
-            # Print: Dataset totals
-            print(f'\n     Total substrates {purple}Final Sort{resetColor}:'
-                  f'{red} {totalsubstrates:,}{resetColor}\n'
-                  f'     Unique substrates {purple}Final Sort{resetColor}:'
-                  f'{red} {totalUniquesubstrates:,}{resetColor}\n\n')
-        else:
-            fixedSort = True
-
-            # Print: Initial sort
-            print(f'Ranked Substrates: {purple}Initial Sort{resetColor}{resetColor}')
-            if totalUniqueSubstratesInitial >= self.printNumber:
-                for substrate, count in initialSubs.items():
-                    if iteration < self.printNumber:
-                        print(f'     {pink}{substrate}{resetColor}, '
-                              f'Counts: {red}{count:,}{resetColor}')
-                        iteration += 1
-                        totalSubstratesInitial += count
-                    else:
-                        totalSubstratesInitial += count
-            else:
-                print(f'{orange}The number of unique substrates '
-                      f'({red}{totalUniqueSubstratesInitial}'
-                      f'{orange}) is less than the number you requested to be see '
-                      f'({red}{self.printNumber}{orange}){resetColor}')
-                for substrate, count in initialSubs.items():
-                    print(f'     {pink}{substrate}{resetColor}, '
-                          f'Counts: {red}{count:,}{resetColor}')
-                    totalSubstratesInitial += count
-            print(f'\n     Total substrates {purple}Initial Sort{resetColor}:'
-                  f'{red} {totalSubstratesInitial:,}{resetColor}\n'
-                  f'     Unique substrates {purple}Initial Sort{resetColor}:'
-                  f'{red} {totalUniqueSubstratesInitial:,}{resetColor}\n\n')
-            iteration = 0
-
-
-            # Process: Final sort
-            print(f'Ranked Substrates: {purple}Final Sort{resetColor} -'
-                  f'{red} Fixed {self.datasetTag}{resetColor}')
-            if totalUniquesubstrates >= self.printNumber:
-                for substrate, count in finalSubs.items():
-                    if iteration < self.printNumber:
-                        print(f'     {pink}{substrate}{resetColor}, '
-                              f'Counts: {red}{count:,}{resetColor}')
-                        iteration += 1
-                        totalsubstrates += count
-                    else:
-                        totalsubstrates += count
-            else:
-                print(f'{orange}The number of unique substrates '
-                      f'({red}{totalUniquesubstrates}'
-                      f'{orange}) is less than the number you requested to be see '
-                      f'({red}{self.printNumber}{orange}){resetColor}')
-                for substrate, count in finalSubs.items():
-                    print(f'     {pink}{substrate}{resetColor}, '
-                              f'Counts: {red}{count:,}{resetColor}')
-                    totalsubstrates += count
-            print(f'\n     Total substrates {purple}Final Sort{resetColor}:'
-                  f'{red} {totalsubstrates:,}{resetColor}\n'
-                  f'     Unique substrates {purple}Final Sort{resetColor}:'
-                  f'{red} {totalUniquesubstrates:,}{resetColor}\n\n')
-            iteration = 0
-
-
-        # Calculate: Substrate enrichment
-        enrichedSubs = {}
-        setMinCountFinal = False
-        if setMinCountFinal:
-            print(f'Mininum Substrate Count:{red} {self.minSubCount}{resetColor}')
-            for substrate, count in finalSubs.items():
-                if count < self.minSubCount:
-                    continue
-
-                if substrate in initialSubs.keys():
-                    countInitial = initialSubs[substrate]
-                else:
-                    countInitial = 1
-                probFinal = count / totalsubstrates
-                probInitial = countInitial / totalSubstratesInitial
-                enrichment = np.log2(probFinal/probInitial)
-                enrichedSubs[substrate] = enrichment
-        else:
-            for substrate, count in finalSubs.items():
-                if substrate in initialSubs.keys():
-                    countInitial = initialSubs[substrate]
-                else:
-                    countInitial = 1
-                probFinal = count / totalsubstrates
-                probInitial = countInitial / totalSubstratesInitial
-                enrichment = np.log2(probFinal/probInitial)
-                enrichedSubs[substrate] = enrichment
-        # sys.exit(1)
-
-        # Sort enrichment dictionary
-        enrichedSubs = dict(sorted(enrichedSubs.items(),
-                                   key=lambda x: x[1], reverse=True))
-
-        # Print: top enriched substrates
-        print(f'{purple}Enriched substrates{resetColor}:')
-        for substrate, score in enrichedSubs.items():
-            if iteration < self.printNumber:
-                print(f'     {magenta}{substrate}{resetColor}, '
-                      f'ES: {red}{score:.3f}{resetColor}')
-                iteration += 1
-            else:
-                break
-        print('\n')
-
-
-        if saveData:
-            # Define file path
-            filePathCSV = os.path.join(
-                self.pathData,
-                f'{self.enzymeName} - Enriched Subs - {self.datasetTag} - '
-                f'MinCounts {self.minSubCount}.csv')
-
-            # Convert dictionaries to a data frame and save as an Excel file
-            clipDataset = False
-            if totalSubstratesInitial > NSubs:
-                clipDataset = True
-
-                # Did you ask for too many substrates?
-                if NSubs == 10**6:
-                    NSubs -= 1
-                elif NSubs > 10**6:
-                    print(f'     The list of substrates in the  {purple}Initial Sort'
-                          f'{resetColor} that you attempted to save '
-                          f'({red}N = {NSubs:,}{resetColor}) '
-                          f'is to large to save in an Excel file.\n'
-                          f'          Extracting the first{red} {10**6:,}{resetColor} '
-                          f'substrates and discarding the rest.\n')
-                    NSubs = 10**6
-
-                initialSubsDF = pd.DataFrame.from_dict(dict(
-                    list(initialSubs.items())[:NSubs]).items())
-                initialSubsDF.columns = headersInitial
-            else:
-                initialSubsDF = pd.DataFrame.from_dict(initialSubs.items())
-                initialSubsDF.columns = headersInitial
-            if totalsubstrates > NSubs:
-                clipDataset = True
-
-                # Did you ask for too many substrates?
-                if NSubs > 10**6:
-                    print(f'     The list of substrates in the  {purple}Final Sort'
-                          f'{resetColor} that you attempted to save '
-                          f'({red}N = {NSubs:,}{resetColor}) '
-                          f'is to large to save in an Excel file.\n'
-                          f'          Extracting the first{red} {10**6:,}{resetColor} '
-                          f'substrates and discarding the rest.\n')
-                    NSubs = 10**6
-
-                finalSubsDF = pd.DataFrame.from_dict(dict(
-                    list(finalSubs.items())[:NSubs]).items())
-                finalSubsDF.columns = headersFinal
-
-                enrichedSubsDF = pd.DataFrame.from_dict(dict(
-                    list(enrichedSubs.items())[:NSubs]).items())
-                enrichedSubsDF.columns = headersEnriched
-            else:
-                finalSubsDF = pd.DataFrame.from_dict(finalSubs.items())
-                finalSubsDF.columns = headersFinal
-
-                enrichedSubsDF = pd.DataFrame.from_dict(enrichedSubs.items())
-                enrichedSubsDF.columns = headersEnriched
-            if clipDataset:
-                print(f'Saving dataset with a maximum of{red} {NSubs:,}'
-                      f'{resetColor} substrates.\n\n'
-                      f'Any data returned from this function that will be used for further '
-                      f'analysis\nwill include the complete dataset\n\n')
-
-            # Print: Sample sizes
-            print(f'{greyDark}Dataset Size{resetColor}:\n'
-                  f'     Initial Substrates: {red}{len(initialSubsDF):,}{resetColor}\n'
-                  f'     Final Substrates: {red}{len(finalSubsDF):,}{resetColor}\n'
-                  f'     Enriched Substrates: {red}{len(enrichedSubsDF):,}{resetColor}\n')
-
-            if os.path.exists(filePathCSV):
-                print(f'{orange}The{red} {datasetType}{orange} dataset at was '
-                      f'found at the path:'
-                      f'\n     {resetColor}{filePathCSV}\n\n'
-                      f'{orange}The file was not overwritten{resetColor}\n\n')
-            else:
-                print(f'Saving the{red} {datasetType}{resetColor} dataset at the path:'
-                      f'\n     {filePathCSV}{resetColor}\n\n')
-
-                # Combine the data frames
-                if datasetType == 'NNS':
-                    enrichedSubsCSV = pd.concat([initialSubsDF,
-                                                 finalSubsDF,
-                                                 enrichedSubsDF],
-                                                axis=1)
-                    enrichedSubsCSV.to_csv(filePathCSV, index=True)
-                else:
-                    enrichedSubsCSV = pd.concat([finalSubsDF, enrichedSubsDF],
-                                                axis=1)
-                    enrichedSubsCSV.to_csv(filePathCSV, index=True)
-
-        return enrichedSubs
-
-
-    # ====================================================================================
-
-
-    def plotSubstratePopulations(self, substrates, clusterIndex, numClusters,
-                                 datasetTag, saveTag):
-        print('=============================== Plot PCA Clusters '
-              '===============================')
-        print(f'Dataset: {purple}{datasetTag}{resetColor}\n'
-              f'Save Tag: {purple}{saveTag}{resetColor}\n\n'
-              f'Total Clusters:{red} {numClusters}{resetColor}\n'
-              f'     Cluster Number:{red} {clusterIndex + 1}{resetColor}\n\n')
-
-        # Define figure titles
-        if numClusters == 1:
-            figureTitleEM = (f'\n{inTitleEnrichmentMap}: PCA Population\n'
-                             f'{self.datasetTag}')
-            figureTitleMotif = (f'{inTitleMotif}: PCA Population\n'
-                                f'{self.datasetTag}')
-            figureTitleWordCloud = (f'{inTitleEnrichmentMap}: '
-                                    f'PCA Population\n{self.datasetTag}')
-            datasetTag = f'PCA Pop - {self.datasetTag}'
-        else:
-            figureTitleEM = (
-                f'\n{inTitleEnrichmentMap}: PCA Population {clusterIndex + 1}\n'
-                f'{self.datasetTag}')
-            figureTitleMotif = (f'{inTitleMotif}: PCA Population {clusterIndex + 1}\n'
-                                f'{self.datasetTag}')
-            figureTitleWordCloud = (f'{inTitleEnrichmentMap}: '
-                                    f'PCA Population {clusterIndex + 1}\n{self.datasetTag}')
-            datasetTag = f'PCA Pop {clusterIndex + 1} - {self.datasetTag}'
-
-        # Count fixed substrates
-        countFullSubstrate = False
-        if countFullSubstrate:
-            countsFinal, countsTotalFinal = self.countResidues(substrates=substrates,
-                                                              datasetType='')
-        else:
-            countsFinal, countsTotalFinal = self.countResidues(substrates=substrates,
-                                                              datasetType='')
-        self.sampleSizeUpdate(NSubs=countsTotalFinal, sortType='Final Sort',
-                             datasetTag=self.datasetTag)
-
-        # Adjust the zero counts at nonfixed positions
-        countsFinalAdjusted = countsFinal.copy()
-        if inAdjustZeroCounts:
-            for indexColumn in countsFinalAdjusted.columns:
-                for AA in countsFinalAdjusted.index:
-                    if countsFinalAdjusted.loc[AA, indexColumn] == 0:
-                        countsFinalAdjusted.loc[AA, indexColumn] = 1
-            print(f'Adjusted Final Counts:{pink} {self.enzymeName}\n'
-                  f'{red}{countsFinalAdjusted}{resetColor}\n\n')
-
-        # Calculate: RF
-        probFinal = self.calculateAAProb(counts=countsFinal, N=countsTotalFinal,
-                                  fileType='Final Sort')
-        probFinalAdjusted = self.calculateAAProb(counts=countsFinalAdjusted, N=countsTotalFinal,
-                                          fileType='Final Sort')
-
-        if inPlotEntropyPCAPopulations:
-            # Plot: Positional entropy
-            self.plotEntropy(entropy=self.entropy)
-
-        # Calculate: Enrichment scores
-        fixedFramePopES = self.enrichmentMatrix(initialSortRF=probInitialAvg,
-                                                  finalSortRF=probFinal)
-        fixedFramePopESAdjusted = self.enrichmentMatrix(initialSortRF=probInitialAvg,
-                                                          finalSortRF=probFinalAdjusted)
-
-        # Calculate: Enrichment scores scaled
-        fixedFramePCAESScaled = pd.DataFrame(0.0, index=fixedFramePopES.index,
-                                             columns=fixedFramePopES.columns)
-        fixedFramePCAESScaledAdjusted = pd.DataFrame(0.0, index=fixedFramePopES.index,
-                                                     columns=fixedFramePopES.columns)
-
-        # Scale enrichment scores with Shannon Entropy
-        for positon in fixedFramePopES.columns:
-            fixedFramePCAESScaled.loc[:, positon] = (fixedFramePopES.loc[:, positon] *
-                                                     self.entropy.loc[
-                                                         positon, 'ΔS'])
-            fixedFramePCAESScaledAdjusted.loc[:, positon] = (
-                    fixedFramePopESAdjusted.loc[:, positon] *
-                    self.entropy.loc[positon, 'ΔS'])
-        print(f'Motif:{greenLight} Scaled{resetColor}\n{fixedFramePCAESScaled}\n\n')
-        yMax = max(fixedFramePCAESScaled[fixedFramePopES > 0].sum())
-        yMin = min(fixedFramePCAESScaled[fixedFramePopES < 0].sum())
-
-        # # # Plot data
-        # # Plot: Enrichment Map
-        # self.plotEnrichmentScores(scores=fixedFramePopESAdjusted, dataType='Enrichment',
-        #                           motifFilter=False, duplicateFigure=False,
-        #                           saveTag=datasetTag)
-        #
-        # # Plot: Enrichment Map Scaled
-        # self.plotEnrichmentScores(scores=fixedFramePCAESScaledAdjusted,
-        #                           dataType='Scaled Enrichment')
-        #
-        # # Plot: Sequence Motif
-        # self.plotMotif(data=fixedFramePCAESScaled.copy(), dataType='Scaled Enrichment',
-        #                bigLettersOnTop=inBigLettersOnTop, yMax=yMax, yMin=yMin,
-        #                showYTicks=False, addHorizontalLines=inAddHorizontalLines,
-        #                motifFilter=False, duplicateFigure=False, saveTag=datasetTag)
-
-        # Plot: Word cloud
-        self.plotWordCloud(substrates=substrates)
-
-
-    # ====================================================================================
-
-
-    def suffixTree(self, substrates, N, entropySubFrame, indexSubFrame, entropyMin,
-                   datasetTag, dataType):
-        print('================================== Suffix Tree '
-              '==================================')
-        if datasetTag is None:
-            print(f'Dataset: {purple}{self.enzymeName} - Unfixed{resetColor}\n')
-        else:
-            print(f'Dataset: {purple}{self.enzymeName} {dataType} {datasetTag}'
-                  f'{resetColor}\n')
-
-
-        from Trie import Trie
-
-
-        trie = Trie() # Initialize Trie
-        motifs = {}
-        indexStart = min(indexSubFrame)
-        indexEnd = max(indexSubFrame)
-
-        # Print: Substrates
-        iteration = 0
-        substrates = dict(sorted(substrates.items(), key=lambda item: item[1],
-                                 reverse=True))
-        for substrate, count in substrates.items():
-            iteration += 1
-            print(f'     {pink}{substrate}{resetColor}, '
-                  f'Counts: {red}{count:,}{resetColor}')
-            if iteration >= self.printNumber:
-                break
-        print('\n')
-
-        # Find motif positions based on the entropy threshold
-        indexPos = []
-        for index in entropySubFrame.index:
-            posEntropy = entropySubFrame.loc[index, 'ΔS']
-            if posEntropy >= entropyMin:
-                indexPos.append(int(index.replace('R', '')) - 1)
-        print(f'Index Pos: {indexPos}')
-
-        motifTrie = {}
-        countsMotif = 0
-        def addMotif(motif, count):
-            # Extract important AAs from the motif
-            motif = ''.join(motif[index] for index in indexPos)
-
-            # Add motif to the trie
-            if motif in motifTrie.keys():
-                motifTrie[motif] += count
-            else:
-                motifTrie[motif] = count
-                trie.insert(motif)
-
-
-        # Extract the motifs
-        motifCount = 0
-        for substrate, count in substrates.items():
-            motif = substrate[indexStart:indexEnd + 1]
-            if motif in motifs:
-                motifs[motif] += count
-            else:
-                motifs[motif] = count
-                motifCount += 1
-
-            # Add the motif to the tree
-            addMotif(motif, count)
-            countsMotif = len(motifTrie.keys())
-            if countsMotif >= N:
-                break
-        motifs = dict(sorted(motifs.items(), key=lambda item: item[1], reverse=True))
-        motifTrie = dict(sorted(motifTrie.items(), key=lambda item: item[1],
-                                reverse=True))
-
-        # Print: Motifs
-        print(f'Extracted Motifs:')
-        for index, (motif, count) in enumerate(motifs.items()):
-            print(f'{index+1}:{blue} {motif}{resetColor} '
-                  f'Count:{red} {count:,}{resetColor}')
-        print('\n')
-
-        # Print: Trie
-        print(f'Extracted Trie:')
-        for index, (seq, count) in enumerate(motifTrie.items()):
-            print(f'{index + 1}:{pink} {seq}{resetColor} '
-                  f'Count:{red} {count:,}{resetColor}')
-        print('\n')
-
-        # Calculate: RF
-        motifTable = self.evaluateSubtrees(trie=trie, motifTrie=motifTrie)
-
-        # Plot the Trie
-        self.plotTrie(trie=trie, motifTable=motifTable, countsMotif=countsMotif,
-                      datasetTag=datasetTag)
-
-
-
-    def plotCounts(self, countedData, totalCounts, fileName):
-        # Remove commas from string values and convert to float
-        countedData = countedData.applymap(lambda x:
-                                           float(x.replace(',', ''))
-                                           if isinstance(x, str) else x)
-
-        # Create heatmap
-        cMapCustom = self.createCustomColorMap(colorType='Counts')
-
-        # Convert the counts to a data frame for Seaborn heatmap
-        if self.residueLabelType == 0:
-            countedData.index = [residue[0] for residue in self.residues]
-        elif self.residueLabelType == 1:
-            countedData.index = [residue[1] for residue in self.residues]
-        elif self.residueLabelType == 2:
-            countedData.index = [residue[2] for residue in self.residues]
-
-        # Set figure title
-        title = f'\n\n{self.enzymeName}\n{fileName}\nN={totalCounts:,}'
-
-
-        # Plot the heatmap with numbers centered inside the squares
-        fig, ax = plt.subplots(figsize=self.figSize)
-        heatmap = sns.heatmap(countedData, annot=True, fmt=',d', cmap=cMapCustom,
-                              cbar=True, linewidths=self.lineThickness-1,
-                              linecolor='black', square=False, center=None,
-                              annot_kws={'fontweight': 'bold'})
-        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        figBorders = [0.852, 0.075, 0.117, 1]
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
-
-        # Set the thickness of the figure border
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-            spine.set_linewidth(self.lineThickness)
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks, width=self.lineThickness)
-        ax.tick_params(axis='y', labelrotation=0)
-
-        # Set x-ticks
-        xTicks = np.arange(len(countedData.columns)) + 0.5
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(countedData.columns)
-
-        # Set y-ticks
-        yTicks = np.arange(len(countedData.index)) + 0.5
-        ax.set_yticks(yTicks)
-        ax.set_yticklabels(countedData.index)
-
-
-        for _, spine in ax.spines.items():
-            spine.set_visible(True)
-
-        # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
-        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)
-        cbar.outline.set_linewidth(self.lineThickness)
-        cbar.outline.set_edgecolor('black')
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.show()
-
-
-
-    def calculateEntropy(self, rf, fixFullFrame=None, combinedMotifs=False,
-                         releasedCounts=False, manualEntropy=False, manualFrame=None):
-        print('============================== Calculate: Entropy '
-              '===============================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-              f'Unique Substrates: {red}{self.nSubsFinalUniqueSeqs:,}{resetColor}\n')
-
-        self.entropy = pd.DataFrame(0.0, index=rf.columns, columns=['ΔS'])
-        self.entropyMax = np.log2(len(rf.index))
-        for indexColumn in rf.columns:
-            S = 0
-            for indexRow, probRatio in rf.iterrows():
-                prob = probRatio[indexColumn]
-                if prob == 0:
-                    continue
-                else:
-                    S += -prob * np.log2(prob)
-            self.entropy.loc[indexColumn, 'ΔS'] = self.entropyMax - S
-        print(f'{self.entropy}\n\nMax Entropy: {self.entropyMax.round(6)}\n\n')
-
-        # Identify motif frame
-        if not manualEntropy:
-            if fixFullFrame is not None:
-                self.identifyMotif(fixFullFrame=fixFullFrame)
-        else:
-            print('================================ Identify Motif '
-                  '=================================')
-            print(f'Selecting a {yellow}user defined motif{resetColor}')
-            self.subFrame = pd.DataFrame(1, index=manualFrame, columns=['ΔS'])
-            print(f'Ranked Substrate Frame:\n'
-                  f'{blue}{self.subFrame}{resetColor}\n\n')
-
-        if self.plotFigEntropy:
-            self.plotEntropy(entropy=self.entropy, combinedMotifs=combinedMotifs,
-                             releasedCounts=releasedCounts)
-
-        return self.entropy
-
-
-
-    def plotEntropy(self, entropy, combinedMotifs=False, releasedCounts=False):
-        if self.filterSubs:
-            title = f'\n\n{self.enzymeName}\n{self.datasetTag}'
-        else:
-            title = f'\n\n\n{self.enzymeName}'
-
-        # Figure parameters
-        yMax = self.entropyMax + 0.2
-
-        # Map entropy values to colors using the colormap
-        colors = [(0, 'navy'),
-                  (0.3/self.entropyMax, 'navy'),
-                  (0.7/self.entropyMax, 'dodgerblue'),
-                  (0.97/self.entropyMax, 'white'),
-                  (0.98/self.entropyMax, 'white'),
-                  (1.0/self.entropyMax, 'white'),
-                  (1.65/self.entropyMax, 'red'),
-                  (3/self.entropyMax, 'firebrick'),
-                  (1, 'darkred')]
-        colorBar = LinearSegmentedColormap.from_list('custom_colormap', colors)
-
-
-        # Map entropy values to colors using the colormap
-        normalize = Normalize(vmin=0, vmax=yMax) # Normalize the entropy values
-        cMap = [colorBar(normalize(value)) for value in entropy['ΔS'].astype(float)]
-
-        # Plotting the entropy values as a bar graph
-        fig, ax = plt.subplots(figsize=self.figSize)
-        plt.bar(entropy.index, entropy['ΔS'], color=cMap,
-                edgecolor='black', linewidth=self.lineThickness, width=0.8)
-        plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
-        plt.ylabel('ΔS', fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
-        plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.subplots_adjust(top=0.852, bottom=0.075, left=0.12, right=0.9)
-        # self.figSizeMini
-        # plt.subplots_adjust(top=0.898, bottom=0.098, left=0.121, right=0.917)
-
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks)
-
-        # Set x-ticks
-        xTicks = np.arange(0, len(entropy.iloc[:, 0]), 1)
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(entropy.index, rotation=0, ha='center')
-        for tick in ax.xaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-
-        # Set y-ticks
-        yTicks = range(0, 5)
-        yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}' for tick in yTicks]
-        ax.set_yticks(yTicks)
-        ax.set_yticklabels(yTickLabels)
-        for tick in ax.yaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-
-        # Set the edge thickness
-        for spine in ax.spines.values():
-            spine.set_linewidth(self.lineThickness)
-
-        # Set axis limits
-        ax.set_ylim(0, yMax)
-
-        # Add color bar
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
-        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalize, cmap=colorBar), cax=cax)
-        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
-                            length=self.tickLength, width=self.lineThickness)
-        for tick in cbar.ax.yaxis.get_major_ticks():
-            tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-        cbar.outline.set_linewidth(self.lineThickness)
-
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
-
-
-        # Save the figure
-        if self.saveFigures:
-            # Define: Save location
-            if self.filterSubs:
-                figLabel = (f'{self.enzymeName} - Entropy - '
-                            f'{self.datasetTag} - '
-                            f'MinCounts {self.minSubCount}.png')
-            else:
-                figLabel = (f'{self.enzymeName} - Entropy - '
-                            f'Unfiltered - {len(xTicks)} AA - '
-                            f'MinCounts {self.minSubCount}.png')
-            if releasedCounts:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'Substrate Profile {self.datasetTag}')
-            if '/' in figLabel:
-                figLabel = figLabel.replace('/', '_')
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def plotLibraryProbDist(self, probInitial, probFinal, codonType, datasetTag,
-                            skipInitial=False):
-        # Inspect data
-        if probInitial is None and probFinal is None:
-            print(f'{orange}ERROR: both of the inputs for probInitial and '
-                  f'probFinal cannot be None.{resetColor}\n')
-            sys.exit(1)
-
-        # Initialize parameters
-        plotInitial, plotFinal = False, False
-        maxInitial = 0
-        maxInitialAdj = 0
-        maxFinal = 0
-        maxFinalAdj = 0
-
-        # Determine yMax
-        if probInitial is not None:
-            plotInitial = True
-            numPos = probInitial.shape[1]
-            numAA = probInitial.shape[0]
-            maxInitial = probInitial.values.max()
-            maxInitialAdj = np.floor(maxInitial * 10) / 10
-        if probFinal is not None:
-            plotFinal = True
-            numPos = probFinal.shape[1]
-            numAA = probFinal.shape[0]
-            maxFinal = probFinal.values.max()
-            maxFinalAdj= np.floor(maxFinal * 10) / 10
-        if maxFinalAdj > maxInitialAdj:
-            yMax = maxFinalAdj
-            maxY = maxFinal
-        else:
-            yMax = maxInitialAdj
-            maxY = maxInitial
-        if yMax > 0.6:
-            tickStepSize = 0.1
-        else:
-            tickStepSize = 0.05
-        if yMax != 1.0:
-            if yMax < maxY:
-                while yMax < maxY:
-                    yMax += tickStepSize
-            yMax = round(yMax, 1)
-        #yMax = 0.15
-        tickStepSize = 0.05
-
-
-        def plotFig(rf, sortType):
-            print('======================= Plot: AA Probability Distribution '
-                  '=======================')
-            if codonType == datasetTag:
-                print(f'Plotting Probability Distribution:'
-                      f' {purple}{codonType} codon{resetColor}')
-            else:
-                print(f'Plotting Probability Distribution:'
-                      f' {purple}{self.enzymeName} {sortType}{resetColor}')
-            print(f'{rf}\n')
-
-            if sortType == 'Initial Sort':
-                title = f'Unsorted {self.enzymeName} Library'
-            else:
-                if datasetTag is None or datasetTag == 'Unfiltered':
-                    title = f'Sorted {self.enzymeName} Library'
-                elif codonType == datasetTag:
-                    title = f'{codonType} Codon'
-                else:
-                    title = f'Sorted {self.enzymeName} Library - {datasetTag}'
-
-            fig, ax = plt.subplots(figsize=self.figSize)
-            plt.ylabel('Relative Frequency', fontsize=self.labelSizeAxis)
-            plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.subplots_adjust(top=0.926, bottom=0.068, left=0.102, right=0.979)
-
-            # Set tick parameters
-            ax.tick_params(axis='both', which='major', length=self.tickLength,
-                           width=self.lineThickness)
-
-            # Set x-ticks
-            if codonType == datasetTag:
-                widthBar = 9
-            else:
-                widthBar = 2
-            spacing = widthBar * numPos
-            widthCluster = spacing + 5
-            indices = np.arange(numAA) * widthCluster
-            midPoint = (numPos - 1) / 2 * widthBar
-            xTicks = indices + midPoint
-            ax.set_xticks(xTicks)
-            ax.set_xticklabels(rf.index, rotation=0, ha='center',
-                               fontsize=self.labelSizeTicks)
-
-            # Set y-ticks
-            yTicks = np.arange(0, yMax + tickStepSize, tickStepSize)
-            yTickLabels = [f'{tick:.0f}' if tick == 0 or tick == 1
-                           else f'{tick:.2f}' for tick in yTicks]
-            ax.set_yticks(yTicks)
-            ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
-            for tick in ax.yaxis.get_major_ticks():
-                tick.tick1line.set_markeredgewidth(self.lineThickness)
-
-            # Set the edge color
-            for index, AA in enumerate(rf.index):
-                xPos = indices[index] + np.arange(numPos) * widthBar
-                if AA == 'F' or AA == 'W' or AA == 'Y': # AA == 'N' or AA == 'Q' or
-                    ax.bar(xPos, rf.loc[AA], widthBar, label=AA,
-                           color=self.colorsAA[AA], edgecolor='dimgray')
-                else:
-                    ax.bar(xPos, rf.loc[AA], widthBar, label=AA,
-                           color=self.colorsAA[AA], edgecolor='black')
-
-            # Set the edge thickness
-            for spine in ax.spines.values():
-                spine.set_linewidth(self.lineThickness)
-
-            # Set axis limits
-            plt.ylim(0, yMax)
-
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.show()
-
-            if self.saveFigures:
-                # Define: Save location
-                if datasetTag is None:
-                    figLabel = (f'AA Distribution - {self.enzymeName} - '
-                                f'{sortType} - Y Max {yMax} - {codonType} - '
-                                f'MinCounts {self.minSubCount}.png')
-                else:
-                    if codonType == datasetTag:
-                        figLabel = (f'AA Distribution - {codonType} Codon - '
-                                    f'Y Max {yMax}.png')
-                    else:
-                        figLabel = (f'AA Distribution - {self.enzymeName} - {datasetTag} - '
-                                    f'{sortType} - Y Max {yMax} - {codonType} - '
-                                    f'MinCounts {self.minSubCount}.png')
-                saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-                # Save figure
-                if os.path.exists(saveLocation):
-                    print(f'{yellow}The figure was not saved\n\n'
-                          f'File was already found at path:\n'
-                          f'     {saveLocation}{resetColor}\n\n')
-                else:
-                    print(f'Saving figure at path:\n'
-                          f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                    fig.savefig(saveLocation, dpi=self.figureResolution)
-
-        # Plot the data
-        if plotInitial and not skipInitial:
-            plotFig(rf=probInitial, sortType='Initial Sort')
-        if plotFinal:
-            if codonType == datasetTag:
-                plotFig(rf=probFinal, sortType=datasetTag)
-            else:
-                plotFig(rf=probFinal, sortType='Final Sort')
-
-
-
-    def plotPositionalProbDist(self, probability, entropyScores, sortType, datasetTag):
-        print('======================== Plot: Probability Distribution '
-              '=========================')
-        for position in entropyScores.index:
-            yMax = 1
-
-            # Extract values for plotting
-            probabilities = list(probability.loc[:, position])
-
-            # Calculate positional entropy
-            shannonS = 0
-            notNumber = False
-            for AA in self.letters:
-                prob = probability.loc[AA, position]
-                shannonS += -prob * np.log2(prob)
-            if math.isnan(shannonS):
-                shannonS = 0
-                notNumber = True
-
-            # Plot the data
-            setEdgeColor = True
-            fig, ax = plt.subplots(figsize=self.figSizeMini)
-            if setEdgeColor:
-                widthBar = 0.8
-                xPos = np.arange(len(probability.index))
-
-                for index, AA in enumerate(probability.index):
-                    edgeColor = 'dimgray' if AA in ['F', 'W', 'Y'] else 'black'
-                    ax.bar(xPos[index], probability.loc[AA, position], widthBar, label=AA,
-                           color=self.colorsAA[AA], edgecolor=edgeColor)
-            else:
-                plt.bar(self.letters, probabilities,
-                        color=[self.colorsAA[AA] for AA in self.letters])
-            # plt.xlabel('Amino Acids', fontsize=self.labelSizeAxis)
-            plt.ylabel('Probability', fontsize=self.labelSizeAxis)
-            if notNumber:
-                plt.title(f'{self.enzymeName}: '
-                          f'Amino Acid Distribution at {position}\n'
-                          f'ΔS = {entropyScores.loc[position, "ΔS"]:.3f}, '
-                          f'Shannon Entropy = {shannonS:.0f}',
-                          fontsize=self.labelSizeTitle, fontweight='bold')
-            else:
-                plt.title(f'{self.enzymeName}: '
-                          f'Amino Acid Distribution at {position}\n'
-                          f'ΔS = {entropyScores.loc[position, "ΔS"]:.3f}, '
-                          f'Shannon Entropy = {shannonS:.3f}',
-                          fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.subplots_adjust(top=0.898, bottom=0.1, left=0.129, right=0.936)
-            plt.ylim(0, yMax)
-
-            # Set tick parameters
-            ax.tick_params(axis='both', which='major', length=self.tickLength,
-                           labelsize=self.labelSizeTicks)
-
-            # Set x-ticks
-            xTicks = np.arange(0, len(self.letters), 1)
-            ax.set_xticks(xTicks) # Set the positions of the ticks
-            ax.set_xticklabels(self.letters, rotation=0, ha='center',
-                               fontsize=self.labelSizeTicks)
-            for tick in ax.xaxis.get_major_ticks():
-                tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
-
-            # Set y-ticks
-            tickStepSize = 0.2
-            yTicks = np.arange(0, yMax + tickStepSize, tickStepSize)
-            yTickLabels = [f'{tick:.0f}' if tick == 0 or tick == 1 else f'{tick:.1f}'
-                           for tick in yTicks]
-            ax.set_yticks(yTicks) # Set the positions of the ticks
-            ax.set_yticklabels(yTickLabels)
-            for tick in ax.yaxis.get_major_ticks():
-                tick.tick1line.set_markeredgewidth(self.lineThickness)
-
-            # Set the edge thickness
-            for spine in ax.spines.values():
-                spine.set_linewidth(self.lineThickness)
-
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.show()
-
-            # Save the figure
-            if self.saveFigures:
-                # Define: Save location
-                if datasetTag is None:
-                    figLabel = (f'AA Distribution - {position} - {self.enzymeName} - '
-                                f'{sortType} - Unfiltered - '
-                                f'MinCounts {self.minSubCount}.png')
-                else:
-                    figLabel = (f'AA Distribution - {position} - {self.enzymeName} - '
-                                f'{sortType} - {datasetTag} - '
-                                f'MinCounts {self.minSubCount}.png')
-                saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-                # Save figure
-                if os.path.exists(saveLocation):
-                    print(f'{yellow}The figure was not saved\n\n'
-                          f'File was already found at path:\n'
-                          f'     {saveLocation}{resetColor}\n\n')
-                else:
-                    print(f'Saving figure at path:\n'
-                          f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                    fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def plotWordCloud(self, substrates, clusterNumPCA=None,
-                      combinedMotifs=False, predActivity=False, predModel=False):
-        print('=============================== Plot: Word Cloud '
-              '================================')
-        if clusterNumPCA is not None:
-            print(f'Selecting PCA Population:{red} {clusterNumPCA}{resetColor}')
-        else:
-            print(f'Substrates: {purple}{self.datasetTag}{resetColor}')
-        iteration = 0
-        for substrate, count in substrates.items():
-            print(f'     {blue}{substrate}{resetColor}, '
-                  f'Count:{red} {round(count, 1):,}{resetColor}')
-            iteration += 1
-            if iteration == self.printNumber:
-                break
-        print('')
-
+    def plotWordCloud(self, substrates):
         # Limit the number of words
-        if self.wordsLimit:
-            print(f'Selecting: {red}{self.wordsTotal}{resetColor} words')
-            subs = {}
-            iteration = 0
-            for substrate, count in substrates.items():
-                subs[substrate] = count
-                iteration += 1
-                if iteration >= self.wordsTotal:
-                    break
-            substrates = subs
+        subs = {}
+        iteration = 0
+        for substrate, count in substrates.items():
+            subs[substrate] = count
+            iteration += 1
+            if iteration >= self.numSamples:
+                break
+        substrates = subs
         totalWords = len(substrates)
-        print(f'Plotting: {red}{totalWords:,}{resetColor} words\n\n')
 
-        # Define: Figure title
-        if predActivity:
-            title = f'{self.enzymeName}\n{predModel}'
+        # Set figure title
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
-            title = self.titleWords
-            title += f'\nTop {totalWords} Substrates'
-
+            title = self.enzymeName
 
         # Create word cloud
         cmap = self.createCustomColorMap(colorType='Word Cloud')
@@ -5750,1124 +2119,107 @@ class NGS:
             colormap=cmap
         ).generate_from_frequencies(substrates))
 
-
         # Display the word cloud
         fig = plt.figure(figsize=self.figSize, facecolor='white')
         plt.imshow(wordcloud, interpolation='bilinear')
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.axis('off')
-        fig.canvas.mpl_connect('key_press_event', pressKey)
         fig.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
+        fig.set_size_inches(self.figSize)
+
+        # File path
+        figName = self.getFileNameFig('wordcloud', f'-{totalWords}_Words')
+        path = os.path.join(self.pathFigs, figName)
+        # self.log(f'\nSaving Wordcloud:\n     {path}')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
+
+
+    def plotWebLogo(self):
+        # Set figure title
+        if self.datasetTagMotif:
+            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
         else:
-            plt.show()
+            title = self.enzymeName
 
-
-        # Save the Figure
-        if self.saveFigures:
-            if self.motifLen == None:
-                seqLength = len(self.xAxisLabels)
-            else:
-                seqLength = self.motifLen
-
-            # Define: Save location
-            if combinedMotifs:
-                figLabel = (f'{self.enzymeName} - Words - Substrate Profile '
-                            f'{self.datasetTagMotif} - {seqLength} AA - '
-                            f'Plot {totalWords} - MinCounts {self.minSubCount}.png')
-            else:
-                figLabel = (f'{self.enzymeName} - Words - '
-                            f'{self.datasetTag} - {seqLength} AA - '
-                            f'Plot {totalWords} - MinCounts {self.minSubCount}.png')
-            if self.wordsLimit:
-                figLabel = figLabel.replace(
-                    f'Plot {totalWords}',
-                    f'Select {self.wordsTotal} Plot {totalWords}')
-            if clusterNumPCA is not None:
-                figLabel = figLabel.replace('Words',
-                                            f'Words - PCA {clusterNumPCA}')
-            if predActivity:
-                if combinedMotifs:
-                    figLabel = figLabel.replace(
-                        self.datasetTagMotif,
-                        f'{self.datasetTagMotif} - Predictions - {predModel}')
-                else:
-                    figLabel = figLabel.replace(
-                        self.datasetTag,
-                        f'{self.datasetTag} - Predictions - {predModel}')
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-            if self.useEF:
-                saveLocation = saveLocation.replace('Words', 'Words - EF')
-            else:
-                saveLocation = saveLocation.replace('Words', 'Words - Counts')
-
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def findSequence(self, substrates, sequence, sortType, combinedMotifs=False):
-        print('================================= Find Sequence '
-              '=================================')
-        if 'initial' in sortType.lower():
-            print(f'Dataset: {purple}Unfiltered{resetColor}\n'
-                  f' Enzyme: {purple}{self.enzymeName}{resetColor}\n'
-                  f'   Sort: {purple}{sortType}{resetColor}')
+        # Set parameters
+        if self.bigAAonTop:
+            stackOrder = 'big_on_top'
         else:
-            print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-                  f' Enzyme: {purple}{self.enzymeName}{resetColor}\n'
-                  f'   Sort: {purple}{sortType}{resetColor}')
-        totalSubstrates = 0
-        totalHits = 0
-        hits = {}
-        useStr = True
-        if isinstance(sequence, str):
-            for substrate, count in substrates.items():
-                totalSubstrates += count
-                if sequence in substrate:
-                    totalHits += count
-                    hits[substrate] = count
-        else:
-            useStr = False
-            for substrate, count in substrates.items():
-                totalSubstrates += count
-                for seq in sequence:
-                    if seq in substrate:
-                        totalHits += count
-                        hits[substrate] = count
-        if combinedMotifs:
-            print(f'Unique Motifs: {red}{len(substrates.keys()):,}{resetColor}\n'
-                  f' Total Motifs: {red}{totalSubstrates:,}{resetColor}\n')
-        else:
-            print(f'Unique Sequences: {red}{len(substrates.keys()):,}{resetColor}\n'
-                  f' Total Sequences: {red}{totalSubstrates:,}{resetColor}\n')
+            stackOrder = 'small_on_top'
 
-        # Find matches
-        if useStr:
-            print(f'Finding Sequence: {purple}{sequence}{resetColor}')
-        else:
-            print(f'Finding Sequence: {purple}{", ".join(sequence)}{resetColor}')
-        if len(hits.keys()) > 0:
-            color = pink
-            print(f'Hits:')
-            if useStr:
-                for index, (substrate, count) in enumerate(hits.items()):
-                    substrate = substrate.replace(sequence, f'{blue}{sequence}{color}')
-                    print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
-                    if index >= self.printNumber:
-                        break
-            else:
-                for index, (substrate, count) in enumerate(hits.items()):
-                    for seq in sequence:
-                        substrate = substrate.replace(seq, f'{blue}{seq}{color}')
-                    print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
-                    if index >= self.printNumber:
-                        break
-        else:
-            print(f'Hits: {red}{totalHits}{resetColor}')
-        print(f'Unique Sequences: {red}{len(hits.keys()):,}{resetColor}\n'
-              f'   Total Matches: {red}{totalHits:,}{resetColor}\n')
-        hitsPercent = (totalHits / totalSubstrates) * 100
-        print(f'Hit Population: {red}{totalHits:,}{resetColor} / {red}{totalSubstrates:,}'
-              f'{resetColor} = {red}{round(hitsPercent,self.roundVal)} %'
-              f'{resetColor}\n\n')
+        # Rename columns for logomaker script
+        data = self.rfExpScaled.copy().replace([np.inf, -np.inf], 0)
+        xticks = data.columns
+        data.columns = range(len(data.columns))
 
-
-    def findAAInSequence(self, substrates, AA, idxPos, sortType, combinedMotifs=False):
-        print('================================= Find Sequence '
-              '=================================')
-        idxPos -= 1 # Adjust index
-        if 'initial' in sortType.lower():
-            print(f'Dataset: {purple}Unfiltered{resetColor}\n'
-                  f' Enzyme: {purple}{self.enzymeName}{resetColor}\n'
-                  f'   Sort: {purple}{sortType}{resetColor}')
-        else:
-            print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-                  f' Enzyme: {purple}{self.enzymeName}{resetColor}\n'
-                  f'   Sort: {purple}{sortType}{resetColor}')
-        totalSubstrates = 0
-        totalHits = 0
-        hits = {}
-        useStr = True
-        if isinstance(AA, str):
-            for substrate, count in substrates.items():
-                totalSubstrates += count
-                if substrate[idxPos] == AA:
-                    totalHits += count
-                    hits[substrate] = count
-        else:
-            useStr = False
-            for substrate, count in substrates.items():
-                totalSubstrates += count
-                #print(f'Sub: {substrate}\n  I: {idxPos}, AA: {substrate[idxPos]}')
-                if substrate[idxPos] in AA:
-                    totalHits += count
-                    hits[substrate] = count
-        if combinedMotifs:
-            print(f'Unique Motifs: {red}{len(substrates.keys()):,}{resetColor}\n'
-                  f' Total Motifs: {red}{totalSubstrates:,}{resetColor}\n')
-        else:
-            print(f'Unique Sequences: {red}{len(substrates.keys()):,}{resetColor}\n'
-                  f' Total Sequences: {red}{totalSubstrates:,}{resetColor}\n')
-
-        # Find matches
-        print(f'Finding: {purple}{AA}@R{idxPos + 1}{resetColor}')
-        if len(hits.keys()) > 0:
-            color = pink
-            print(f'Hits:')
-            if useStr:
-                for index, (substrate, count) in enumerate(hits.items()):
-                    substrate = substrate.replace(AA, f'{blue}{AA}{color}')
-                    print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
-                    if index >= self.printNumber:
-                        break
-            else:
-                for index, (substrate, count) in enumerate(hits.items()):
-                    substrate = substrate.replace(
-                        substrate[idxPos], f'{blue}{substrate[idxPos]}{color}')
-                    print(f'  {color}{substrate}{resetColor}, {red}{count:,}{resetColor}')
-                    if index >= self.printNumber:
-                        break
-        else:
-            print(f'Hits: {red}{totalHits}{resetColor}')
-        print(f'Unique Sequences: {red}{len(hits.keys()):,}{resetColor}\n'
-              f'   Total Matches: {red}{totalHits:,}{resetColor}\n')
-        hitsPercent = (totalHits / totalSubstrates) * 100
-        print(f'Hit Population: {red}{totalHits:,}{resetColor} / {red}{totalSubstrates:,}'
-              f'{resetColor} = {red}{round(hitsPercent,self.roundVal)} %'
-              f'{resetColor}\n\n')
-
-
-
-    def extractMotif(self, substrates, motifFrame, frameIndicies, datasetTag):
-        print('================================= Extract Motif '
-              '=================================')
-        print(f'Binning Substrates: {purple}{datasetTag}{resetColor}\n'
-              f'Start Position:{greenLightB} {motifFrame[frameIndicies[0]]}'
-              f'{resetColor}\n'
-              f'   Start Index:{greenLightB} {frameIndicies[0]}{resetColor}\n'
-              f'End Position:{greenLightB} {motifFrame[frameIndicies[-1]]}'
-              f'{resetColor}\n'
-              f'   End Index:{greenLightB} {frameIndicies[-1]}{resetColor}\n\n')
-        frameLength = len(motifFrame)
-        sys.exit(1)
-
-
-        # Bin substrates
-        motifs = {}
-        countTotalSubstrates = 0
-        countUniqueSubstrates = 0
-        for index, subsFixedFrame in enumerate(substrates):
-            # Define fixed frame positions & extract the data
-            startPosition = frameIndicies[0]
-            startSubPrevious = startPosition
-            if index != 0:
-                # Evaluate previous fixed frame index
-                fixedPosDifference = (self.fixedPos[index] -
-                                      self.fixedPos[index - 1])
-                startSubPrevious += fixedPosDifference
-                # print(f'Pos Curr: {purple}{self.fixedPos[index]}{resetColor}\n'
-                #       f'Pos Prev: {purple}{self.fixedPos[index - 1]}{resetColor}')
-                # print(f'     Start Diff:{greenLightB} {fixedPosDifference}{resetColor}\n'
-                #       f'     Start Prev:{greenLightB} {startSubPrevious}{resetColor}')
-                startSub = index + startSubPrevious - 1
-                endSub = startSub + frameLength
-            else:
-                startSub = startPosition
-                endSub = frameIndicies[-1] + 1
-            # print(f'Start:{red} {startSub}{resetColor}\n'
-            #       f'Stop:{red} {endSub}{resetColor}\n\n')
-
-            # Print: Substrates
-            print(f'Fixed Motif: {purple}{self.fixedAA[0]}@{self.fixedPos[index]}'
-                  f'{resetColor}')
-            iteration = 0
-            for substrate, count in subsFixedFrame.items():
-                print(f'Substrate:{pink} {substrate}{resetColor}\n'
-                      f'    Frame:{blue} {substrate[startSub:endSub]}{resetColor}\n'
-                      f'    Count:{red} {count:,}{resetColor}')
-                iteration += 1
-                if iteration == self.printNumber:
-                    print('\n')
-                    break
-
-                # Add substrate frame to the substrate dictionary
-                for substrate, count in subsFixedFrame.items():
-                    countTotalSubstrates += count
-                    sub = substrate[startSub:endSub]
-
-                    if sub in motifs:
-                        motifs[sub] += count
-                    else:
-                        countUniqueSubstrates += 1
-                        motifs[sub] = count
-        # Sort the dictionary
-        motifs = dict(sorted(motifs.items(), key=lambda item: item[1], reverse=True))
-
-        # Print: Binned substrates
-        iteration = 0
-        print(f'Binned Substrates{resetColor}: {purple}{datasetTag}{resetColor}')
-        for substrate, count in motifs.items():
-            print(f'     {pink} {substrate}{resetColor}, '
-                  f'Count:{red} {count:,}{resetColor}')
-            iteration += 1
-            if iteration == self.printNumber:
-                print('\n')
-                break
-        print(f'Total Substrates:{red} {countTotalSubstrates:,}{resetColor}\n'
-              f'Unique Substrates:{red} {countUniqueSubstrates:,}{resetColor}\n\n')
-
-        return motifs, countTotalSubstrates
-
-
-
-    def evaluateSubtrees(self, trie, motifTrie):
-        print('============================= Evaluate Suffix Tree '
-              '==============================')
-        print(f'Datapoints: {len(motifTrie.keys())}')
-
-        def subtreeTable(subtreeFreq):
-            # Sort motifs by length
-            sortedMotifs = sorted(subtreeFreq.keys(), key=len)
-
-            # Organize motifs by their length and sort by frequency (highest first)
-            motifGroups = {}
-            for motif in sortedMotifs:
-                length = len(motif)
-                if length not in motifGroups:
-                    motifGroups[length] = []
-                motifGroups[length].append((motif, subtreeFreq[motif]))
-
-            # Sort motifs in each length group by frequency (descending)
-            for length in motifGroups:
-                motifGroups[length].sort(key=lambda x: x[1], reverse=True)
-
-            # Convert motifs back to formatted strings
-            for length in motifGroups:
-                motifGroups[length] = [f"{motif}: {round(freq, 5)}"
-                                       for motif, freq in motifGroups[length]]
-
-            # Find the max number of motifs in any length group
-            maxRows = max(len(motifs) for motifs in motifGroups.values())
-
-            # Construct the table row by row
-            tableData = []
-            for i in range(maxRows):
-                row = []
-                for length in sorted(motifGroups.keys()):
-                    motifs = motifGroups[length]
-                    row.append(motifs[i] if i < len(
-                        motifs) else "") # Fill missing values with empty strings
-                tableData.append(row)
-
-            # Convert to DataFrame
-            motifTable = pd.DataFrame(tableData,
-                                      index=range(1, len(motifTrie.keys()) + 1),
-                                      columns=[str(length)
-                                               for length in sorted(motifGroups.keys())])
-            print(f'{motifTable}\n\n')
-
-            return motifTable
-
-
-        def printTrie(node, level=0, path=""):
-            # Recursively print the Trie structure
-            if node is None:
-                return
-
-            # Print: Current node's path and level
-            print("  " * level + f"Level {level}: {path}")
-
-            # Recursively print all children of the current node
-            for char, nodeChild in node.children.items():
-                printTrie(nodeChild, level + 1, path + char)
-
-
-        motifsTotal = 0
-        for motif, count in motifTrie.items():
-            motifsTotal += count
-        print(f'Total Motifs: {motifsTotal:,}\n')
-
-        # Evaluate: Partial sequence counts
-        subtreeCount = {}
-        motifLength = len(next(iter(motifTrie)))
-        for index in range(motifLength):
-            for motif, count in motifTrie.items():
-                subSeq = motif[0:index+1]
-                if subSeq in subtreeCount.keys():
-                    subtreeCount[subSeq] += count
-                else:
-                    subtreeCount[subSeq] = count
-
-        # Evaluate: Partial sequence frequency
-        subtreeFreq = {}
-        for subSeq, count in subtreeCount.items():
-            subtreeFreq[subSeq] = count / motifsTotal
-        prevSeqLen = 1
-        for subSeq, count in subtreeFreq.items():
-            if len(subSeq) != prevSeqLen:
-                prevSeqLen = len(subSeq)
-        motifTable = subtreeTable(subtreeFreq)
-
-
-        # Plot the trie
-        printTrie(trie.root)
-        print('\n')
-
-        return motifTable
-
-
-
-    def plotTrie(self, trie, motifTable, countsMotif, datasetTag):
-        print('=============================== Plot: Suffix Tree '
-              '===============================')
-        import networkx as nx
-
-        inOffset = 2000
-        inNodeSizeMax = 800
-        inNodeSizeMin = 100
-        inFontSize = 10
-        inScaleX = 2
-        inScaleY = 1
-
-        # Calculate: Node size
-        nodeSizes = pd.DataFrame('',
-                                 index=motifTable.index,
-                                 columns=motifTable.columns)
-        for col in motifTable.columns:
-            for index, entry in enumerate(motifTable[col].dropna()):
-                if ": " in entry:
-                    motif, rf = entry.split(": ")
-                    nodeSize = inNodeSizeMax - (inNodeSizeMax * (1 - float(rf)))
-                    if nodeSize < 100:
-                        nodeSize = inNodeSizeMin
-                    if len(motif) > 2:
-                        motif = motif[-2:]
-                    nodeSizes.loc[index+1, col] = f'{motif}: {nodeSize:.2f}'
-        print(f'Node Size:\n{nodeSizes}\n')
-
-
-        def addNodesToGraph(node, graph, scaleX, scaleY, offset=inOffset,
-                            nodeSizesDF=None):
-            pos = {}
-            nodeSizes = {}
-            nodeCountLevel = {}
-
-            # Track node index separately
-            queue = [(node, None, '', '', 0,
-                      1)]  # (currentNode, parentID, char, fullMotif, level, index)
-
-            while queue:
-                nodeCurrent, parent, char, motifSoFar, level, index = queue.pop(0)
-                nodeID = f"{char}-{level}-{id(nodeCurrent)}"
-
-                if level not in nodeCountLevel:
-                    nodeCountLevel[level] = []
-                nodeCountLevel[level].append(
-                    (nodeCurrent, parent, char, nodeID, motifSoFar, index))
-
-                fullMotif = motifSoFar + char  # Build full motif sequence
-
-                # Assign node size from nodeSizesDF if available
-                nodeSize = inNodeSizeMin  # Default size
-                if nodeSizesDF is not None and level in nodeSizesDF.columns:
-                    entry = nodeSizesDF.iloc[index - 1, level]  # Use the tracked index
-                    if isinstance(entry, str) and ": " in entry:
-                        _, size = entry.split(": ")
-                        nodeSize = float(size)
-
-                graph.add_node(nodeID, label=char, size=nodeSize)
-                nodeSizes[nodeID] = nodeSize
-
-                if parent is not None:
-                    graph.add_edge(parent, nodeID, arrowstyle='->')
-
-                # Track child nodes with incremented index
-                childIndex = 1
-                for child_char, nodeChild in nodeCurrent.children.items():
-                    queue.append(
-                        (nodeChild, nodeID, child_char, fullMotif, level + 1, childIndex))
-                    childIndex += 1  # Ensure a unique index for each child
-
-            return pos, nodeSizes
-
-
-        # Build the graph
-        graph = nx.DiGraph()
-        pos, nodeSizes = addNodesToGraph(trie.root, graph, scaleX=inScaleX,
-                                         scaleY=inScaleY, offset=inOffset,
-                                         nodeSizesDF=nodeSizes)
-        finalNodeSizes = [graph.nodes[node]["size"] for node in graph.nodes]
-
-        # Get node labels
-        labels = {node: data['label'] for node, data in graph.nodes(data=True)}
-
-        # Print: Dataset tag
-        if datasetTag is None:
-            figLabel = f'Suffix Tree - {self.enzymeName} - {countsMotif} - Unfixed'
-
-        else:
-            figLabel = f'Suffix Tree - {self.enzymeName} - {countsMotif} - {datasetTag}'
-
-
-        # Plot the data
+        # Plot the sequence motif
         fig, ax = plt.subplots(figsize=self.figSize)
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-
-        # Draw graph
-        nx.draw(graph, pos, with_labels=True, labels=labels, node_size=finalNodeSizes,
-                node_color="#F18837", font_size=inFontSize, font_weight="bold",
-                edge_color="#101010", ax=ax, arrows=False)
-        plt.title(f'{self.enzymeName}: {datasetTag}\nTop {countsMotif:,} Motifs',
-                  fontsize=16, fontweight='bold')
-        plt.tight_layout()
-        plt.show()
-
-        # Save the figure
-        if self.saveFigures:
-            # Define: Save location
-            figLabel += '.png'
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-
-            # Save figure
-            if os.path.exists(saveLocation):
-                print(f'{yellow}The figure was not saved\n\n'
-                      f'File was already found at path:\n'
-                      f'     {saveLocation}{resetColor}\n\n')
-            else:
-                print(f'Saving figure at path:\n'
-                      f'     {greenDark}{saveLocation}{resetColor}\n\n')
-                fig.savefig(saveLocation, dpi=self.figureResolution)
-
-
-
-    def generateSubstrates(self, df, eMap, minES, dataType, subsReq={}, filter={}):
-        print('============================== Generate Substrates '
-              '==============================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-              f'DataFrame Type: {purple}{dataType}{resetColor}\n'
-              f'{df}\n')
-
-        # Select favorable AAs
-        print(f'Preferred Residues:')
-        preferredAAs = []
-        addedAAsTag = ''
-        for index, pos in enumerate(df.columns):
-            if pos in filter.keys():
-                nonzeroAAs = filter[pos]
-            else:
-                nonzeroAAs = df[df[pos] != 0].index.tolist()
-
-                # Filter out AAs with low ES
-                ES = eMap.loc[:, pos]
-                nonzeroAAs = [aa for aa in nonzeroAAs if ES[aa] >= minES]
-
-            # Add AAs for inSubsPred
-            if subsReq != {}:
-                addedAAs = []
-                for key, substrates in subsReq.items():
-                    for substrate in substrates:
-                        AA = substrate[index]
-                        if AA not in addedAAs and AA not in nonzeroAAs:
-                            addedAAs.append(AA)
-                            nonzeroAAs.append(AA)
-
-                    # Record added AAs
-                    if addedAAs:
-                        if len(addedAAs) == 1:
-                            label = f'{addedAAs[0]}@{pos}'
-                        else:
-                            label = f'[{",".join(addedAAs)}]@{pos}'
-                        if index == len(df.columns) - 1:
-                            addedAAsTag += f'{label}'
-                        else:
-                            addedAAsTag += f'{label}_'
-            print(f'     Position {greenLight}{pos}{resetColor}: '
-                  f'{pink}{", ".join(nonzeroAAs)}{resetColor}')
-            preferredAAs.append(nonzeroAAs)
-        print()
-
-        if addedAAsTag != '':
-            print(f'Added AAs: {pink}{addedAAsTag}{resetColor}')
-        print(f'Minimum ES: {red}{minES}{resetColor}\n')
-        # Generate all possible substrate combinations
-        allDualModelss = list(product(*preferredAAs))
-        # print(f'\n\nDualModelss:\n{allDualModelss}\n\n')
-
-        # Convert tuples to strings (AA sequences)
-        genSubstrates = [''.join(DualModels) for DualModels in allDualModelss]
-        NSubs = len(genSubstrates)
-        print(f'Generated substrates: {red}N = {NSubs:,}{resetColor}')
-        for iteration in range(0, self.printNumber):
-            index = random.randint(0, NSubs)
-            print(f'     {pink}{genSubstrates[index]}{resetColor}')
-        print('\n')
-
-        return genSubstrates, addedAAsTag
-    
-    
-    def normalizeValues(self, substrates, datasetTag):
-        print(f'=============================== Normalize Values '
-              f'===============================')
-        print(f'Dataset: {purple}{datasetTag}{resetColor}')
-        self.maxValue = max(substrates.values())
-        print(f'Max Value: {red}{self.maxValue:,}{resetColor}\n')
-
-        # Inspect datatype
-        useIntegers = False
-        for value in substrates.values():
-            if isinstance(value, int):
-                useIntegers = True
-                break
-
-        # Normalize the values
-        substratesNormValues = {}
-        for substrate, value in substrates.items():
-            substratesNormValues[substrate] = (value / self.maxValue)
-        print(f'Normalized Values: {purple}Top {self.printNumber} Substrates{resetColor}')
-        if useIntegers:
-            for iteration, (substrate, value) in enumerate(substratesNormValues.items()):
-                print(f'     {pink}{substrate}, {red}{round(value, self.roundVal):,}'
-                      f'{resetColor}')
-                if iteration >= self.printNumber:
-                    break
-        else:
-            for iteration, (substrate, value) in enumerate(substratesNormValues.items()):
-                print(f'     {pink}{substrate}{resetColor}, {red}{round(value, 3):,}'
-                      f'{resetColor}')
-                if iteration >= self.printNumber:
-                    break
-        print('\n')
-
-        return substratesNormValues
-
-
-
-    def divideDataset(self, substrates, quantileSplit):
-        print('================================ Divide Dataset '
-              '=================================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n')
-
-        # Convert data to a df
-        pd.set_option('display.max_rows', 10)
-        dfSubstrates = pd.DataFrame(substrates.values(),
-                                            index=substrates.keys(),
-                                            columns=['Activity'])
-
-        # Split dataset
-        cutoff = (100 - quantileSplit) / 100
-        threshold = dfSubstrates['Activity'].quantile(cutoff)
-        dfHigh = dfSubstrates[dfSubstrates['Activity'] > threshold]
-        dfLow = dfSubstrates[dfSubstrates['Activity'] <= threshold]
-        print(f'Substrates: {pink}Top {quantileSplit}% Activity Scores\n'
-              f'{resetColor}{dfHigh}\n\n\n'
-              f'Substrates: {pink}Remaining {100 - quantileSplit}% Activity Scores\n'
-              f'{resetColor}{dfLow}\n\n')
-
-
-        # seq = 'LVLQ'
-        # seq2 = 'NDL'
-        # print(f'Find Sequence: {greenLight}{seq}_{seq2}{resetColor}')
-        # for substrate, value in substratesNormValues.items():
-        #     if seq in substrate and seq2 in substrate:
-        #     # if 'CSMQLGLT' in substrate:
-        #         print(f'     {pink}{substrate}{resetColor}, {red}{round(value, 5):,}'
-        #               f'{resetColor}')
-        # print('')
-        #
-        # seq = 'TVLQ'
-        # seq2 = 'AML'
-        # print(f'Find Sequence: {greenLight}{seq}_{seq2}{resetColor}')
-        # for substrate, value in substratesNormValues.items():
-        #     if seq in substrate and seq2 in substrate:
-        #         # if 'CSMQLGLT' in substrate:
-        #         print(f'     {pink}{substrate}{resetColor}, {red}{round(value, 5):,}'
-        #               f'{resetColor}')
-        # print('')
-
-
-        # Divide low substrate scores
-        substratesFiltered = dfHigh
-        numSections = 5
-        maxScoreLow = max(dfLow.loc[:, 'Activity'])
-        minScoreLow = min(dfLow.loc[:, 'Activity'])
-        section = maxScoreLow / numSections
-        activityRange = np.arange(minScoreLow, maxScoreLow + section, section)[::-1]
-        activityRange[0] = maxScoreLow
-
-        # Collect substrates
-        print(f'Collecting substrates from the low activity dataset:')
-        for index, valueA in enumerate(activityRange):
-            if index == numSections - 1:
-                break
-            index = index + 1
-            valueB = activityRange[index]
-
-            # Select substrates
-            selected = dfLow[(dfLow['Activity'] <= valueA)
-                             & (dfLow['Activity'] > valueB)]
-            selectedSubsN = len(selected.index)
-            print(f'Low Activity Subset: {red}{index}{resetColor}\n'
-                  f'   Total substrates: {red}{selectedSubsN}{resetColor}\n'
-                  f'     Activity Range: {red}{round(valueA, 5)}{resetColor} - '
-                  f'{red}{round(valueB, 5)}{resetColor}')
-
-            if index > 2:
-                # Select subset of the subset
-                selectNthSubstrate = 10
-                print(f'     Selecting every {red}{selectNthSubstrate}th{resetColor} '
-                      f'substrate')
-                selected = selected.iloc[::selectNthSubstrate]
-            substratesFiltered = pd.concat([substratesFiltered, selected])
-            print(f'{selected}\n\n')
-        print(f'Filtered Substrates:\n{greenLight}{substratesFiltered}{resetColor}\n\n')
-
-        collectedSubs = {}
-        for substrate in substratesFiltered.index:
-            collectedSubs[substrate] = substratesFiltered.loc[substrate, 'Activity']
-
-        return collectedSubs
-
-
-
-    def normalizeProbRatios(self, finalRF, initialRF, pData=True, pHeader=True):
-        if pData:
-            if pHeader:
-                print('========================= Normalize Probability Ratios '
-                      '==========================')
-            else:
-                print(f'Normalize Probability Ratios: {purple}{self.datasetTag}{resetColor}')
-            print(f'Relative Frequency: {purple}Final{resetColor}\n{finalRF}\n')
-            print(f'Relative Frequency: {purple}Initial{resetColor}\n{initialRF}\n\n')
-
-        # Calculate: RF ratios
-        ratio = pd.DataFrame(0.0, index=finalRF.index, columns=finalRF.columns)
-        for col in ratio.columns:
-            if len(initialRF.columns) == 1:
-                ratio.loc[:, col] = finalRF.loc[:, col] / initialRF.iloc[:, 0]
-            else:
-                ratio.loc[:, col] = finalRF.loc[:, col] / initialRF.loc[:, col]
-        ratio = ratio.replace([-np.inf, np.inf], 0.0) # Remove inf values
-        if pData:
-            print(f'RF Ratios:\n{ratio}\n\n')
-
-
-        # Calculate: Ratio probability
-        prob = pd.DataFrame(0.0, index=finalRF.index, columns=finalRF.columns)
-        for col in prob.columns:
-            for AA in prob.index:
-                prob.loc[AA, col] = ratio.loc[AA, col] / sum(ratio.loc[:, col])
-        if pData:
-            print(f'Probability:\n{prob}\n\n')
-
-        return prob
-
-
-
-    def predictActivity(self, activityExp, finalRF, initialRF, predModel,
-                        predLabel, errorBars=False, combinedMotifs=False,
-                        releasedCounts=False, plotBars=True, barWidth=0.35):
-        print('============================ Predict Substrate Activity '
-              '=============================')
-        N = len(activityExp.keys())
-        print(f'Dataset: {purple}{predModel}{resetColor}\n'
-              f'Evaluating: {purple}{predLabel}{resetColor}\n'
-              f'N Substrate Sequences: {red}{N:,}{resetColor}\n')
-
-        # Get prediction matrix
-        matrix = self.normalizeProbRatios(finalRF=finalRF,
-                                          initialRF=initialRF,
-                                          pHeader=False)
-
-        # z = matrix.copy()
-        # for col in matrix.columns:
-        #     for aa in matrix.index:
-        #         z.loc[aa, col] = self.zScore(matrix[col], aa)
-        # print(f'Z Matrix:\n{z}\n')
-
-
-        def evalSubs(values, errorBars, tag):
-            # Calculate: Activity
-            activityPred = {}
-            subLen = len(next(iter(activityExp)))
-            for substrate in activityExp.keys():
-                print(f'{pink}{substrate}{resetColor}')
-                score = 0
-                for index in range(subLen):
-                    # Evaluate substrate
-                    AA = substrate[index]
-                    pos = values.columns[index]
-                    value = values.loc[AA, pos]
-                    print(f'* {pink}{AA}@{pos}{resetColor}: {round(value,4)}')
-
-                    if score == 0:
-                        score = value
-                    else:
-                        score *= value
-                print(f'Score: {red}{score:.3e}{resetColor}\n')
-                x  = score
-                # for t in ['square root', 'square', 'root', 'sqrt', 'sq rt']:
-                #     if t in predLabel.lower():
-                #         x = np.sqrt(x) ##
-                #         break
-                # print(f'Sub: {purple}{substrate}{resetColor}\n'
-                #       f'Score: {score:.3e}\n'
-                #       f'    X: {x:.3e}\n')
-
-                activityPred[substrate] = x
-            ranked = pd.Series(activityPred.values()).rank(
-                ascending=False, method='min').astype(int)
-
-
-            maxActivity = max(activityPred.values())
-            dec = self.roundVal - 1
-            print(f'Matrix Type: {purple}{tag}{resetColor}\n'
-                  f'Predicted Activity: '
-                  f'(Max Score: {red}{maxActivity:.{dec}e}{resetColor})')
-            for index, (substrate, activity) in enumerate(activityPred.items()):
-                print(f'    {pink}{substrate}{resetColor} ({ranked[index]}), '
-                      f'Score: {red}{activity:.{dec}e}{resetColor}')
-                if index == self.printNumber - 1:
-                    break
-            print()
-
-            # Normalize values
-            maxExpActivity = max(activityExp.values())
-            for index, (substrate, activity) in enumerate(activityPred.items()):
-                activityPred[substrate] = activity / maxActivity
-                activityExp[substrate] = activityExp[substrate] / maxExpActivity
-            print(f'Predicted Normalized Activity:')
-            scores = []
-            for index, (substrate, activity) in enumerate(activityPred.items()):
-                s = f'{activity:,.{self.roundVal}f}'
-                l = np.log(activity)
-                l = f'{l:,.{self.roundVal}f}'
-                scores.append(float(s))
-                print(f'    {pink}{substrate}{resetColor} ({ranked[index]}), '
-                      f'Score: {red}{s}{resetColor}, '
-                      f'Nat Log: {red}{l}{resetColor}')
-                if index == self.printNumber - 1:
-                    break
-            print(f'Activity: {scores}')
-            if errorBars:
-                print(f'Error Bars: {errorBars}')
-            print('')
-            sys.exit()
-
-            # Rank activity scores
-            rankedActivity = dict(sorted(activityPred.items(),
-                                       key=lambda x: x[1], reverse=True))
-            print(f'Ranked Predicted Activity:')
-            for index, (substrate, activity) in enumerate(rankedActivity.items(), start=1):
-                print(f'    {pink}{substrate}{resetColor}, '
-                      f'Score: {red}{activity:,.{self.roundVal}f}{resetColor}')
-                if index == self.printNumber:
-                    break
-            print('')
-
-            # Compair predictions
-            print(f'Predicted Vs Experimental Activity:')
-            for index, (substrate, activity) in enumerate(activityPred.items(), start=1):
-                print(f'    {pink}{substrate}{resetColor}, '
-                      f'Pred: {red}{activity:,.{self.roundVal}f}{resetColor}\n'
-                      f'{" " * len(substrate)}       Exp: '
-                      f'{red}{activityExp[substrate]:,.{self.roundVal}f}{resetColor}')
-                if index == self.printNumber:
-                    break
-            print('')
-
-            # Set title
-            title = f'{self.enzymeName}\n{self.datasetTag}\n{predLabel} - {tag}'
-            if combinedMotifs:
-                title = title.replace(self.datasetTag,
-                                      f'Substrate Profile {self.datasetTag}')
-
-            if plotBars:
-                # Plot bar graph
-                labels = list(activityPred.keys())
-                predVals = [activityPred[k] for k in labels]
-                expVals = [activityExp[k] for k in labels]
-                xTicks = np.arange(len(labels))
-
-
-                fig, ax = plt.subplots(figsize=self.figSize)
-                ax.bar(xTicks - barWidth / 2, predVals, barWidth, label='Predicted',
-                       color='#F8971F', edgecolor='black', linewidth=self.lineThickness)
-                ax.bar(xTicks + barWidth / 2, expVals, barWidth, label='Experimental',
-                       color='#BF5700', edgecolor='black', linewidth=self.lineThickness)
-                plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-                ax.set_ylabel('Normalized Activity', fontsize=self.labelSizeAxis)
-                ax.legend(edgecolor='black', fontsize=self.labelSizeTicks)
-
-                # Set xticks
-                ax.set_xticks(xTicks)
-                ax.set_xticklabels(labels, rotation=45)
-
-                #Set tick parameters
-                ax.tick_params(axis='both', which='major', length=self.tickLength,
-                               labelsize=self.labelSizeTicks)
-
-                fig.canvas.mpl_connect('key_press_event', pressKey)
-                plt.tight_layout()
-                plt.show()
-
-                # Save the Figure
-                if self.saveFigures:
-                    # Define: Save location
-                    figTag = (f'Pred Activity - {tag} - '
-                              f'Bar Graph - {predLabel} - {predModel}')
-
-                    # Save figure
-                    self.saveFigure(fig=fig, figType=figTag, seqLen=subLen, N=N,
-                                    combinedMotifs=combinedMotifs,
-                                    releasedCounts=releasedCounts)
-
-
-            # Plot normalized activity scores as a scatter plot
-            x = list(activityExp.values())
-            y = list(activityPred.values())
-            ticks = [0, 0.2, 0.4, 0.6, 0.8, 1]
-
-            from sklearn.metrics import r2_score
-            r2 = round(r2_score(x, y), 2)
-
-            fig, ax = plt.subplots(figsize=self.figSize)
-            if errorBars:
-                plt.errorbar(x, y, yerr=errorBars, fmt="o", color='#BF5700', ecolor='black')
-            else:
-                plt.scatter(x, y, color='#BF5700', edgecolor='black')
-            plt.xlabel('Experimental Activity', fontsize=self.labelSizeAxis)
-            plt.ylabel('Predicted Activity', fontsize=self.labelSizeAxis)
-            plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            # plt.grid(True, linestyle='-', color='black')
-            plt.xlim(-0.03, 1.03)
-            plt.xticks(ticks)
-            plt.xticks(ticks)
-            plt.ylim(-0.03, 1.03)
-            plt.yticks(ticks)
-
-            # Set tick parameters
-            ax.tick_params(axis='both', which='major', length=self.tickLength,
-                           labelsize=self.labelSizeTicks)
-
-            # Legend
-            ax.legend(prop=FontProperties(size=10, weight='bold'), handles=[Line2D(
-                [], [], linestyle='None', marker='None',
-                label=f'R² = {r2:.2f}')], handletextpad=0, handlelength=0
-                      )
-
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.tight_layout()
-            plt.show()
-
-
-            # Save the Figure
-            if self.saveFigures:
-                # Define: Save location
-                figTag = (f'Pred Activity - {tag} - '
-                          f'Scatter Plot - {predLabel} - {predModel}')
-
-                # Save figure
-                self.saveFigure(fig=fig, figType=figTag, seqLen=subLen, N=N,
-                                combinedMotifs=combinedMotifs,
-                                releasedCounts=releasedCounts)
-        evalSubs(values=matrix, errorBars=errorBars, tag='Probability Ratios')
-        # evalSubs(values=finalRF, tag='Relative Frequency')
-
-
-
-    def predictActivityHeatmap(self, predSubstrates, predModel, predLabel, RF,
-                               releasedCounts=False, rankScores=True, scaleEMap=False):
-        print('=========================== Predict Substrate Activity '
-              '==========================')
-        print(f'Dataset: {purple}{predModel}{resetColor}\n'
-              f'Evaluating {red}{len(predSubstrates):,}{resetColor} '
-              f'Substrate Sequences\n')
-        sublen = len(next(iter(predSubstrates)))
-
-        # Record values
-        if releasedCounts:
-            eMap = self.eMapReleased
-        else:
-            eMap = self.eMap
-        eMap = RF # ====================================================================
-        if scaleEMap:
-            print(f'Scaling Prediction matrix\nEntropy:\n{self.entropy}\n\n')
-            for column in eMap.columns:
-                eMap.loc[:, column] = eMap.loc[:, column] * self.entropy.loc[column, 'ΔS']
-
-
-        # Make sure the eMap has the correct number of columns to evaluate the substrates
-        for substrate in predSubstrates:
-            if len(eMap.columns) != len(substrate):
-                print(f'{orange}ERROR: The Enrichment Map '
-                      f'({cyan}{len(eMap.columns)}{orange}) is not long enough to '
-                      f'evaluate the substrate ({cyan}{len(substrate)}{orange})\n'
-                      f'     Enrichment Map: {cyan}{eMap.columns}{orange}\n'
-                      f'          Substrate: {cyan}{substrate}\n\n')
-                sys.exit(1)
-        print(f'Prediction Matrix:\n{eMap}\n\n')
-        print(f'Relative Frequency:\n{RF}\n\n')
-
-        # Predict activity
-        activityScores = {}
-        addES = 0
-        for substrate in predSubstrates:
-            print(f'Sub: {pink}{substrate}{resetColor}')
-            score = 0
-            temp = 'VILQSG'
-            for index in range(sublen):
-                AA = substrate[index]
-                pos = eMap.columns[index]
-                v = eMap.loc[AA, pos] # * self.entropy.iloc[index, 0]
-                if temp[index] != AA:
-                    print(f'* AA: {blue}{AA}{resetColor}, '
-                          f'Value: {blue}{v:.{self.roundVal}}{resetColor}')
-                else:
-                    print(f'* AA: {AA}, Value: {v:.{self.roundVal}}')
-                addES += 1
-                if score == 0:
-                    score = v
-                else:
-                    score *= v
-            activityScores[substrate] = np.log(score) # + 2.6
-            print(f'Score: {red}{score:.{self.roundVal}}{resetColor}\n')
-
-        if rankScores:
-            activityScores = dict(sorted(activityScores.items(),
-                                         key=lambda x: x[1], reverse=True))
-
-        maxActivity = max(activityScores.values())
-        print(f'Predicted Activity: '
-              f'(Max Score: {red}{round(maxActivity, self.roundVal)}{resetColor})')
-        for index, (substrate, ES) in enumerate(activityScores.items()):
-            print(f'     {pink} {substrate}{resetColor}, '
-                  f'ES:{red} {ES:.3f}{resetColor}')
-        print()
-
-        # Calculate: Activity levels
-        for substrate, score in activityScores.items():
-            x = 0
-            if x == 1:
-                activityScores[substrate] = 10 ** (score / maxActivity)
-            elif x > 1:
-                R = 8.3145 # J / mol*K
-                T = 298.15 # K
-                activityScores[substrate] = score * -R * T
-                #activityScores[substrate] = math.exp(score / (R * T))
-            else:
-                activityScores[substrate] = score / maxActivity
-        print(f'Predicted Normalized Activity:')
-        for substrate, ES in activityScores.items():
-            print(f'     {pink} {substrate}{resetColor}, '
-                  f'ES:{red} {ES:,.3f}{resetColor}')
-        print()
-
-
-        if not rankScores:
-            rankedScores = dict(sorted(activityScores.items(),
-                                 key=lambda x: x[1], reverse=True))
-            print(f'Ranked Predicted Activity:')
-            for index, (substrate, ES) in enumerate(rankedScores.items()):
-                print(f'     {pink} {substrate}{resetColor}, '
-                      f'ES:{red} {ES:,.3f}{resetColor}')
-            print('')
-        print()
-
-        self.plotMotifEnrichment(motifs=activityScores, limitNBars=True,
-                                 predActivity=True, predType=predLabel,
-                                 scaleEMap=scaleEMap)
-
-
-
-    def codonPredictions(self, codon, codonProb, substrates):
-        print('=============================== Codon Predictions '
-              '===============================')
-        print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
-              f'Codon: {purple}{codon}{resetColor}\n{codonProb}\n\n')
-        codonProb = codonProb.copy() * 100
-
-        iteration = 0
-        print(f'Substrates:')
-        for substrate, count in substrates.items():
-            iteration += 1
-            print(f'     {pink}{substrate}{resetColor}, Counts: {red}{count:,}'
-                  f'{resetColor}')
-            if iteration >= self.printNumber:
-                break
-        print('\n')
-
-        # Calculate codon scores
-        N = 10000
-        # colName = 'Average RF'
-        colName = 'Probability'
-        codonEnrichment = {}
-        substratesSelect = {}
-        iteration = 0
-        for substrate, count in substrates.items():
-            substratesSelect[substrate] = count
-            score = 0
-            for AA in substrate:
-                if score == 0:
-                    score = codonProb.loc[AA, colName]
-                else:
-                    score *= codonProb.loc[AA, colName]
-            codonEnrichment[substrate] = score
-            iteration += 1
-            if iteration >= N:
-                break
-
-        # Print codon scores
-        iteration = 0
-        print(f'Codon Scores:')
-        for substrate, score in codonEnrichment.items():
-            iteration += 1
-            print(f'     {pink}{substrate}{resetColor}, '
-                  f'Score: {red}{round(score, self.roundVal):,}'
-                  f'{resetColor}')
-            if iteration >= self.printNumber:
-                break
-        print('\n')
-
-        # Plot codon enrichment scores as a scatter plot
-        x = list(substratesSelect.values())
-        y = list(codonEnrichment.values())
-        xMax, xMin = max(x), min(x)
-        yMax, yMin = max(y), min(y)
-        print(f'Boundaries:\n'
-              f'     X: {red}{round(xMax, self.roundVal):,}{resetColor} - '
-              f'{red}{round(xMin, self.roundVal):,}{resetColor}\n'
-              f'     Y: {red}{round(yMax, self.roundVal):,}{resetColor} - '
-              f'{red}{round(yMin, self.roundVal):,}{resetColor}\n\n')
-        lowerLim = -10000
-
-        fig, ax = plt.subplots(figsize=self.figSize)
-        plt.scatter(x, y, color='#BF5700', edgecolor='black')
-        plt.xlabel('Substrates', fontsize=self.labelSizeAxis)
-        plt.ylabel('Codon Enrichment Score', fontsize=self.labelSizeAxis)
-        plt.title(f'{codon} Codon Enrichment Scores\n{self.datasetTag}',
-                  fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.grid(True, linestyle='-', color='black')
-        plt.xlim(lowerLim, 250000)
-        plt.ylim(lowerLim*10, 2100000)
-
+        motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
+                               width=0.95, stack_order=stackOrder)
+        motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        fig.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
                        labelsize=self.labelSizeTicks)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
+        # Set borders
+        motif.style_spines(visible=False)
+        motif.style_spines(spines=['left', 'bottom'], visible=True)
+        for spine in motif.ax.spines.values():
+            spine.set_linewidth(self.lineThickness)
 
-        plt.show()
+        # Set x-ticks
+        motif.ax.set_xticks([pos for pos in range(len(xticks))])
+        motif.ax.set_xticklabels(xticks, fontsize=self.labelSizeTicks,
+                                 rotation=0, ha='center')
+
+        # Set y-ticks
+        yMax = self.entropyMax
+        yTicks = range(0, 5)
+        yTickLabels = [f'{tick:.0f}' if tick != yMax else f'{yMax:.2f}' for tick in
+                       yTicks]
+        # yTicks.append(4.32)
+        # yTickLabels.append('')
+        motif.ax.set_yticks(yTicks)
+        motif.ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
+        motif.ax.set_ylim(0, yMax)
+
+        # Set tick width
+        for tick in motif.ax.xaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+        for tick in motif.ax.yaxis.get_major_ticks():
+            tick.tick1line.set_markeredgewidth(self.lineThickness)
+
+        # Label the axes
+        motif.ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        motif.ax.set_ylabel('Bits', fontsize=self.labelSizeAxis)
+
+        # Set horizontal line
+        motif.ax.axhline(y=0, color='black', linestyle='-',
+                         linewidth=self.lineThickness)
+
+        # File path
+        figName = self.getFileNameFig('webLogo')
+        path = os.path.join(self.pathFigs, figName)
+        # self.log(f'\nSaving WebLogo:\n     {path}')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
