@@ -1455,8 +1455,9 @@ class NGS:
 
 
     def saveSubstrateCSV(self, seqs, initialRF, finalRF, minCounts=100,
-                         seqsBg=False, maxCountsBg=5, mod=25,
-                         combinedMotifs=False, chopSeq=False):
+                         seqsBg=False, excludeAA='', maxCountsBg=5,
+                         mod=25, modScale=False, combinedMotifs=False,
+                         chopSeq=False):
         print('==============================  Save Substrate CSV '
               '==============================')
         print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')  ##
@@ -1505,14 +1506,35 @@ class NGS:
             return
 
         # Add bg substrates
+        tagMod = ''
         if seqsBg:
+            s = {}
+            for seq, count in seqsBg.items():
+                if (count <= maxCountsBg and seq not in subsCounts.keys()
+                        and excludeAA not in seq):
+                    s[seq] = count
+
             bg, Nexp, i = {}, N, 0
             print(f'Add Background substrates:')
-            for seq, count in seqsBg.items():
-                i += 1
-                if count <= maxCountsBg and seq not in subsCounts.keys():
+            if modScale:
+                tagMod = f'{mod}'
+                mag = np.ceil(np.log10(len(s.keys())) - 1)
+                divisor = int(5*10**(mag - 1))
+                for seq, count in s.items():
+                    i += 1
+                    if i % divisor == 0:
+                        # print(f'i: {red}{i}{resetColor} / {red}{f}{resetColor} = '
+                        #       f'{i // divisor}')
+                        mod += mod / (i // divisor)
+                        # print(f'Mod: {blue}{mod:,}{resetColor}')
                     if i % mod == 0:
                         bg[seq] = count
+            else:
+                for seq, count in s.items():
+                        i += 1
+                        if i % mod == 0:
+                            bg[seq] = count
+
             bg = dict(sorted(bg.items(), key=lambda x: x[1], reverse=True))
             for i, (seq, count) in enumerate(bg.items()):
                 if i >= self.printNumber:
@@ -1534,11 +1556,19 @@ class NGS:
             subsCountsNorm[seq] = count / maxCount
 
         # Get data paths
+        excValid = True
         t = 'Counts'
         tag = (f'{self.enzyme}_{t}_{self.datasetTag}_{subLen}AA_'
                f'MinCounts{minCounts}.csv').replace(' ', '-')
         if seqsBg:
-            tag = tag.replace('.csv', f'_MinBgCounts{maxCountsBg}_mod{mod}.csv')
+            if tagMod:
+                tag = tag.replace('.csv',
+                                  f'_MinBgCounts{maxCountsBg}_scaledMod{tagMod}.csv')
+            else:
+                tag = tag.replace('.csv',
+                                  f'_MinBgCounts{maxCountsBg}_mod{mod}.csv')
+        if excValid:
+            tag = tag.replace(f'_{t}', f'_{t}_ExtValid')
         pathCSV = os.path.join(self.pathFolder, 'CSV')
         if not os.path.exists(pathCSV):
             os.makedirs(pathCSV, exist_ok=True)
@@ -1559,8 +1589,15 @@ class NGS:
         if combinedMotifs:
             figLabel = figLabel.replace(self.datasetTag,
                                         f'Substrate Profile {self.datasetTag}.png')
-        if minCounts:
-            figLabel.replace('.png', f' - MinCounts {minCounts}.png')
+        if seqsBg:
+            if tagMod:
+                figLabel = figLabel.replace(
+                    '.png', f' MinBgCounts {maxCountsBg} - scaledMod {tagMod}.png'
+                )
+            else:
+                figLabel = figLabel.replace(
+                    '.png', f' MinBgCounts {maxCountsBg} - mod {mod}.png'
+                )
         pathFigs = [
             os.path.join(pathCSVFig, figLabel),
             os.path.join(pathCSVFig, figLabel.replace(

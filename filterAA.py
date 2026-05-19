@@ -18,9 +18,9 @@ inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
-inFixResidues = False
+inFixResidues = True
 inFixedResidue = ['Q']
-inFixedPosition = [5]
+inFixedPosition = [4]
 inExcludeResidues = False
 inExcludedResidue = ['A', 'A'] # ['Y','Y','Y','Y','Y','Y','Y']
 inExcludedPosition = [9, 10] # ['1,2,3,4,6,7,8,9]
@@ -70,11 +70,13 @@ inFindSeq = 'ILQA'
 
 # Input 5: CSV
 inSaveCSV = True # Save substrates in a csv file
-inMinSubsCSV = 100 # Minimum counts for saved substrates
+inMinSubsCSV = 10000 # Minimum counts for saved substrates
 inSubLengthCSV = False # If: False, use full seq, If: 6, use 6 AA seq
 inUseBgSubs = True
-inMaxBgSubstrateCount = 5
-inModulus = 250 # Increase to select fewer Bg substrates
+inExcludeSeq = 'LQ'
+inMaxBgSubstrateCount = 10
+inModulo = 20000 # Increase to select fewer Bg substrates
+inScaleModulo = True # Continually increase modulus value to keep fewer low count bg subs
 
 # Input 6: Plot Heatmap
 inShowEnrichmentScores = True
@@ -322,8 +324,8 @@ if inSaveCSV:
     if inUseBgSubs:
         ngs.saveSubstrateCSV(
             seqs=substratesFinal, initialRF=probInitial, finalRF=probFinal,
-            minCounts=inMinSubsCSV, seqsBg=substratesInitial,
-            maxCountsBg=inMaxBgSubstrateCount, mod=inModulus,
+            minCounts=inMinSubsCSV, seqsBg=substratesInitial, excludeAA=inExcludeSeq,
+            maxCountsBg=inMaxBgSubstrateCount, mod=inModulo, modScale=inScaleModulo,
             chopSeq=inSubLengthCSV
         )
     else:
