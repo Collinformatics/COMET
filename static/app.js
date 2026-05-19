@@ -513,7 +513,12 @@ function getFigures(pollFigs=true) {
                             const button = document.createElement('button');
                             button.className = 'button';
                             button.textContent = 'Download';
-                            button.onclick = download;
+                            // button.onclick = download;
+                            button.onclick = function() {
+                                button.disabled = true;
+                                button.textContent = 'Processing';
+                                download();
+                            };
                             buttonWrapper.appendChild(button);
                             document.getElementById('button-container').appendChild(buttonWrapper);
                         };
