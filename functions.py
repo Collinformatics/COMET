@@ -319,7 +319,7 @@ class WebApp:
 
     def getFileNameFig(self, tag, tag2=False):
         figName = (f'{tag}-{self.enzymeName}-{self.getSaveTag()}-'
-                   f'{self.seqLength}AA-MinCounts{self.minCounts}.png')
+                   f'{self.seqLength}AA-MinCounts_{self.minCounts}.png')
         if self.motifFilter and 'entropy' not in tag.lower():
             figName = figName.replace(tag, f'{tag}-{self.iteration}')
         if tag2:
@@ -329,8 +329,7 @@ class WebApp:
     
     def getFileName(self, ftype='Subs', datasetType='Exp', subProfile=False):
         if subProfile:
-            tag = (f'SubProfile_{self.datasetTagMotif.replace(' ', '_')}_'
-                   f'MinCounts{self.minCounts}')
+            tag = f'SubProfile_{self.datasetTagMotif.replace(' ', '_')}'
         else:
             if self.datasetTag is None:
                 print(f'Dont save, dataset tag: {self.datasetTag}\n')
@@ -338,10 +337,10 @@ class WebApp:
             tag = self.datasetTag.replace(' ', '_')
         if ftype == 'Subs':
             fileName = (f'{self.enzymeName}-{ftype}_{datasetType}-{tag}-'
-                        f'{self.seqLength}AA-MinCounts{self.minCounts}.pkl')
+                        f'{self.seqLength}AA-MinCounts_{self.minCounts}.pkl')
         else:
             fileName = (f'{self.enzymeName}-AA_{ftype}_{datasetType}-{tag}-'
-                        f'{self.seqLength}AA-MinCounts{self.minCounts}.csv')
+                        f'{self.seqLength}AA-MinCounts_{self.minCounts}.csv')
         print(f'File Name: {fileName}')
         return fileName
 
@@ -1163,7 +1162,6 @@ class WebApp:
                     self.log(f'\nLoaded Counts: {idx}\n{counts}\n')
                 else:
                     self.log(f'\nLoaded Counts:\n{counts}\n')
-            print(f'Counts Bg:\n{self.countsBg}\n')
             self.countBgTotal = sum(self.countsBg.iloc[:, 0])
             if self.countBgTotal == 0:
                 print(f'DataFrame consists entirely of zeros.\n{self.countsBg}')
@@ -1302,7 +1300,6 @@ class WebApp:
 
         # Refine Filter
         for posRel in self.motifPos.keys():
-            print(f'Refine: {posRel}')
             self.fixAA = {}
             filter = []
             for pos in self.motifPos.keys():
@@ -1320,7 +1317,6 @@ class WebApp:
 
 
         # Release filter
-        print('Release Filter:')
         self.fixAA = {}
         self.figTag = 'Substrate Profile'
         idxEnd = len(self.motifPos.keys()) - 1
