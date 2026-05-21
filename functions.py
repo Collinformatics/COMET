@@ -1458,9 +1458,11 @@ class NGS:
                          seqsBg=False, excludeAA='', maxCountsBg=5,
                          mod=25, modScale=False, combinedMotifs=False,
                          chopSeq=False):
-        print('==============================  Save Substrate CSV '
-              '==============================')
+        print('============================== Save Substrate CSV '
+              '===============================')
         print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')  ##
+        excValid = False
+        predScores = False
 
         # Chop off the C-terminal AAs
         print(f'Chop: {chopSeq}\n')
@@ -1499,7 +1501,7 @@ class NGS:
                 subsCounts[seq] = counts
             else:
                 break
-        N = len(subsCounts)
+        N = len(subsCounts.keys())
         if N == 0:
             print(f'{orange}ERROR: There were no substrates with '
                   f'{cyan}counts{orange} >= {cyan}{minCounts}{resetColor}\n\n')
@@ -1556,7 +1558,6 @@ class NGS:
             subsCountsNorm[seq] = count / maxCount
 
         # Get data paths
-        excValid = True
         t = 'Counts'
         tag = (f'{self.enzyme}_{t}_{self.datasetTag}_{subLen}AA_'
                f'MinCounts{minCounts}.csv').replace(' ', '-')
@@ -1579,8 +1580,11 @@ class NGS:
             os.path.join(pathCSV, tag),
             os.path.join(pathCSV, tag.replace(f'_{t}', '_CountsNorm')),
             os.path.join(pathCSV, tag.replace(f'_{t}', '_ZCounts')),
-            os.path.join(pathCSV, tag.replace(f'_{t}','_ZPred'))
         ]
+        if predScores:
+            paths.append(
+                os.path.join(pathCSV, tag.replace(f'_{t}', '_ZPred'))
+            )
 
         # Define: Save location
         figLabel = (f'{self.enzyme} - Bars - Counts - '
@@ -1630,6 +1634,9 @@ class NGS:
         subsZCounts = {}
         mu = np.average(list(subsCountsNorm.values()))
         sigma = np.std(list(subsCountsNorm.values()))
+        print(f'Z-Scores: Counts\n'
+              f'* µ: {mu}\n'
+              f'* σ: {sigma}\n')
         for seq, count in subsCountsNorm.items():
             subsZCounts[seq] = (count - mu) / sigma
 
@@ -1637,42 +1644,65 @@ class NGS:
         # Predict substrate activity
         subsZ = {}
         subsZPred = {}
-        if subLen == len(matrix.columns):
-            print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n')
-            for seq, count in subsCounts.items():
-                subsZ[seq] = self.scoreSubstrate(seq, matrix)
+        if predScores:
+            if subLen == len(matrix.columns):
+                print(f'Scoring Matrix: {purple}{self.datasetTag}{resetColor}\n{matrix}\n')
+                for seq, count in subsCounts.items():
+                    subsZ[seq] = self.scoreSubstrate(seq, matrix)
 
-            # Normalize pred scores
-            maxVal = max(subsZ.values())
-            for seq, score in subsZ.items():
-                subsZ[seq] = score / maxVal
+                # Normalize pred scores
+                maxVal = max(subsZ.values())
+                for seq, score in subsZ.items():
+                    subsZ[seq] = score / maxVal
 
-            # Calculate: Z-scores Predicted
-            mu = np.average(list(subsZ.values()))
-            sigma = np.std(list(subsZ.values()))
-            for seq, score in subsZ.items():
-                subsZPred[seq] = (score - mu) / sigma
+                # Calculate: Z-scores Predicted
+                mu = np.average(list(subsZ.values()))
+                sigma = np.std(list(subsZ.values()))
+                print(f'Z-Scores: Predicted Activity\n'
+                      f'* µ: {mu}\n'
+                      f'* σ: {sigma}\n')
+                for seq, score in subsZ.items():
+                    subsZPred[seq] = (score - mu) / sigma
 
 
         # Pre-format values
         pSeqs = list(subsCounts)[:self.printNumber]
-        formattedCounts = [f'{seqs[seq]:,}' for seq in pSeqs]
-        formattedZCounts = [f'{subsZCounts[seq]:.3f}' for seq in pSeqs]
+        frmtCounts = [f'{subsCounts[seq]:,}' for seq in pSeqs]
+        frmtZCounts = [f'{subsZCounts[seq]:.3f}' for seq in pSeqs]
+        pSeqsLow = list(subsCounts)[-self.printNumber:]
+        frmtCountsLow = [f'{subsCounts[seq]:,}' for seq in pSeqsLow]
+        frmtZCountsLow = [f'{subsZCounts[seq]:.3f}' for seq in pSeqsLow]
 
         # Compute column widths
-        widthCount = max(len(val) for val in formattedCounts)
-        widthZCount = max(len(val) for val in formattedZCounts)
+        widthCount = max(len(val) for val in frmtCounts)
+        widthZCount = max(
+            max(len(val) for val in frmtZCounts), max(len(val) for val in frmtZCountsLow)
+        )
+
+        def lowScores(data):
+            return dict(list(data)[-self.printNumber:])
 
         # Print data
         print('Substrate Scores:')
         if subsZPred:
-            formattedProducts = [f'{subsZ[seq]:.3f}' for seq in pSeqs]
-            formattedZ = [f'{subsZPred[seq]:,.3f}' for seq in pSeqs]
-            widthProd = max(len(val) for val in formattedProducts)
-            widthZ = max(len(val) for val in formattedZ)
-
+            frmtPred = [f'{subsZ[seq]:.3f}' for seq in pSeqs]
+            frmtZPred = [f'{subsZPred[seq]:,.3f}' for seq in pSeqs]
+            frmtPredLow = [f'{subsZ[seq]:.3f}' for seq in pSeqsLow]
+            frmtZPredLow = [f'{subsZPred[seq]:,.3f}' for seq in pSeqsLow]
+            widthProd = max(len(val) for val in frmtPred)
+            widthZ = max(len(val) for val in frmtZPred)
             for seq, countStr, zCountStr, prodStr, zStr in zip(
-                    pSeqs, formattedCounts, formattedZCounts, formattedProducts, formattedZ):
+                    pSeqs, frmtCounts, frmtZCounts, frmtPred, frmtZPred):
+                print(
+                    f'    {pink}{seq}{resetColor}, '
+                    f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
+                    f'Z-Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}, '
+                    f'Z-Score Pred: {red}{zStr:>{widthZ}}{resetColor}, '
+                    f'Pred: {red}{prodStr:>{widthProd}}{resetColor}'
+                )
+            print('    ...')
+            for seq, countStr, zCountStr, prodStr, zStr in zip(
+                    pSeqsLow, frmtCountsLow, frmtZCountsLow, frmtPredLow, frmtZPredLow):
                 print(
                     f'    {pink}{seq}{resetColor}, '
                     f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
@@ -1681,15 +1711,21 @@ class NGS:
                     f'Pred: {red}{prodStr:>{widthProd}}{resetColor}'
                 )
         else:
+            for seq, countStr, zCountStr in zip(pSeqs, frmtCounts, frmtZCounts):
+                print(f'    {pink}{seq}{resetColor}, '
+                      f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
+                      f'Z Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}'
+                )
+            print('    ...')
             for seq, countStr, zCountStr in zip(
-                    pSeqs, formattedCounts, formattedZCounts):
+                    pSeqsLow, frmtCountsLow, frmtZCountsLow):
                 print(f'    {pink}{seq}{resetColor}, '
                       f'Count: {red}{countStr:>{widthCount}}{resetColor}, '
                       f'Z Score Counts: {red}{zCountStr:>{widthZCount}}{resetColor}'
                 )
         print()
         savedData = False
-        plotData = [False, False, False, False]
+        plotData = [False for _ in range(len(paths))]
 
         # CSV: Scores
         savePath = paths[0]
@@ -1737,8 +1773,9 @@ class NGS:
                     writer.writerow([seq, score])
 
         # CSV: Z-Pred
-        savePath = paths[3]
-        if subsZPred and not os.path.exists(savePath):
+        print('L:', len(paths))
+        if len(paths) > 3 and subsZPred and not os.path.exists(paths[3]):
+            savePath = paths[3]
             if not savedData:
                 savedData = True
                 print(f'Saving {red}{N:,}{resetColor} substrates in a CSV file\n'
