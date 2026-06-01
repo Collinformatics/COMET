@@ -205,9 +205,9 @@ def plotTable():
         path = os.path.join(inSavePath, 'activity_table.png')
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
-              f'     {path}\n')
+              f'     {path}\n\n')
     else:
-        print(f'The figure was not saved\n')
+        print(f'The figure was not saved\n\n')
 
 
 def zScore(tag):
@@ -299,9 +299,9 @@ def plotBars(data, e1, e2, barWidth=0.35):
         path = os.path.join(inSavePath, 'enzActivity_bars.png')
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
-              f'     {path}\n')
+              f'     {path}\n\n')
     else:
-        print(f'The figure was not saved\n')
+        print(f'The figure was not saved\n\n')
 
 
 # ========================================================================================
@@ -408,9 +408,9 @@ if inSavePath:
     path = os.path.join(inSavePath, 'enzActivity.png')
     fig.savefig(path, dpi=inFigResolution)
     print(f'Saving figure at path:\n'
-          f'     {path}\n')
+          f'     {path}\n\n')
 else:
-    print(f'The figure was not saved\n')
+    print(f'The figure was not saved\n\n')
 
 
 # ========================================================================================
@@ -496,6 +496,6 @@ if inSavePath:
     path = os.path.join(inSavePath, 'enzActivity_norm+zscores.png')
     fig.savefig(path, dpi=inFigResolution)
     print(f'Saving figure at path:\n'
-          f'     {path}\n')
+          f'     {path}\n\n')
 else:
-    print(f'The figure was not saved\n')
+    print(f'The figure was not saved\n\n')
