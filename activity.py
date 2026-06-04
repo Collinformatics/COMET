@@ -70,7 +70,7 @@ inCalcZScores = [ # Format: (x, y), use "x" values to calc the Z-Score saved in 
 ]
 
 # Input: Scatter Plot
-inPlotBoth = False # Add the secondary enzyme to the scatter plot
+inPlotBoth = True # Add the secondary enzyme to the scatter plot
 
 # Input: Save Figure
 inSavePath = '/Users/ca34522/Documents/Papers/COMET/Figures'
