@@ -379,7 +379,7 @@ plt.title(f'Enzyme Activity', fontsize=inTitleSize, fontweight='bold')
 x, y = f'Activity Z {inEnzyme}', f'Predicted Z {inEnzyme}'
 x_fit, y_fit, fitCurve = fitData(x=data[x].values, y=data[y].values)
 l1 = f'{inEnzyme} R² = {fitCurve:.3f}'
-l1 = f'SARS-CoV-2 {inEnzyme.replace('2', '')} R² = {fitCurve:.3f}'
+# l1 = f'SARS-CoV-2 {inEnzyme.replace('2', '')} R² = {fitCurve:.3f}'
 data.plot(x=x, y=y, ax=ax, color=inColor1, marker=mkr1, linestyle='none',
           markeredgecolor='black', markeredgewidth=edgeWidth, legend=l1)
 ax.plot(x_fit, y_fit, color=inColor1, linestyle='-', linewidth=inLinewidth)
@@ -389,7 +389,7 @@ if inPlotBoth:
     x, y = f'Activity Z {inEnzyme2}', f'Predicted Z {inEnzyme2}'
     x_fit2, y_fit2, fitCurve2 = fitData(x=data2[x].values, y=data2[y].values)
     l2 = f'{inEnzyme2} R² = {fitCurve2:.3f}'
-    l2 = f'SARS-CoV {inEnzyme2} R² = {fitCurve2:.3f}'
+    # l2 = f'SARS-CoV {inEnzyme2} R² = {fitCurve2:.3f}'
     data2.plot(x=x, y=y, ax=ax, color=inColor2, marker=mkr2, linestyle='none',
                markeredgecolor='black', markeredgewidth=edgeWidth, legend=l2)
     ax.plot(x_fit2, y_fit2, color=inColor2, linestyle='-', linewidth=1.5)
