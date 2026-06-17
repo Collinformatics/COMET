@@ -6769,7 +6769,9 @@ class NGS:
             print('')
 
             # Set title
-            title = f'{self.enzymeName}\n{self.datasetTag}\n{predLabel} - {tag}'
+            title = f'{self.enzymeName}\n{self.datasetTag}'
+            if predLabel:
+                title += f'\n{predModel}'
             if self.releasedCounts:
                 title = title.replace(self.datasetTag,
                                       f'Substrate Profile {self.datasetTag}')
@@ -6866,7 +6868,6 @@ class NGS:
                 self.saveFigure(fig=fig, figType=figTag, seqLen=subLen, N=N,
                                 combinedMotifs=combinedMotifs)
         evalSubs(values=matrix, errorBars=errorBars, tag='Probability Ratios')
-        # evalSubs(values=finalRF, tag='Relative Frequency')
 
 
 

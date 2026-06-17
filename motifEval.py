@@ -131,7 +131,7 @@ inPredictActivity = True
 inPredictSubstrates = []
 inUseNaturalSubs = False
 if inUseNaturalSubs:
-    inPredictionTag = 'pp1a/b Substrates'
+    inPredictionLabel = 'pp1a/b Substrates'
     inPredictSubstrates = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
                            'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
                            'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
@@ -140,7 +140,7 @@ if inUseNaturalSubs:
         inSubstrateActivity[substrate] = 50.0
     inErrorBars = []
 else:
-    inPredictionTag = '30 Min'
+    inPredictionLabel = '30 Min'
     inSubstrateActivity = {
         'AVLQSG': 55,  # 60,
         'VILQSG': 66,  # 70,
@@ -181,6 +181,7 @@ else:
     #     'ASQGLLDR': 2.83 * 10 ** -11,
     #     'RDDTTWPP': 1.21 * 10 ** -16
     # }
+    inPredictionLabel = ''
     inSubstrateActivity = {
         'CMELVV': 1,
         'CMALVV': 0,
@@ -412,18 +413,18 @@ if inPredictActivity:
     ngs.predictActivity(
         activityExp=inSubstrateActivity, errorBars=inErrorBars,
         finalRF=rfCombinedReleasedMotif, initialRF=rfInitial, predModel=ngs.datasetTag,
-        predLabel=inPredictionTag, combinedMotifs=combinedMotifs)
+        predLabel=inPredictionLabel, combinedMotifs=combinedMotifs)
 
     # # Square Root predictions
     # ngs.predictActivity(
     #     activityExp=inSubstrateActivity, errBars=inErrorBars,
     #     finalRF=rfCombinedReleasedMotif, initialRF=rfInitial, predModel=ngs.datasetTag,
-    #     predLabel=f'{inPredictionTag} - Square Root', combinedMotifs=combinedMotifs)
+    #     predLabel=f'{inPredictionLabel} - Square Root', combinedMotifs=combinedMotifs)
 
 
     if not inPredictActivity:
         ngs.predictActivityHeatmap(predSubstrates=inPredictSubstrates,
-                                   predModel=ngs.datasetTag, predLabel=inPredictionTag,
+                                   predModel=ngs.datasetTag, predLabel=inPredictionLabel,
                                    RF=rfCombinedReleasedMotif, rankScores=inRankScores,
                                    scaleEMap=inScalePredMatrix)
 
