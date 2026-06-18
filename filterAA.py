@@ -12,18 +12,18 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Mpro2'
+inEnzymeName = 'ELN'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = True
-inFixedResidue = ['Q']
+inFixedResidue = [['C','I','V']]
 inFixedPosition = [4]
-inExcludeResidues = False
-inExcludedResidue = ['A', 'A'] # ['Y','Y','Y','Y','Y','Y','Y']
-inExcludedPosition = [9, 10] # ['1,2,3,4,6,7,8,9]
+inExcludeResidues = True
+inExcludedResidue = [['C','I','V'],['C','I','V'],['C','I','V'],['C','I','V']] # ['Y','Y','Y','Y','Y','Y','Y']
+inExcludedPosition = [2,3,6,7] # ['1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
 inMinDeltaS = 0.6
 inPrintFixedSubs = True
@@ -35,7 +35,7 @@ inAvgInitialProb = False
 inDropResidue = [] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
 
 # Input 3: Making Figures
-inBlockFigures = True
+inBlockFigures = False
 inPlotEntropy = True
 inPlotEnrichmentMap = True
 inPlotEnrichmentMapScaled = False
@@ -57,26 +57,26 @@ if inBlockFigures:
     inPlotMotifEnrichment = False
     inPlotWordCloud = False # Word cloud
     inPlotMotifEnrichment = False
-    inPlotWordCloud = False
     inPlotAADistribution = False
     inPlotBarGraphs = False
     inPlotPCA = False
     inPlotCounts = False
 
 # Input 4: Inspecting The data
-inPrintNumber = 10
-inFindSequences = False
-inFindSeq = 'ILQA'
+inPrintNumber = 50
+inFindSequences = True
+inFindSeq = ['AVLQS', 'VILQS','VILQT','VILQS','VILHS','VIMQS','VPLQS','NILQS']
+inFindSeq = ['CC', 'CI', 'CV', 'VV', 'II', 'IC', 'IV', 'VV', 'VC', 'VI']
 
 # Input 5: CSV
-inSaveCSV = True # Save substrates in a csv file
+inSaveCSV = False # Save substrates in a csv file
 inMinSubsCSV = 10000 # Minimum counts for saved substrates
 inSubLengthCSV = False # If: False, use full seq, If: 6, use 6 AA seq
 inUseBgSubs = True
 inExcludeSeq = 'LQ'
-inMaxBgSubstrateCount = 10
-inModulo = 20000 # Increase to select fewer Bg substrates
-inScaleModulo = True # Continually increase modulus value to keep fewer low count bg subs
+inMaxBgSubstrateCount = 20
+inModulo = 2500 # Increase to select fewer Bg substrates
+inScaleModulo = False # Continually increase modulus value to keep fewer low count bg subs
 
 # Input 6: Plot Heatmap
 inShowEnrichmentScores = True
@@ -186,16 +186,19 @@ ngs = NGS(
 
 # ====================================== Load data =======================================
 # Get dataset tag
-fixedSubSeq = ngs.getDatasetTag(useCodonProb=inUseCodonProb, codon=inCodonSequence)
+ngs.getDatasetTag(useCodonProb=inUseCodonProb, codon=inCodonSequence)
 
 # Load: Counts
 countsInitial, countsInitialTotal = ngs.loadCounts(filter=False, fileType='Initial Sort',
                                                    dropColumn=inDropResidue)
 
-# Calculate: Initial sort probabilities
-probInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
-                              fileType='Initial Sort', calcAvg=inAvgInitialProb)
+# Load: Substrates
+if inFindSequences or inEvaluateSubstrateEnrichment or inUseBgSubs:
+    substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
 
+# Calculate: Initial sort probabilities
+rfInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
+                              fileType='Initial Sort', calcAvg=inAvgInitialProb)
 
 substratesInitial = None
 loadUnfilteredSubs = False
@@ -203,7 +206,7 @@ filePathFixedCountsFinal, filePathFixedSubsFinal = None, None
 substratesFinal, countsFinal, countsFinalTotal = None, None, None
 if inFixResidues or inExcludeResidues:
     filePathFixedSubsFinal, filePathFixedCountsFinal = (
-        ngs.getFilePath(datasetTag=fixedSubSeq))
+        ngs.getFilePath(datasetTag=ngs.datasetTagSave))
 
     # Verify that the file exists
     if (os.path.exists(filePathFixedSubsFinal) and
@@ -212,7 +215,7 @@ if inFixResidues or inExcludeResidues:
         # Load: Counts
         countsFinal, countsFinalTotal = ngs.loadCounts(filter=True,
                                                        fileType='Final Sort',
-                                                       datasetTag=fixedSubSeq,
+                                                       datasetTag=ngs.datasetTagSave,
                                                        dropColumn=inDropResidue)
 
         # Load: Substrates
@@ -236,10 +239,6 @@ else:
     countsFinal, countsFinalTotal = ngs.loadCounts(fileType='Final Sort', filter=False,
                                                    dropColumn=inDropResidue)
 
-# Load: Substrates
-if inFindSequences or inEvaluateSubstrateEnrichment or inUseBgSubs:
-    substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
-
 
 
 # ================================== Evaluate The Data ===================================
@@ -247,7 +246,7 @@ if inFixResidues:
     if loadUnfilteredSubs:
         # Fix AA
         substratesFinal, countsFinalTotal = ngs.fixResidue(
-            substrates=substratesFinal, fixedString=fixedSubSeq,
+            substrates=substratesFinal, fixedString=ngs.datasetTag,
             printRankedSubs=inPrintFixedSubs, sortType='Final Sort')
 
         # Count fixed substrates
@@ -265,7 +264,7 @@ if inFixResidues:
 
     if inEvaluateSubstrateEnrichment:
         fixedSubsInitial, countsInitialFixedTotal = ngs.fixResidue(
-            substrates=substratesInitial, fixedString=fixedSubSeq,
+            substrates=substratesInitial, fixedString=ngs.datasetTag,
             printRankedSubs=inPrintFixedSubs, sortType='Initial Sort')
 
 if inExcludeResidues and not inFixResidues:
@@ -273,7 +272,7 @@ if inExcludeResidues and not inFixResidues:
         # Exclude AAs
         # Fix AA
         substratesFinal, countsFinalTotal = ngs.exclResidue(
-            substrates=substratesFinal, fixedString=fixedSubSeq,
+            substrates=substratesFinal, fixedString=ngs.datasetTag,
             printRankedSubs=inPrintFixedSubs, sortType='Final Sort')
 
         # Count fixed substrates
@@ -284,54 +283,53 @@ if inExcludeResidues and not inFixResidues:
         ngs.saveData(substrates=substratesFinal, counts=countsFinal)
 
 
-
 # Display current sample size
 ngs.recordSampleSize(NInitial=countsInitialTotal, NFinal=countsFinalTotal,
                      NFinalUnique=len(substratesFinal.keys()))
 
 # Calculate: RF
-probFinal = ngs.calculateRF(counts=countsFinal, N=countsFinalTotal,
+rfFinal = ngs.calculateRF(counts=countsFinal, N=countsFinalTotal,
                             fileType='Final Sort')
 
 if inPlotAADistribution:
     # Plot: AA probabilities in initial and final sorts
-    ngs.plotLibraryProbDist(probInitial=probInitial, probFinal=probFinal,
-                            codonType=inCodonSequence, datasetTag=fixedSubSeq)
+    ngs.plotLibraryAADist(rfInitial=rfInitial, rfFinal=rfFinal,
+                            codonType=inCodonSequence, datasetTag=ngs.datasetTag)
 
     # Evaluate: Degenerate codon probabilities
     probCodon = ngs.calculateProbCodon(codonSeq=inCodonSequence)
 
     # Plot: Codon probabilities
-    ngs.plotLibraryProbDist(probInitial=probFinal, probFinal=probCodon,
+    ngs.plotLibraryAADist(rfInitial=rfFinal, rfFinal=probCodon,
                             codonType=inCodonSequence, datasetTag=inCodonSequence,
                             skipInitial=True)
 
 # Calculate: Positional entropy
-entropy = ngs.calculateEntropy(rf=probFinal)
+entropy = ngs.calculateEntropy(rf=rfFinal)
 
 # Calculate: Enrichment scores
 if inUseCodonProb:
     # Evaluate: Degenerate codon probabilities
     probCodon = ngs.calculateProbCodon(codonSeq=inCodonSequence)
     enrichmentScores = ngs.calculateEnrichment(rfInitial=probCodon,
-                                               rfFinal=probFinal)
+                                               rfFinal=rfFinal)
 else:
-    enrichmentScores = ngs.calculateEnrichment(rfInitial=probInitial,
-                                               rfFinal=probFinal)
+    enrichmentScores = ngs.calculateEnrichment(rfInitial=rfInitial,
+                                               rfFinal=rfFinal)
 
 # Create csv
 if inSaveCSV:
     if inUseBgSubs:
         ngs.saveSubstrateCSV(
-            seqs=substratesFinal, initialRF=probInitial, finalRF=probFinal,
+            seqs=substratesFinal, initialRF=rfInitial, finalRF=rfFinal,
             minCounts=inMinSubsCSV, seqsBg=substratesInitial, excludeAA=inExcludeSeq,
             maxCountsBg=inMaxBgSubstrateCount, mod=inModulo, modScale=inScaleModulo,
             chopSeq=inSubLengthCSV
         )
     else:
         ngs.saveSubstrateCSV(
-            seqs=substratesFinal, initialRF=probInitial,
-            finalRF=probFinal, minCounts=inMinSubsCSV, chopSeq=inSubLengthCSV
+            seqs=substratesFinal, initialRF=rfInitial,
+            finalRF=rfFinal, minCounts=inMinSubsCSV, chopSeq=inSubLengthCSV
         )
 
 # Evaluate: Sequences
@@ -362,7 +360,7 @@ if inPlotPCA:
             labelPos = ngs.xAxisLabelsMotif
             subsPCA = finalSubsMotif
         else:
-            datasetTag =  fixedSubSeq
+            datasetTag =  ngs.datasetTag
             saveTag = datasetTag
             labelPos = labelAAPos
             subsPCA = substratesFinal
@@ -408,9 +406,9 @@ if inPlotBarGraphs and not inUseEnrichmentFactor:
 
 # Find sequences
 if inFindSequences:
-    ngs.findSequence(substrates=substratesInitial,
-                     sequence=inFindSeq,
-                     sortType='Initial Sort')
+    # ngs.findSequence(substrates=substratesInitial,
+    #                  sequence=inFindSeq,
+    #                  sortType='Initial Sort')
     #sys.exit()
     ngs.findSequence(substrates=substratesFinal,
                      sequence=inFindSeq,
@@ -436,7 +434,7 @@ if inEvaluateOS:
                 if ES <= 0:
                     optimalAAPos = optimalAAPos.drop(index=AA)
             optimalAA.append(optimalAAPos)
-        print(f'Optimal Residues: {purple}{inEnzymeName} - {fixedSubSeq}{resetColor}')
+        print(f'Optimal Residues: {purple}{inEnzymeName} - {ngs.datasetTag}{resetColor}')
         for index, data in enumerate(optimalAA, start=1):
             # Determine the number of variable residues at this position
             numberAA = len(data)
@@ -493,5 +491,5 @@ if inPlotCounts:
                    fileName=ngs.datasetTag)
 
 if inPlotPositionalProbDist:
-    ngs.plotPositionalProbDist(probability=probFinal, entropyScores=entropy,
-                               sortType='Final Sort', datasetTag=fixedSubSeq)
+    ngs.plotPositionalProbDist(probability=rfFinal, entropyScores=entropy,
+                               sortType='Final Sort', datasetTag=ngs.datasetTag)
