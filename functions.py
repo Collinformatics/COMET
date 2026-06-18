@@ -5447,26 +5447,8 @@ class NGS:
 
         # Save the figure
         if self.saveFigures:
-            # Define: Save location
-            if self.filterSubs:
-                figLabel = (f'{self.enzymeName}-Entropy-{self.datasetTag}-'
-                            f'MinCounts_{self.minSubCount}.png')
-            else:
-                figLabel = (f'{self.enzymeName}-Entropy-Unfiltered-{len(xTicks)}AA-'
-                            f'MinCounts_{self.minSubCount}.png')
-            if self.releasedCounts:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'SubstrateProfile_{self.datasetTag}')
-            elif combinedMotifs:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'CombinedFilter_{self.datasetTag}')
-            if '/' in figLabel:
-                figLabel = figLabel.replace('/', '_')
-            saveLocation = os.path.join(self.pathSaveFigs, figLabel)
-            saveLocation = saveLocation.replace(' ', '')
-
-            # Save figure
-            self.saveFig(fig=fig, path=saveLocation)
+            self.saveFigure(fig=fig, figType='∆S', seqLen=len(xTicks),
+                            combinedMotifs=combinedMotifs)
 
 
 
@@ -5835,6 +5817,8 @@ class NGS:
                         totalHits += count
                         hits[substrate] = count
                         hitsTotal[seq] += count
+        if hits:
+            print()
         if combinedMotifs:
             print(f'Unique Motifs: {red}{len(substrates.keys()):,}{resetColor}\n'
                   f' Total Motifs: {red}{totalSubstrates:,}{resetColor}\n')
