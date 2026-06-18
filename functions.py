@@ -3488,7 +3488,9 @@ class NGS:
             title = f'{self.enzymeName}\n{self.datasetTag}\n{dataType}\nN={totalCounts:,}'
         else:
             if self.releasedCounts:
-                title = f'\n{self.enzymeName}\n{self.datasetTag}\n{dataType}'
+                title = (f'\n{self.enzymeName}\n'
+                         f'Substrate Profile {self.datasetTag}\n'
+                         f'{dataType}')
                 if len(self.datasetTag.replace('[', '').replace(
                         ']', '').replace('-', '')) > 40:
                     title = title.replace('Register ', 'Register\n')
