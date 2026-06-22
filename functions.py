@@ -2104,7 +2104,7 @@ class NGS:
     def saveFigure(self, fig, figType, seqLen, N=False,
                    combinedMotifs=False):
         # Define: Save location
-        enzName = self.enzymeName.replace(' ', '_')
+        enzName = self.enzymeName.replace(' - ', '-').replace(' ', '_')
         if self.motifFilter and not self.releasedCounts:
             figLabel = (f'{enzName}-{figType}_{self.saveFigureIteration}-'
                         f'{self.datasetTagSave}-{seqLen}AA-'
@@ -5365,6 +5365,9 @@ class NGS:
         if combinedMotifs and not self.releasedCounts:
             title = title.replace(self.datasetTag,
                                   f'Combined Filter {self.datasetTag}')
+        if (len(self.datasetTag) > 50 and self.datasetTag in title and
+                'exclude' in title.lower() and 'fixed' in title.lower()):
+            title = f'{self.enzymeName}\n{self.datasetTag.replace('Fixed', '\nFixed')}'
 
         # Figure parameters
         yMax = self.entropyMax + 0.2

@@ -8,20 +8,20 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Mpro2'
+inEnzymeName = 'Den'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
-inSaveData = False
+inSaveData = True
 inSaveFigures = True
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 0.65
+inMinDeltaS = 0.7
 inRefixMotif = True
-inFixedResidue = ['Q']
-inFixedPosition = [4]
-inExcludeResidues = False
-inExcludedResidue = ['Q']
-inExcludedPosition = [8]
+inFixedResidue = ['R', ['A', 'G', 'S']]
+inFixedPosition = [5,6]
+inExcludeResidues = True
+inExcludedResidue = ['A']
+inExcludedPosition = [9, 10]
 inManualEntropy = False
 inManualFrame = ['R6','R8','R5','R7']
 inFixFullMotifSeq = False
@@ -208,7 +208,10 @@ def fixSubstrate(subs, fixedAA, fixedPosition, exclude, excludeAA, excludePositi
         fixedCountsTotal = sum(fixedCounts.iloc[:, 0])
     else:
         # Fix the substrates if the files were not found
-        print(f'Fixing substrates at {magenta}{posFilter}{resetColor}\n\n')
+        if posFilter:
+            print(f'Fixing substrates at {magenta}{posFilter}{resetColor}\n')
+        else:
+            print(f'Fixing substrates\n')
         if exclude:
             # Fix AA
             if len(fixedAA) == 1:
@@ -746,8 +749,9 @@ def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortT
               f'{releasedRF}\n\n')
 
         # Calculate enrichment scores
-        ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=releasedRF,
-                                releasedCounts=True, relIteration=idxRel)
+        ngs.calculateEnrichment(
+            rfInitial=rfInitial, rfFinal=releasedRF, relIteration=idxRel
+        )
 
 
 
