@@ -856,7 +856,8 @@ class NGS:
 
 
 
-    def getFilePath(self, datasetTag, sortType, motifPath=False, customTag=None):
+    def getFilePath(self, datasetTag, sortType, motifPath=False,
+                    customTag=None):
         print('============================== Define: File Paths '
               '===============================')
         # Define: File path
@@ -2115,11 +2116,13 @@ class NGS:
         # Define: Save location
         enzName = self.enzymeName.replace(' - ', '-').replace(' ', '_')
         if self.motifFilter and not self.releasedCounts:
+            datasetTag = self.datasetTagMotif.replace(' ', '_')
             figLabel = (f'{enzName}-{figType}_{self.saveFigureIteration}-'
-                        f'{self.datasetTagSave}-{seqLen}AA-'
+                        f'{datasetTag}-{seqLen}AA-'
                         f'MinCounts_{self.minSubCount}.png')
         elif self.releasedCounts:
-            figLabel = (f'{enzName}-{figType}-SubstrateProfile-{self.datasetTagSave}-'
+            datasetTag = self.datasetTagMotif.replace(' ', '_')
+            figLabel = (f'{enzName}-{figType}-SubstrateProfile-{datasetTag}-'
                         f'{seqLen}AA-MinCounts_{self.minSubCount}.png')
         elif combinedMotifs:
             figLabel = (f'{enzName}-{figType}-Combined-{self.datasetTagSave}-'
