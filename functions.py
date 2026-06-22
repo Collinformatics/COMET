@@ -985,7 +985,7 @@ class NGS:
         for motifTag in self.motifTags:
             if self.excludeAAs:
                 file = (
-                    f'{enzName}-{excludeTag}-Fixed_{motifTag}-{sortType}-'
+                    f'{enzName}-{excludeTag}_Fixed_{motifTag}-{sortType}-'
                     f'MinCounts_{self.minSubCount}'
                 ).replace('/', '_')
             else:
@@ -1324,7 +1324,7 @@ class NGS:
                 else:
                     totalCountsFixedFrame += countsFixedFrame
             else:
-                print(f'{orange}ERROR 1: The file was not found\n'
+                print(f'{orange}ERROR: The file was not found\n'
                       f'     {pathFixedMotifRelCounts}\n')
                 sys.exit(1)
 
@@ -1454,7 +1454,7 @@ class NGS:
                         motifs[motif] = count
                 print(f'\n     Total Counts: {red}{totalCounts:,}{resetColor}\n\n')
             else:
-                print(f'{orange}ERROR 2: The file was not found\n'
+                print(f'{orange}ERROR: The file was not found\n'
                       f'     {pathFixedMotifSubs}\n')
                 sys.exit(1)
 
