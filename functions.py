@@ -1983,7 +1983,8 @@ class NGS:
         #       f'X Labels: {pink}{", ".join([str(x) for x in xTicks])}{resetColor}\n')
 
         # Define: Figure title
-        title = f'{self.enzymeName}\n{self.datasetTag}'
+        enzName = self.enzymeName.replace(' - ', '\n')
+        title = f'{enzName}\n{self.datasetTag}'
         if minCounts:
             title += f'\nMinimum Substrate Count: {minCounts:,}'
         else:
@@ -3055,12 +3056,7 @@ class NGS:
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        if self.figEMSquares:
-            figBorders = [0.852, 0.075, 0, 0.895]
-        else:
-            figBorders = [0.852, 0.075, 0.117, 1]  # Top, bottom, left, right
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
+
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -3093,6 +3089,7 @@ class NGS:
         cbar.outline.set_edgecolor('black')
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
         if self.setFigureTimer:
             plt.ion()
             plt.show()
@@ -3157,11 +3154,6 @@ class NGS:
         else:
             stackOrder = 'small_on_top'
 
-        # Set: Figure borders
-        if self.showSampleSize:
-            figBorders = [0.852, 0.075, 0.164, 0.938]
-        else:
-            figBorders = [0.852, 0.075, 0.164, 0.938]
 
         # Calculate: Max and min
         columnTotals = [[], []]
@@ -3191,8 +3183,7 @@ class NGS:
             motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
                                    width=0.95, stack_order=stackOrder)
             motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                                left=figBorders[2], right=figBorders[3])
+
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -3243,6 +3234,7 @@ class NGS:
                                      facecolor='darkgrey', alpha=0.2)
 
             fig.canvas.mpl_connect('key_press_event', pressKey)
+            plt.tight_layout()
             if self.setFigureTimer:
                 plt.ion()
                 plt.show()
@@ -3279,7 +3271,7 @@ class NGS:
 
 
     def calculateWeblogo(self, probability, combinedMotifs=False,
-                         relIteration=False):
+                         relIteration=False, relCounts=False):
         print('============================= Calculate: Weblogo '
               '================================')
         print(f'Probability: {self.datasetTag}\n{probability}\n\n'
@@ -3293,13 +3285,14 @@ class NGS:
                                                 self.entropy.loc[indexColumn, 'ΔS'])
 
         if self.plotFigWebLogo:
-            self.plotWeblogo(combinedMotifs=combinedMotifs, relIteration=False)
+            self.plotWeblogo(
+                combinedMotifs=combinedMotifs, relIteration=False, relCounts=relCounts
+            )
 
-        return self.weblogo
 
 
-
-    def plotWeblogo(self, combinedMotifs=False, relIteration=False):
+    def plotWeblogo(self, combinedMotifs=False,
+                    relIteration=False, relCounts=False):
         print('================================= Plot: Weblogo '
               '=================================')
         if self.motifFilter:
@@ -3309,15 +3302,12 @@ class NGS:
               f'{self.weblogo}\n\n')
 
         # Define: Figure title
-        if self.releasedCounts:
+        if self.releasedCounts or relCounts:
             title = self.titleReleased
         elif combinedMotifs:
             title = self.titleCombined
         else:
             title = self.titleWeblogo
-
-        # Set: Figure borders
-        figBorders = [0.852, 0.075, 0.112, 0.938]
 
         # Set local parameters
         if self.bigAAonTop:
@@ -3340,8 +3330,7 @@ class NGS:
                                stack_order=stackOrder)
         motif.ax.set_title(title, fontsize=self.labelSizeTitle,
                            fontweight='bold')
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
+
 
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -3395,6 +3384,7 @@ class NGS:
                                  facecolor='darkgrey', alpha=0.2)
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
         if self.setFigureTimer:
             plt.ion()
             plt.show()
@@ -3498,20 +3488,22 @@ class NGS:
         print(f'{dataType}: {purple}{self.datasetTag}{resetColor}\n{data}\n\n')
 
         # Set figure title
+        enzName = self.enzymeName.replace(' - ', '\n')
         if totalCounts is not None and self.showSampleSize:
-            title = f'{self.enzymeName}\n{self.datasetTag}\n{dataType}\nN={totalCounts:,}'
+            title = f'{enzName}\n{self.datasetTag}\nN={totalCounts:,}'
+            title = title.replace('N= ', f'{dataType}\n')
         else:
             if self.releasedCounts:
-                title = (f'\n{self.enzymeName}\n'
-                         f'Substrate Profile {self.datasetTag}\n'
-                         f'{dataType}')
+                title = (f'{enzName}\n{self.datasetTag}\n'
+                         f'Substrate Profile')
                 if len(self.datasetTag.replace('[', '').replace(
                         ']', '').replace('-', '')) > 40:
                     title = title.replace('Register ', 'Register\n')
             elif combinedMotifs:
-                title = f'{self.titleCombined}\n{dataType}'
+                title = f'{self.titleCombined}'
             else:
-                title = f'\n{self.enzymeName}\n{self.datasetTag}\n{dataType}'
+                title = f'{enzName}\n{self.datasetTag}'
+            # title += f'\n{dataType}'
 
 
         # Create heatmap
@@ -3542,9 +3534,6 @@ class NGS:
         ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        figBorders = [0.852, 0.075, 0.117, 1]
-        plt.subplots_adjust(top=figBorders[0], bottom=figBorders[1],
-                            left=figBorders[2], right=figBorders[3])
 
 
         # Set the thickness of the figure border
@@ -3579,6 +3568,7 @@ class NGS:
         cbar.outline.set_edgecolor('black')
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
         if self.setFigureTimer:
             plt.ion()
             plt.show()
@@ -3589,8 +3579,11 @@ class NGS:
             plt.show()
 
         # Save the figure
+        figLabel = dataType
+        if dataType == 'Standard Deviation':
+            figLabel = 'StDev'
         if self.saveFigures:
-            self.saveFigure(fig=fig, figType=dataType, seqLen=len(xTicks),
+            self.saveFigure(fig=fig, figType=figLabel, seqLen=len(xTicks),
                             combinedMotifs=combinedMotifs)
 
 
@@ -3771,6 +3764,7 @@ class NGS:
                 bar.set_linewidth(self.lineThickness)
 
         # Define: Figure title
+        enzName = self.enzymeName.replace(' - ', '\n')
         if self.useEF:
             yLabel = 'Enrichment Factor'
         else:
@@ -3779,19 +3773,19 @@ class NGS:
             datasetTag = self.datasetTag.replace(' - ', '\n')
             if predModel is None:
                 if '\n' in datasetTag:
-                    title = f'{self.enzymeName}\n{datasetTag}'
+                    title = f'{enzName}\n{datasetTag}'
                 else:
-                    title = f'\n{self.enzymeName}\n{datasetTag}'
+                    title = f'{self.enzymeName}\n{datasetTag}'
             else:
-                title = (f'{self.enzymeName}\n{predModel}\n'
+                title = (f'{enzName}\n{predModel}\n'
                              f'{NSubs:,} {predType} Sequences')
             yLabel = 'Predicted Activity'
         else:
             if clusterNumPCA is not None:
-                title = (f'{self.enzymeName}\n{self.datasetTag}\n'
+                title = (f'{enzName}\n{self.datasetTag}\n'
                          f'{NSubs:,} Unique Motifs - PCA Cluster #{clusterNumPCA}')
             else:
-                title = (f'{self.enzymeName}\n{self.datasetTag}\n'
+                title = (f'{enzName}\n{self.datasetTag}\n'
                          f'{NSubs:,} Unique Motifs')
         if scaleEMap:
             title = title.replace(self.datasetTag, f'Scaled {self.datasetTag}')
@@ -3987,9 +3981,8 @@ class NGS:
 
         accuracy = 1.0
         label = f'R² = {np.round(accuracy, 3)}'
-        title = (f'{self.enzymeName}\n'
-                 f'{self.datasetTag}\n'
-                 f'{matrixType}')
+        title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
+                 f'{self.datasetTag}\n{matrixType}')
 
         # Create scatter plot
         fig, ax = plt.subplots(figsize=self.figSize)
@@ -3997,7 +3990,6 @@ class NGS:
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.xlabel('Motif Enrichment', fontsize=self.labelSizeAxis)
         plt.ylabel('Predicted Scores', fontsize=self.labelSizeAxis)
-        plt.subplots_adjust(top=0.852, bottom=0.076, left=0.145, right=0.938)
 
         # Define: Axis ticks
         ticks = np.linspace(0, 1, 5)
@@ -4023,6 +4015,7 @@ class NGS:
             spine.set_linewidth(self.lineThickness)
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
         plt.show()
 
 
@@ -4309,8 +4302,8 @@ class NGS:
 
 
         # Define: Figure title
-        title = (f'{self.enzymeName}\n{self.datasetTag}'
-                 f'\nTop {NSubs:,} Substrates')
+        title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
+                 f'{self.datasetTag}\nTop {NSubs:,} Substrates')
 
 
         # Plot the data
@@ -4320,7 +4313,7 @@ class NGS:
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.axhline(y=0, color='black', linewidth=self.lineThickness)
         plt.ylim(yMin, yMax)
-        # plt.subplots_adjust(top=0.873, bottom=0.12, left=0.101, right=0.979)
+
 
         # Determine x values
         xTicks = np.arange(0, NSubs)
@@ -4591,7 +4584,6 @@ class NGS:
             plt.ylabel(f'Principal Component {components[1][-1]} '
                        f'({np.round(varRatio[1], self.roundVal)} %)',
                        fontsize=self.labelSizeAxis)
-            plt.subplots_adjust(top=0.852, bottom=0.075, left=0.13, right=0.938)
 
 
             # Set tick parameters
@@ -4617,7 +4609,7 @@ class NGS:
             selector.set_props(facecolor='none', edgecolor='green', linewidth=3)
 
             fig.canvas.mpl_connect('key_press_event', pressKey)
-            # fig.tight_layout()
+            fig.tight_layout()
             plt.show()
 
 
@@ -5252,10 +5244,11 @@ class NGS:
             data.index = [residue[2] for residue in self.residues]
 
         # Set figure title
+        enzName = self.enzymeName.replace(' - ', '\n')
         if totalCounts:
-            title = f'\n\n{self.enzymeName}\n{figLabel}\nN={totalCounts:,}'
+            title = f'{enzName}\n{figLabel}\nN={totalCounts:,}'
         else:
-            title = f'{self.enzymeName}\n{figLabel}'
+            title = f'{enzName}\n{figLabel}'
 
 
         # Plot the heatmap with numbers centered inside the squares
@@ -5372,19 +5365,20 @@ class NGS:
 
 
     def plotEntropy(self, entropy, combinedMotifs=False):
+        enzName = self.enzymeName.replace(' - ', '\n')
         if self.filterSubs:
-            title = f'\n\n{self.enzymeName}\n{self.datasetTag}'
+            title = f'{enzName}\n{self.datasetTag}'
         else:
-            title = f'\n\n\n{self.enzymeName}'
+            title = f'{enzName}'
         if self.releasedCounts:
             title = title.replace(self.datasetTag,
-                                  f'Substrate Profile {self.datasetTag}')
+                                  f'{self.datasetTag}\nSubstrate Profile')
         if combinedMotifs and not self.releasedCounts:
             title = title.replace(self.datasetTag,
-                                  f'Combined Filter {self.datasetTag}')
+                                  f'Combined Filter\n{self.datasetTag}')
         if (len(self.datasetTag) > 50 and self.datasetTag in title and
                 'exclude' in title.lower() and 'fixed' in title.lower()):
-            title = f'{self.enzymeName}\n{self.datasetTag.replace('Fixed', '\nFixed')}'
+            title = f'{enzName}\n{self.datasetTag.replace('Fixed', '\nFixed')}'
 
         # Figure parameters
         yMax = self.entropyMax + 0.2
@@ -5413,9 +5407,6 @@ class NGS:
         plt.xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         plt.ylabel('ΔS', fontsize=self.labelSizeAxis, rotation=0, labelpad=15)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.subplots_adjust(top=0.852, bottom=0.075, left=0.12, right=0.9)
-        # self.figSizeMini
-        # plt.subplots_adjust(top=0.898, bottom=0.098, left=0.121, right=0.917)
 
 
         # Set tick parameters
@@ -5455,6 +5446,7 @@ class NGS:
         cbar.outline.set_linewidth(self.lineThickness)
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
         if self.setFigureTimer:
             plt.ion()
             plt.show()
@@ -5543,7 +5535,7 @@ class NGS:
             fig, ax = plt.subplots(figsize=self.figSize)
             plt.ylabel('Relative Frequency', fontsize=self.labelSizeAxis)
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.subplots_adjust(top=0.926, bottom=0.068, left=0.102, right=0.979)
+
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -5590,6 +5582,7 @@ class NGS:
             plt.ylim(0, yMax)
 
             fig.canvas.mpl_connect('key_press_event', pressKey)
+            plt.tight_layout()
             plt.show()
 
             if self.saveFigures:
@@ -5658,19 +5651,19 @@ class NGS:
             # plt.xlabel('Amino Acids', fontsize=self.labelSizeAxis)
             plt.ylabel('Probability', fontsize=self.labelSizeAxis)
             if notNumber:
-                plt.title(f'{self.enzymeName}: '
+                plt.title(f'{self.enzymeName.replace(' - ', '\n')}\n'
                           f'Amino Acid Distribution at {position}\n'
                           f'ΔS = {entropyScores.loc[position, "ΔS"]:.3f}, '
                           f'Shannon Entropy = {shannonS:.0f}',
                           fontsize=self.labelSizeTitle, fontweight='bold')
             else:
-                plt.title(f'{self.enzymeName}: '
+                plt.title(f'{self.enzymeName.replace(' - ', '\n')}\n'
                           f'Amino Acid Distribution at {position}\n'
                           f'ΔS = {entropyScores.loc[position, "ΔS"]:.3f}, '
                           f'Shannon Entropy = {shannonS:.3f}',
                           fontsize=self.labelSizeTitle, fontweight='bold')
-            plt.subplots_adjust(top=0.898, bottom=0.1, left=0.129, right=0.936)
             plt.ylim(0, yMax)
+
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -5699,6 +5692,7 @@ class NGS:
                 spine.set_linewidth(self.lineThickness)
 
             fig.canvas.mpl_connect('key_press_event', pressKey)
+            plt.tight_layout()
             plt.show()
 
             # Save the figure
@@ -5753,12 +5747,12 @@ class NGS:
 
         # Define: Figure title
         if predActivity:
-            title = f'{self.enzymeName}\n{predModel}'
+            title = f'{self.enzymeName.replace(' - ', '\n')}\n{predModel}'
         elif combinedMotifs:
             title = self.titleCombined
         else:
             title = self.titleWords
-            title += f'\nTop {totalWords} Substrates'
+            title += f'Top {totalWords} Substrates'
 
 
         # Create word cloud
@@ -6370,15 +6364,16 @@ class NGS:
             print('')
 
             # Set title
-            title = f'{self.enzymeName}\n{self.datasetTag}'
+            enzName = self.enzymeName.replace(' - ', '\n')
+            title = f'{enzName}\n{self.datasetTag}'
             if predLabel:
                 title += f'\n{predModel}'
             if self.releasedCounts:
                 title = title.replace(self.datasetTag,
-                                      f'Substrate Profile {self.datasetTag}')
+                                      f'{self.datasetTag}\nSubstrate Profile')
             elif combinedMotifs:
                 title = title.replace(self.datasetTag,
-                                      f'Combined Filter {self.datasetTag}')
+                                      f'{self.datasetTag}\nCombined Filter')
 
             if plotBars:
                 # Plot bar graph
@@ -6652,5 +6647,5 @@ class NGS:
                        labelsize=self.labelSizeTicks)
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
-
+        plt.tight_layout()
         plt.show()
