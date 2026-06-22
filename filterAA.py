@@ -12,18 +12,18 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'ELN'
+inEnzymeName = 'Den'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = True
-inFixedResidue = [['C','I','V']]
+inFixedResidue = 'R' # [['C','I','V']]
 inFixedPosition = [4]
 inExcludeResidues = True
-inExcludedResidue = [['C','I','V'],['C','I','V'],['C','I','V'],['C','I','V']] # ['Y','Y','Y','Y','Y','Y','Y']
-inExcludedPosition = [2,3,6,7] # ['1,2,3,4,6,7,8,9]
+inExcludedResidue = 'A' # [['C','I','V'],['C','I','V'],['C','I','V'],['C','I','V']] # ['Y','Y','Y','Y','Y','Y','Y']
+inExcludedPosition = [9] # ['1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
 inMinDeltaS = 0.6
 inPrintFixedSubs = True
@@ -32,7 +32,7 @@ inUseEnrichmentFactor = False
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = False
-inDropResidue = [] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
+inDropResidue = ['R9'] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
 
 # Input 3: Making Figures
 inBlockFigures = False
@@ -206,7 +206,7 @@ filePathFixedCountsFinal, filePathFixedSubsFinal = None, None
 substratesFinal, countsFinal, countsFinalTotal = None, None, None
 if inFixResidues or inExcludeResidues:
     filePathFixedSubsFinal, filePathFixedCountsFinal = (
-        ngs.getFilePath(datasetTag=ngs.datasetTagSave))
+        ngs.getFilePath(datasetTag=ngs.datasetTagSave, sortType='FinalSort'))
 
     # Verify that the file exists
     if (os.path.exists(filePathFixedSubsFinal) and

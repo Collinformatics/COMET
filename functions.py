@@ -3020,7 +3020,6 @@ class NGS:
         print(f'\n\nEnrichment Scores:\n'
               f'{scores}\n\n')
 
-
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='EM')
 
@@ -3039,17 +3038,18 @@ class NGS:
         else:
             cBarMin = np.min(scores)
             cBarMax = -1 * cBarMin
-
-        # Plot the heatmap with numbers centered inside the squares
         fig, ax = plt.subplots(figsize=self.figSizeEM)
+
+        # Plot the heatmap
         if self.figEMSquares:
-            heatmap = sns.heatmap(scores, annot=False, cmap=cMapCustom, cbar=True,
+            heatmap = sns.heatmap(scores, annot=False, cmap=cMapCustom, cbar=False,
                                   linewidths=self.lineThickness - 1, linecolor='black',
                                   square=self.figEMSquares, center=None,
                                   vmax=cBarMax, vmin=cBarMin)
         else:
+            # Plot enrichment scores
             heatmap = sns.heatmap(scores, annot=True, fmt='.3f', cmap=cMapCustom,
-                                  cbar=True, linewidths=self.lineThickness - 1,
+                                  cbar=False, linewidths=self.lineThickness - 1,
                                   linecolor='black', square=self.figEMSquares,
                                   center=None, vmax=cBarMax, vmin=cBarMin,
                                   annot_kws={'fontweight': 'bold'})
@@ -3082,11 +3082,19 @@ class NGS:
         cmap.set_bad(color='lightgrey')
 
         # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        norm = plt.Normalize(vmin=cBarMin, vmax=cBarMax)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom), cax=cax)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
+        # cbar = heatmap.collections[0].colorbar
+        # cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+        #                     length=self.tickLength, width=self.lineThickness)
+        # cbar.outline.set_linewidth(self.lineThickness)
+        # cbar.outline.set_edgecolor('black')
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
         plt.tight_layout()
@@ -5752,7 +5760,7 @@ class NGS:
             title = self.titleCombined
         else:
             title = self.titleWords
-            title += f'Top {totalWords} Substrates'
+            title += f'\nTop {totalWords} Substrates'
 
 
         # Create word cloud
