@@ -21,7 +21,7 @@ inSetFigureTimer = False
 inFixResidues = True
 inFixedResidue = 'R' # [['C','I','V']]
 inFixedPosition = [4]
-inExcludeResidues = True
+inExcludeResidues = False
 inExcludedResidue = 'A' # [['C','I','V'],['C','I','V'],['C','I','V'],['C','I','V']] # ['Y','Y','Y','Y','Y','Y','Y']
 inExcludedPosition = [9] # ['1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
@@ -63,8 +63,8 @@ if inBlockFigures:
     inPlotCounts = False
 
 # Input 4: Inspecting The data
-inPrintNumber = 50
-inFindSequences = True
+inPrintNumber = 10
+inFindSequences = False
 inFindSeq = ['AVLQS', 'VILQS','VILQT','VILQS','VILHS','VIMQS','VPLQS','NILQS']
 inFindSeq = ['CC', 'CI', 'CV', 'VV', 'II', 'IC', 'IV', 'VV', 'VC', 'VI']
 

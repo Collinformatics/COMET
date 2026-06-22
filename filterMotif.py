@@ -15,11 +15,11 @@ inSaveFigures = True
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 0.8
+inMinDeltaS = 1
 inRefixMotif = True
-inFixedResidue = ['R', ['A', 'G', 'S']]
-inFixedPosition = [6,7]
-inExcludeResidues = True
+inFixedResidue = ['R', ['A', 'G']]
+inFixedPosition = [3,4]
+inExcludeResidues = False
 inExcludedResidue = ['A']
 inExcludedPosition = [9, 10]
 inManualEntropy = False
@@ -27,7 +27,7 @@ inManualFrame = ['R6','R8','R5','R7']
 inFixFullMotifSeq = False
 inMinimumSubstrateCount = 1
 inSetMinimumESFixAA = 0
-inSetMinimumESReleaseAA = -1
+inSetMinimumESReleaseAA = -0.25
 inPrintFixedSubs = True
 inCombineFixedMotifs = False
 inPredictSubstrateEnrichmentScores = False

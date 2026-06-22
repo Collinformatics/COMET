@@ -865,7 +865,7 @@ class NGS:
         datasetTag = datasetTag.replace(' - ', '-').replace(' ', '_')
         if motifPath:
             if customTag is None:
-                file = (f'{enzName}-{self.datasetTagMotif}-'
+                file = (f'{enzName}-Register-{self.datasetTagMotif}-'
                         f'{sortType}-MinCounts_{self.minSubCount}').replace(
                     '/', '_').replace(' ', '_')
                 pathSubs = os.path.join(self.pathData,
@@ -2117,7 +2117,7 @@ class NGS:
         enzName = self.enzymeName.replace(' - ', '-').replace(' ', '_')
         if self.motifFilter and not self.releasedCounts:
             datasetTag = self.datasetTagMotif.replace(' ', '_')
-            figLabel = (f'{enzName}-{figType}_{self.saveFigureIteration}-'
+            figLabel = (f'{enzName}-{figType}-Register-_{self.saveFigureIteration}-'
                         f'{datasetTag}-{seqLen}AA-'
                         f'MinCounts_{self.minSubCount}.png')
         elif self.releasedCounts:
@@ -2523,8 +2523,6 @@ class NGS:
 
         # Define: Figure tag
         tag = self.datasetTag
-        if 'exclude' in tag.lower() and 'fixed' in tag.lower():
-            tag = tag.replace(' Fixed', '-Fixed')
         tag = tag.replace(' ', '_')
         self.datasetTagSave = tag.replace(' ', '_')
         # print(f'Dataset Tag: {purple}{self.datasetTag}{resetColor}')
