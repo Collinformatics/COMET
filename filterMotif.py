@@ -15,10 +15,10 @@ inSaveFigures = True
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 0.7
+inMinDeltaS = 1
 inRefixMotif = True
 inFixedResidue = ['R', ['A', 'G', 'S']]
-inFixedPosition = [5,6]
+inFixedPosition = [4,5]
 inExcludeResidues = True
 inExcludedResidue = ['A']
 inExcludedPosition = [9, 10]
@@ -648,7 +648,8 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
         substratesFinalFixed, countsFinalFixed, countsFinalFixedTotal = fixSubstrate(
             subs=substrates, fixedAA=keepResidues, fixedPosition=keepPositions,
             exclude=inExcludeResidues, excludeAA=inExcludedResidue,
-            excludePosition=inExcludedPosition, sortType=sortType, posFilter=position)
+            excludePosition=inExcludedPosition, sortType=sortType, posFilter=position
+        )
 
         # Update: Figure label
         ngs.saveFigureIteration += 1
@@ -664,8 +665,9 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
                                        fileType='Fixed Final Sort')
 
         # Calculate enrichment scores
-        ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfFinalFixed,
-                                posFilter=position)
+        ngs.calculateEnrichment(
+            rfInitial=rfInitial, rfFinal=rfFinalFixed, posFilter=position
+        )
 
         # Save the data
         if inSaveData:
@@ -698,7 +700,8 @@ def fixFrame(substrates, fixRes, fixPos, sortType, datasetTag):
 
 
 
-def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortType):
+def releaseCounts(substrates, countsFiltered, keepResidues,
+                  keepPositions, sortType):
     print('================================ Release Counts '
           '=================================')
     print(f'Filter:{purple}')
@@ -750,7 +753,7 @@ def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortT
 
         # Calculate enrichment scores
         ngs.calculateEnrichment(
-            rfInitial=rfInitial, rfFinal=releasedRF, relIteration=idxRel
+            rfInitial=rfInitial, rfFinal=releasedRF, relIteration=idxRel, relCounts=True
         )
 
 
@@ -758,6 +761,7 @@ def releaseCounts(substrates, countsFiltered, keepResidues, keepPositions, sortT
     # Determine which residues will be released
     indexDrop = None
     populatedPositions = []
+    ngs.releasedCounts = True
     for indexRel, posDrop in enumerate(ngs.subFrame.index):
         populatedPositions.append(posDrop)
         position = posDrop

@@ -13,6 +13,7 @@ from matplotlib.lines import Line2D
 import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.pyplot import title
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import RectangleSelector
 from sklearn.decomposition import PCA
@@ -228,6 +229,7 @@ class NGS:
         self.datasetTagMotif = None
         self.title = ''
         self.titleCombined = ''
+        self.titleMotif = ''
         self.titleReleased = ''
         self.titleWeblogo = ''
         self.titleWords = ''
@@ -2162,27 +2164,29 @@ class NGS:
         print()
 
         # Set figure titles
-        self.titleCombined = (f'{self.enzymeName}\n'
+        enzName = self.enzymeName.replace(' - ', '\n')
+        self.titleCombined = (f'{enzName}\n'
                               f'Combined Filter {self.datasetTag}')
-        self.titleReleased = (f'{self.enzymeName}\n'
+        self.titleMotif = f'{enzName}\n{self.datasetTagMotif}'
+        self.titleReleased = (f'{enzName}\n'
                               f'{self.datasetTagMotif}\n'
                               f'Substrate Profile')
         if self.showSampleSize:
-            self.title = (f'{self.enzymeName}\n'
+            self.title = (f'{enzName}\n'
                           f'N Unsorted = {self.nSubsInitial:,}\n'
                           f'N Sorted = {self.nSubsFinal:,}')
-            self.titleWeblogo = f'{self.enzymeName}\nN = {self.nSubsFinal:,}'
+            self.titleWeblogo = f'{enzName}\nN = {self.nSubsFinal:,}'
 
         else:
-            self.title = f'{self.enzymeName}'
-            self.titleWeblogo = f'{self.enzymeName}'
+            self.title = f'{enzName}'
+            self.titleWeblogo = f'{enzName}'
         if self.filterSubs:
             if self.motifFilter:
-                self.titleWords = f'{self.enzymeName}\n{self.motifTag}'
+                self.titleWords = f'{enzName}\n{self.motifTag}'
             else:
-                self.titleWords = f'{self.enzymeName}\n{self.datasetTagMotif}'
+                self.titleWords = f'{enzName}\n{self.datasetTagMotif}'
         else:
-            self.titleWords = f'{self.enzymeName}\nUnfiltered'
+            self.titleWords = f'{enzName}\nUnfiltered'
 
 
 
@@ -2829,7 +2833,8 @@ class NGS:
 
     def calculateEnrichment(self, rfInitial, rfFinal,
                             combinedMotifs=False, posFilter=False,
-                            relFilter=False, relIteration=False):
+                            relFilter=False, relIteration=False,
+                            relCounts=False):
         print('========================== Calculate: Enrichment Score '
               '==========================')
         print(f'Enrichment Scores:\n'
@@ -2935,26 +2940,30 @@ class NGS:
                                       combinedMotifs=combinedMotifs,
                                       posFilter=posFilter,
                                       relFilter=relFilter,
-                                      relIteration=relIteration)
+                                      relIteration=relIteration,
+                                      relCounts=relCounts)
         if self.plotFigEMScaled:
             self.plotEnrichmentScores(dataType='Scaled Enrichment',
                                       combinedMotifs=combinedMotifs,
                                       posFilter=posFilter,
                                       relFilter=relFilter,
-                                      relIteration=relIteration)
+                                      relIteration=relIteration,
+                                      relCounts=relCounts)
 
         # Plot: Enrichment Logo
         if self.plotFigLogo:
             self.plotEnrichmentLogo(combinedMotifs=combinedMotifs,
                                     posFilter=posFilter,
                                     relFilter=relFilter,
-                                    relIteration=relIteration)
+                                    relIteration=relIteration,
+                                    relCounts=relCounts)
 
         # Calculate & Plot: Weblogo
         if self.plotFigWebLogo:
             self.calculateWeblogo(probability=rfFinal,
                                   combinedMotifs=combinedMotifs,
-                                  relIteration=relIteration)
+                                  relIteration=relIteration,
+                                  relCounts=relCounts)
 
         return self.eMap
 
@@ -2962,7 +2971,7 @@ class NGS:
 
     def plotEnrichmentScores(self, dataType, combinedMotifs=False,
                              posFilter=False, relFilter=False,
-                             relIteration=False):
+                             relIteration=False, relCounts=False):
         print('============================ Plot: Enrichment Score '
               '=============================')
         # Select: Dataset
@@ -2978,12 +2987,19 @@ class NGS:
                 scores = self.eMap
 
         # Define: Figure title
-        if self.releasedCounts: # and len(self.motifIndexExtracted) > 1:
+        if self.releasedCounts or relCounts: # and len(self.motifIndexExtracted) > 1:
             title = self.titleReleased
+            print(f'Title 1: {title}')
         elif combinedMotifs:
             title = self.titleCombined
+            print(f'Title 2: {title}')
+        elif self.motifFilter:
+            title = self.titleMotif
+            print(f'Title 3: {title}')
         else:
             title = self.title
+            print(f'Title 4: {title}')
+        print(f'Title: {title}\n\n')
         # if '-' in title:
         #     title = title.replace('-', '\n')
         if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
@@ -3106,16 +3122,23 @@ class NGS:
 
     def plotEnrichmentLogo(self, combinedMotifs=False,
                            posFilter=False, relFilter=False,
-                           relIteration=False):
+                           relIteration=False, relCounts=False):
         print('============================= Plot: Enrichment Logo '
               '=============================')
         # Define: Figure title
-        if self.releasedCounts: # and len(self.motifIndexExtracted) > 1:
+        if self.releasedCounts or relCounts:
             title = self.titleReleased
+            print(f'Title 1: {title}')
         elif combinedMotifs:
             title = self.titleCombined
+            print(f'Title 2: {title}')
+        elif self.motifFilter:
+            title = self.titleMotif
+            print(f'Title 3: {title}')
         else:
             title = self.title
+            print(f'Title 4: {title}')
+        print(f'Title: {title}\n\n')
         if len(self.datasetTag.replace('[', '').replace(']', '').replace('-', '')) > 40:
             title = title.replace('Register ', 'Register\n')
 
