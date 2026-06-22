@@ -330,7 +330,6 @@ motifs, motifsCountsTotal, substratesFiltered = ngs.loadMotifSeqs(
     motifLabel=inMotifPositions, motifIndex=motifFramePos
 )
 
-
 # Display current sample size
 ngs.recordSampleSize(
     NInitial=countsInitialTotal, NFinal=motifsCountsTotal, NFinalUnique=len(motifs.keys())

@@ -856,7 +856,7 @@ class NGS:
 
 
 
-    def getFilePath(self, datasetTag, motifPath=False, customTag=None):
+    def getFilePath(self, datasetTag, sortType, motifPath=False, customTag=None):
         print('============================== Define: File Paths '
               '===============================')
         # Define: File path
@@ -865,7 +865,7 @@ class NGS:
         if motifPath:
             if customTag is None:
                 file = (f'{enzName}-{self.datasetTagMotif}-'
-                        f'FinalSort-MinCounts_{self.minSubCount}').replace(
+                        f'{sortType}-MinCounts_{self.minSubCount}').replace(
                     '/', '_').replace(' ', '_')
                 pathSubs = os.path.join(self.pathData,
                                         f'fixedMotifSubs-{file}.pkl')
@@ -875,10 +875,10 @@ class NGS:
                                                   f'fixedMotifCountsRel-{file}.csv')
                 paths = [pathSubs, pathCounts, pathCountsReleased]
             else:
-                print(f'Tag: {enzName}-{customTag}-FinalSort-'
+                print(f'Tag: {enzName}-{customTag}-{sortType}-'
                         f'MinCounts_{self.minSubCount}')
                 file = (
-                    f'{enzName}-{customTag}-FinalSort-MinCounts_{self.minSubCount}'
+                    f'{enzName}-{customTag}-{sortType}-MinCounts_{self.minSubCount}'
                 ).replace('/', '_').replace(' ', '_')
                 print(f'File: {file}')
                 pathSubs = os.path.join(self.pathData, f'fixedMotifSubs-{file}.pkl')
@@ -888,7 +888,7 @@ class NGS:
                 paths = [pathSubs, pathCounts, pathCountsReleased]
         else:
             file = (
-                f'{enzName}-{datasetTag}-FinalSort-MinCounts_{self.minSubCount}'
+                f'{enzName}-{datasetTag}-{sortType}-MinCounts_{self.minSubCount}'
             ).replace('/', '_')
             pathSubs = os.path.join(
                 self.pathData, f'fixedSubs-{file}.pkl')
@@ -908,7 +908,8 @@ class NGS:
 
 
 
-    def getFilePathCombined(self, loadSubs=False, loadCountsRel=False):
+    def getFilePathCombined(self, sortType, loadSubs=False,
+                            loadCountsRel=False):
         print('============================== Define: File Paths '
               '===============================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n')
@@ -984,12 +985,12 @@ class NGS:
         for motifTag in self.motifTags:
             if self.excludeAAs:
                 file = (
-                    f'{enzName}-{excludeTag}-Fixed_{motifTag}-FinalSort-'
+                    f'{enzName}-{excludeTag}-Fixed_{motifTag}-{sortType}-'
                     f'MinCounts_{self.minSubCount}'
                 ).replace('/', '_')
             else:
                 file = (
-                    f'{enzName}-{motifTag}-FinalSort-MinCounts_{self.minSubCount}'
+                    f'{enzName}-{motifTag}-{sortType}-MinCounts_{self.minSubCount}'
                 ).replace('/', '_')
             paths.append(
                 os.path.join(
@@ -1005,7 +1006,7 @@ class NGS:
         for path in paths:
             print(f'     {path}')
         print(f'{resetColor}\n')
-        sys.exit()
+
         return paths
 
 
@@ -1243,8 +1244,8 @@ class NGS:
 
 
     def loadMotifCounts(self, motifLabel, motifIndex,
-                        returnList=False, loadCountsRel=True,
-                        dropColumn=False):
+                        sortType='FinalSort', returnList=False,
+                        loadCountsRel=True, dropColumn=False):
         print('================================ Combine Motifs '
               '=================================')
         initialMotifFrame = self.xAxisLabels[motifIndex[0]:motifIndex[1]]
@@ -1259,7 +1260,7 @@ class NGS:
 
 
         # Define: File paths
-        paths = self.getFilePathCombined(loadCountsRel=loadCountsRel)
+        paths = self.getFilePathCombined(sortType=sortType, loadCountsRel=loadCountsRel)
 
         # Load the counts
         for index, pathFixedMotifRelCounts in enumerate(paths):
@@ -1355,7 +1356,8 @@ class NGS:
 
 
 
-    def loadMotifSeqs(self, motifLabel, motifIndex, loadCountsRel=True):
+    def loadMotifSeqs(self, motifLabel, motifIndex,
+                      loadCountsRel=True, sortType='FinalSort'):
         print('============================ Load: Substrate Motifs '
               '=============================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
@@ -1373,7 +1375,8 @@ class NGS:
 
 
         # Define: File paths
-        paths = self.getFilePathCombined(loadSubs=True, loadCountsRel=loadCountsRel)
+        paths = self.getFilePathCombined(sortType=sortType, loadSubs=True,
+                                         loadCountsRel=loadCountsRel)
 
         # Load the substrates
         for index, pathFixedMotifSubs in enumerate(paths):
@@ -2026,7 +2029,8 @@ class NGS:
 
 
 
-    def saveData(self, substrates, counts, saveTag=None, countsReleased=None):
+    def saveData(self, substrates, counts, sortType='FinalSort',
+                 saveTag=None, countsReleased=None):
         if not isinstance(substrates, dict):
             print(f'{orange}ERROR: The substrates need to be stored in a dictionary\n'
                   f'     Current data structure: {type(substrates)}')
@@ -2054,12 +2058,13 @@ class NGS:
 
             if countsReleased is None:
                 filePathSubs, filePathCounts = (
-                    self.getFilePath(datasetTag=self.datasetTagSave)
+                    self.getFilePath(datasetTag=self.datasetTagSave, sortType=sortType)
                 )
             else:
                 # Define: File paths
                 filePathSubs, filePathCounts, filePathCountsReleased = (
-                    self.getFilePath(datasetTag=self.datasetTagSave, motifPath=True)
+                    self.getFilePath(datasetTag=self.datasetTagSave, sortType=sortType,
+                                     motifPath=True)
                 )
 
         if not os.path.exists(filePathSubs) or not os.path.exists(filePathCounts):

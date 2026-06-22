@@ -18,7 +18,7 @@ inSetFigureTimer = True
 inMinDeltaS = 0.8
 inRefixMotif = True
 inFixedResidue = ['R', ['A', 'G', 'S']]
-inFixedPosition = [3,4]
+inFixedPosition = [6,7]
 inExcludeResidues = True
 inExcludedResidue = ['A']
 inExcludedPosition = [9, 10]
@@ -188,7 +188,7 @@ def fixSubstrate(subs, fixedAA, fixedPosition, exclude, excludeAA, excludePositi
     # # Load Data
     # Define: File path
     filePathFixedSubs, filePathFixedCounts = (
-        ngs.getFilePath(datasetTag=ngs.datasetTag))
+        ngs.getFilePath(datasetTag=ngs.datasetTag, sortType='FinalSort'))
     print('================================ Filtering Motif '
           '================================')
 
@@ -841,6 +841,7 @@ rfInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
 (filePathFixedMotifSubs,
  filePathFixedMotifCounts,
  filePathFixedMotifReleasedCounts) = ngs.getFilePath(datasetTag=fixedSubSeq,
+                                                     sortType='FinalSort',
                                                      motifPath=True)
 
 # Load the fixed frame if the file can be found
