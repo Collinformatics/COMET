@@ -7,21 +7,21 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Den'
+inEnzymeName = 'Mpro2'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P3','P2','P1','P1\'','P2\'','P3\'']
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'']
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-inIndexNTerminus = 1 # Define the index if the first AA in the motif
+inIndexNTerminus = 0 # Define the index if the first AA in the motif
 
 # Input 3: Computational Parameters
-inFixedResidue = ['R', ['A', 'G', 'S']]
-inFixedPosition = [[4,5],[5,6]]
-inExcludeResidues = True
+inFixedResidue = 'Q' # ['R', ['A', 'G']]
+inFixedPosition = [4,5,6]
+inExcludeResidues = False
 inExcludedResidue = ['A']
 inExcludedPosition = [9,10]
 inMinimumSubstrateCount = 1
@@ -44,12 +44,10 @@ inPlotStats = True
 inPlotBarGraphs = True
 inPlotPCA = False # PCA plot of the combined set of motifs
 inPlotSuffixTree = False
-inPredictSubstrateActivity = False
-inPredictSubstrateActivityPCA = False
 inPlotBinnedSubstrateES = False
 inPlotBinnedSubstratePrediction = False
 inPlotCounts = False
-inPlotFilteredSubs = True
+inPlotFilteredSubs = False
 inShowSampleSize = True # Include the sample size in your figures
 if inBlockFigures:
     inPlotEntropy = False
@@ -63,8 +61,6 @@ if inBlockFigures:
     inPlotBarGraphs = False
     inPlotPCA = False
     inPlotSuffixTree = False
-    inPredictSubstrateActivity = False
-    inPredictSubstrateActivityPCA = False
     inPlotBinnedSubstrateES = False
     inPlotBinnedSubstratePrediction = False
     inPlotCounts = False
@@ -136,58 +132,31 @@ if inUseNaturalSubs:
         inSubstrateActivity[substrate] = 50.0
     inErrorBars = []
 else:
-    inPredictionLabel = '30 Min'
-    inSubstrateActivity = {
-        'AVLQSG': 55,  # 60,
-        'VILQSG': 66,  # 70,
-        'VILQTG': 34,  # 6,
-        'VILQSP': 0,  # 0,
-        'VILHSG': 26,  # 15,
-        'VIMQSG': 61,  # 50,
-        'VPLQSG': 0,  # 0,
-        'NILQSG': 22,  # 6,
-    }
-    inSubstrateActivity = {
-        'PLALWR': 0,
-        'PMALVV': 0,
-        'PLALVV': 0,
-        'PMELVV': 0,
-        'PMVLVV': 0,
-        'TMALVV': 0,
-        'FMALVV': 0,
-        'PMTLVV': 0,
-        'PMALPV': 0,
-        'PMALVP': 0,
-        'PAALVV': 0,
-        'PTALVV': 0,
-        'PMAMVV': 0,
-        'PMATVV': 0,
-        'VMALVV': 0,
-        'PMAIVV': 0,
-        'PMLLVV': 0,
-        'PMMLVV': 0,
-        'MMALVV': 1
-    }
-    # inSubstrateActivity = {
-    #     'PMCMELVV': 4.06 * 10 ** -8,
-    #     'PMCMALVV': 3.91 * 10 ** -8,
-    #     'PMVMELVV': 3.95 * 10 ** -8,
-    #     'PMVMALVV': 3.80 * 10 ** -8,
-    #     'PVLALMLM': 5.39 * 10 ** -9,
-    #     'ASQGLLDR': 2.83 * 10 ** -11,
-    #     'RDDTTWPP': 1.21 * 10 ** -16
-    # }
     inPredictionLabel = ''
+    inActivityMpro = [0.54, 0.66, 0.34, 0.0, 0.26, 0.61, 0.0, 0.22]
     inSubstrateActivity = {
-        'CMELVV': 1,
-        'CMALVV': 0,
-        'VMELVV': 0,
-        'VMALVV': 0,
-        'VLALML': 0,
-        'QGLLDR': 0,
-        'DTTWPP': 0
+        'AVLQSG': inActivityMpro[0],
+        'VILQSG': inActivityMpro[1],
+        'VILQTG': inActivityMpro[2],
+        'VILQSP': inActivityMpro[3],
+        'VILHSG': inActivityMpro[4],
+        'VIMQSG': inActivityMpro[5],
+        'VPLQSG': inActivityMpro[6],
+        'NILQSG': inActivityMpro[7],
+    }
+    inActivityMpro2 = [0.76, 0.82, 0.38, 0.0, 0.32, 0.66, 0.0, 0.23]
+    inSubstrateActivity = {
+        'AVLQSG': inActivityMpro2[0],
+        'VILQSG': inActivityMpro2[1],
+        'VILQTG': inActivityMpro2[2],
+        'VILQSP': inActivityMpro2[3],
+        'VILHSG': inActivityMpro2[4],
+        'VIMQSG': inActivityMpro2[5],
+        'VPLQSG': inActivityMpro2[6],
+        'NILQSG': inActivityMpro2[7],
     }
     inErrorBars = [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033], # Avg stdev
+    inErrorBars = []
 inEMapStartIndex = 0  # Sub: ACDEFGHI, if idx = 0 start at A
 inRankScores = False
 inScalePredMatrix = False  # Scale EM by ΔS
@@ -322,7 +291,7 @@ else:
 ngs.getDatasetTag(combinedMotifs=True, useCodonProb=inUseCodonProb, codon=inCodonSequence)
 
 # Load: Substrates
-if inSaveCSV and inUseBgSubs or inFindSequences:
+if inSaveCSV and inUseBgSubs or inFindSequences or inPlotFilteredSubs:
     substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
 
 # Load: Substrate motifs
@@ -424,7 +393,7 @@ if inPredictActivity:
                                    RF=rfCombinedReleasedMotif, rankScores=inRankScores,
                                    scaleEMap=inScalePredMatrix)
 
-if inPlotFilteredSubs or inPlotWordCloud or inPlotBarGraphs:
+if inPlotFilteredSubs:
     # Plot count related figures
     ngs.processSubstrates(subsInit=substratesInitial, subsFinal=substratesFiltered,
                           motifs=motifs, subLabel=inMotifPositions,

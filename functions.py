@@ -5224,6 +5224,12 @@ class NGS:
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='Counts')
 
+        # if 'prediction matrix' in figLabel.lower():
+        #     cBarMax = 1
+        cBarMax = np.ceil(data.values.max() * 10) / 10
+        cBarMin = 0
+        print(f'Data:\n{data}\n\nMin: {cBarMin}\nMax: {cBarMax}')
+
         # Convert the counts to a data frame for Seaborn heatmap
         if self.residueLabelType == 0:
             data.index = [residue[0] for residue in self.residues]
@@ -5244,12 +5250,12 @@ class NGS:
         fig, ax = plt.subplots(figsize=self.figSize)
         if totalCounts:
             heatmap = sns.heatmap(data, annot=True, fmt=',d', cmap=cMapCustom,
-                                  cbar=True, linewidths=self.lineThickness-1,
+                                  cbar=False, linewidths=self.lineThickness-1,
                                   linecolor='black', square=False, center=None,
                                   annot_kws={'fontweight': 'bold'})
         else:
             heatmap = sns.heatmap(data, annot=True, fmt='.4f', cmap=cMapCustom,
-                                  cbar=True, linewidths=self.lineThickness - 1,
+                                  cbar=False, linewidths=self.lineThickness - 1,
                                   linecolor='black', square=False, center=None,
                                   annot_kws={'fontweight': 'bold'})
         ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
@@ -5280,8 +5286,16 @@ class NGS:
         for _, spine in ax.spines.items():
             spine.set_visible(True)
 
+        # Set invalid values to grey
+        cmap = plt.cm.get_cmap(cMapCustom)
+        cmap.set_bad(color='lightgrey')
+
         # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="4%", pad=0.1)
+        norm = plt.Normalize(vmin=cBarMin, vmax=cBarMax)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom),
+                            cax=cax)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
         cbar.outline.set_linewidth(self.lineThickness)
@@ -5291,12 +5305,13 @@ class NGS:
 
         # Save the figure
         if self.saveFigures:
+            enzName = enzName.replace(' ', '_')
             # Define: Save location
             if totalCounts:
-                figLabel = (f'{self.enzymeName}-Counts-{self.datasetTag}-'
+                figLabel = (f'{enzName}-Counts-{self.datasetTag}-'
                             f'MinCounts_{self.minSubCount}.png')
             else:
-                figLabel = (f'{self.enzymeName}-Prediction Matrix-{self.datasetTag}-'
+                figLabel = (f'{enzName}-Prediction Matrix-{self.datasetTag}-'
                             f'{len(xTicks)}AA-MinCounts_{self.minSubCount}.png')
             if self.releasedCounts:
                 figLabel = figLabel.replace(self.datasetTag,
@@ -6219,6 +6234,8 @@ class NGS:
     def predictActivity(self, activityExp, finalRF, initialRF, predModel,
                         predLabel, errorBars=False, combinedMotifs=False,
                         plotBars=True, barWidth=0.35):
+        from scipy.optimize import curve_fit
+
         print('============================ Predict Substrate Activity '
               '=============================')
         N = len(activityExp.keys())
@@ -6232,14 +6249,30 @@ class NGS:
                                           pHeader=False)
         self.plotMatrix(data=matrix, figLabel='Prediction Matrix')
 
-        # z = matrix.copy()
-        # for col in matrix.columns:
-        #     for aa in matrix.index:
-        #         z.loc[aa, col] = self.zScore(matrix[col], aa)
-        # print(f'Z Matrix:\n{z}\n')
+
+        def fnExp(x, a, b, c):
+            return a * np.exp(b * x) + c
 
 
-        def evalSubs(values, errorBars, tag):
+        def fitData(x, y):
+            # Fit the curve
+            popt, pcov = curve_fit(fnExp, x, y, p0=[1, 1, 0], maxfev=10000)
+            a, b, c = popt
+
+            # Generate smooth curve for plotting
+            xFit = np.linspace(min(x), max(x), 300)
+            yFit = fnExp(xFit, *popt)
+
+            # R² for the exponential fit
+            yPred = fnExp(x, *popt)
+            ss_res = np.sum((y - yPred) ** 2)
+            ss_tot = np.sum((y - np.mean(y)) ** 2)
+            r2 = 1 - (ss_res / ss_tot)
+
+            return xFit, yFit, r2
+
+
+        def plotPredActivity(values, errorBars, tag):
             # Calculate: Activity
             activityPred = {}
             subLen = len(next(iter(activityExp)))
@@ -6284,7 +6317,6 @@ class NGS:
             print()
 
             # Normalize values
-            print(f'Activity:\n{activityExp.values()}')
             maxExpActivity = max(activityExp.values())
             for index, (substrate, activity) in enumerate(activityPred.items()):
                 activityPred[substrate] = activity / maxActivity
@@ -6301,7 +6333,6 @@ class NGS:
                       f'Nat Log: {red}{l}{resetColor}')
                 if index == self.printNumber - 1:
                     break
-            print(f'Activity: {scores}')
             if errorBars:
                 print(f'Error Bars: {errorBars}')
             print('')
@@ -6328,6 +6359,12 @@ class NGS:
                 if index == self.printNumber:
                     break
             print('')
+
+            # Compare values
+            expScores = [round(a, 3) for a in activityExp.values()]
+            print(f'Activity: {purple}{self.enzymeName}{resetColor}')
+            print(f'* Experimental Activity: {expScores}')
+            print(f'* Predicted Activity:    {scores}\n\n')
 
             # Set title
             enzName = self.enzymeName.replace(' - ', '\n')
@@ -6362,17 +6399,30 @@ class NGS:
                 ax.set_xticks(xTicks)
                 ax.set_xticklabels(labels, rotation=45)
 
-                #Set tick parameters
+                # Set tick parameters
                 ax.tick_params(axis='both', which='major', length=self.tickLength,
-                               labelsize=self.labelSizeTicks)
+                               labelsize=self.labelSizeTicks, width=self.lineThickness)
+
+                # Set the edge thickness
+                for tick in ax.xaxis.get_major_ticks():
+                    tick.tick1line.set_markeredgewidth(
+                        self.lineThickness)  # Set tick width
+                for tick in ax.yaxis.get_major_ticks():
+                    tick.tick1line.set_markeredgewidth(
+                        self.lineThickness)  # Set tick width
+                for spine in ax.spines.values():
+                    spine.set_linewidth(self.lineThickness)
 
                 self.plotFig(plt=plt, fig=fig)
 
                 # Save the Figure
                 if self.saveFigures:
                     # Define: Save location
-                    figTag = (f'PredActivity-{tag}-'
-                              f'BarGraph-{predLabel}-{predModel}')
+                    figTag = f'PredActivity-BarGraph-{predModel}'
+                    if predLabel:
+                        figTag = figTag.replace(
+                            'BarGraph', f'BarGraph-{predLabel}'
+                        )
 
                     # Save figure
                     self.saveFigure(fig=fig, figType=figTag, seqLen=subLen, N=N,
@@ -6384,14 +6434,17 @@ class NGS:
             y = list(activityPred.values())
             ticks = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
-            from sklearn.metrics import r2_score
-            r2 = round(r2_score(x, y), 2)
+            x_fit, y_fit, r2 = fitData(x=np.array(x), y=np.array(y))
+
 
             fig, ax = plt.subplots(figsize=self.figSize)
             if errorBars:
-                plt.errorbar(x, y, yerr=errorBars, fmt="o", color='#BF5700', ecolor='black')
+                plt.errorbar(x, y, yerr=errorBars, fmt="o",
+                             color='#BF5700', ecolor='black')
             else:
                 plt.scatter(x, y, color='#BF5700', edgecolor='black')
+            ax.plot(x_fit, y_fit, color='black', linestyle='-',
+                    linewidth=self.lineThickness)
             plt.xlabel('Experimental Activity', fontsize=self.labelSizeAxis)
             plt.ylabel('Predicted Activity', fontsize=self.labelSizeAxis)
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
@@ -6404,13 +6457,22 @@ class NGS:
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
-                           labelsize=self.labelSizeTicks)
+                           labelsize=self.labelSizeTicks, width=self.lineThickness)
+
+            # Set the edge thickness
+            for tick in ax.xaxis.get_major_ticks():
+                tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+            for tick in ax.yaxis.get_major_ticks():
+                tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+            for spine in ax.spines.values():
+                spine.set_linewidth(self.lineThickness)
 
             # Legend
-            ax.legend(prop=FontProperties(size=10, weight='bold'), handles=[Line2D(
+            ax.legend(
+                prop=FontProperties(size=10, weight='bold'), handles=[Line2D(
                 [], [], linestyle='None', marker='None',
-                label=f'R² = {r2:.2f}')], handletextpad=0, handlelength=0
-                      )
+                label=f'R² = {r2:.3f}')], handletextpad=0, handlelength=0
+            )
 
             self.plotFig(plt=plt, fig=fig)
 
@@ -6418,13 +6480,16 @@ class NGS:
             # Save the Figure
             if self.saveFigures:
                 # Define: Save location
-                figTag = (f'PredActivity-{tag}-'
-                          f'ScatterPlot-{predLabel}-{predModel}')
+                figTag = f'PredActivity-ScatterPlot-{predModel}'
+                if predLabel:
+                    figTag = figTag.replace(
+                        'ScatterPlot', f'ScatterPlot-{predLabel}'
+                    )
 
                 # Save figure
                 self.saveFigure(fig=fig, figType=figTag, seqLen=subLen, N=N,
                                 combinedMotifs=combinedMotifs)
-        evalSubs(values=matrix, errorBars=errorBars, tag='Probability Ratios')
+        plotPredActivity(values=matrix, errorBars=errorBars, tag='Probability Ratios')
 
 
 
