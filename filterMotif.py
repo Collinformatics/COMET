@@ -8,7 +8,7 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Mpro1'
+inEnzymeName = 'Mpro2'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveData = True
 inSaveFigures = True
@@ -18,7 +18,7 @@ inSetFigureTimer = True
 inMinDeltaS = 0.65
 inRefixMotif = True
 inFixedResidue = 'Q' # ['R', ['A', 'G']]
-inFixedPosition = 7
+inFixedPosition = 4
 inExcludeResidues = False
 inExcludedResidue = ['A', 'A']
 inExcludedPosition = [9, 10]
@@ -802,10 +802,9 @@ def releaseCounts(substrates, countsFiltered, sortType, keepResidues,
     for position in countsReleased.columns:
         if position not in populatedPositions:
             fillPos.append(position)
-    populateMatrix(counts=countsFiltered,
-                   popPosition=fillPos,
-                   idxRel=len(populatedPositions),
-                   plotS=True)
+    populateMatrix(
+        counts=countsFiltered, popPosition=fillPos,idxRel=len(populatedPositions)
+    )
 
     return countsReleased, releasedRF
 
