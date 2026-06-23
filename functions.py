@@ -865,7 +865,7 @@ class NGS:
         datasetTag = datasetTag.replace(' - ', '-').replace(' ', '_')
         if motifPath:
             if customTag is None:
-                file = (f'{enzName}-Register-{self.datasetTagMotif}-'
+                file = (f'{enzName}-Register_{self.datasetTagMotif}-'
                         f'{sortType}-MinCounts_{self.minSubCount}').replace(
                     '/', '_').replace(' ', '_')
                 pathSubs = os.path.join(self.pathData,
@@ -986,12 +986,13 @@ class NGS:
         for motifTag in self.motifTags:
             if self.excludeAAs:
                 file = (
-                    f'{enzName}-{excludeTag}_Fixed_{motifTag}-{sortType}-'
+                    f'{enzName}-Register_{excludeTag}_Fixed_{motifTag}-{sortType}-'
                     f'MinCounts_{self.minSubCount}'
                 ).replace('/', '_')
             else:
                 file = (
-                    f'{enzName}-{motifTag}-{sortType}-MinCounts_{self.minSubCount}'
+                    f'{enzName}-Register_{motifTag}-{sortType}-'
+                    f'MinCounts_{self.minSubCount}'
                 ).replace('/', '_')
             paths.append(
                 os.path.join(
@@ -2117,8 +2118,8 @@ class NGS:
         enzName = self.enzymeName.replace(' - ', '-').replace(' ', '_')
         if self.motifFilter and not self.releasedCounts:
             datasetTag = self.datasetTagMotif.replace(' ', '_')
-            figLabel = (f'{enzName}-{figType}-Register-_{self.saveFigureIteration}-'
-                        f'{datasetTag}-{seqLen}AA-'
+            figLabel = (f'{enzName}-{figType}-{self.saveFigureIteration}-'
+                        f'Register_{datasetTag}-{seqLen}AA-'
                         f'MinCounts_{self.minSubCount}.png')
         elif self.releasedCounts:
             datasetTag = self.datasetTagMotif.replace(' ', '_')
@@ -3084,7 +3085,7 @@ class NGS:
 
         # Modify the colorbar
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
+        cax = divider.append_axes("right", size="4%", pad=0.1)
         norm = plt.Normalize(vmin=cBarMin, vmax=cBarMax)
         cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom), cax=cax)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
@@ -3532,7 +3533,7 @@ class NGS:
         # Plot the heatmap with numbers centered inside the squares
         fig, ax = plt.subplots(figsize=self.figSizeEM)
         heatmap = sns.heatmap(data, annot=True, fmt='.3f', cmap=cMapCustom,
-                              cbar=True, linewidths=self.lineThickness-1,
+                              cbar=False, linewidths=self.lineThickness-1,
                               linecolor='black', square=False, center=None,
                               annot_kws={'fontweight': 'bold'}, vmax=cBarMax, vmin=0)
         ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
@@ -3565,7 +3566,15 @@ class NGS:
             spine.set_visible(True)
 
         # Modify the colorbar
-        cbar = heatmap.collections[0].colorbar
+        # cbar = heatmap.collections[0].colorbar
+        # cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+        #                     length=self.tickLength, width=self.lineThickness)
+        # cbar.outline.set_linewidth(self.lineThickness)
+        # cbar.outline.set_edgecolor('black')
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="4%", pad=0.1)
+        norm = plt.Normalize(vmin=0, vmax=cBarMax)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom), cax=cax)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
         cbar.outline.set_linewidth(self.lineThickness)
@@ -5441,7 +5450,7 @@ class NGS:
 
         # Add color bar
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
+        cax = divider.append_axes("right", size="4%", pad=0.1)
         cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalize, cmap=colorBar), cax=cax)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
