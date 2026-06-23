@@ -1019,6 +1019,20 @@ class NGS:
 
 
 
+    def plotFig(self, plt, fig):
+        fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
+        if self.setFigureTimer:
+            plt.ion()
+            plt.show()
+            plt.pause(self.figureTimerDuration)
+            plt.close(fig)
+            plt.ioff()
+        else:
+            plt.show()
+
+
+
     def loadCounts(self, filter, fileType, datasetTag=None, dropColumn=False):
         print('================================== Load Counts '
               '==================================')
@@ -2981,18 +2995,6 @@ class NGS:
 
         return self.eMap
 
-
-    def plotFig(self, plt, fig):
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
 
 
     def plotEnrichmentScores(self, dataType, combinedMotifs=False,
