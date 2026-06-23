@@ -8,17 +8,17 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Den'
+inEnzymeName = 'Mpro1'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveData = True
 inSaveFigures = True
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 1
+inMinDeltaS = 0.7
 inRefixMotif = True
-inFixedResidue = ['R', ['A', 'G']]
-inFixedPosition = [3,4]
+inFixedResidue = 'Q' # ['R', ['A', 'G']]
+inFixedPosition = 4
 inExcludeResidues = False
 inExcludedResidue = ['A', 'A']
 inExcludedPosition = [9, 10]
@@ -26,8 +26,8 @@ inManualEntropy = False
 inManualFrame = ['R6','R8','R5','R7']
 inFixFullMotifSeq = False
 inMinimumSubstrateCount = 1
-inSetMinimumESFixAA = 0
-inSetMinimumESReleaseAA = -0.25
+inSetMinimumESFixAA = 0.5
+inSetMinimumESReleaseAA = 0
 inPrintFixedSubs = True
 inCombineFixedMotifs = False
 inPredictSubstrateEnrichmentScores = False
@@ -70,43 +70,6 @@ inBinSubstrates = False
 inSaveEnrichedSubs = False
 inPredictionDatapointColor = '#BF5700'
 inSetAxisLimits = False
-
-# Input 8: Predict Optimal substrates
-inSetMinimumES = True
-inPrintES = True
-inPlotSubsetOfSubstrates = True
-inShowKLDivergenceProb = False
-inDatapointColor = '#BF5700'
-inPlotSubstrateText = False
-inMiniumSubstrateScoreLimit = False
-inMiniumSubstrateScore = -55
-inNormalizeValues = False
-inPrintNormalizedValues = False
-inPrintBinnedSubstrates = True
-inMinX, inMaxX = -0.05, 1.05
-inMinY, inMaxY = -0.05, 1.05  # -7.5, 15
-inInspectDataUpperValue = 0.4
-inInspectDataLowerValue = 0.2
-inDifferenceThreshold = 0
-inBinPositionRange = [1, 5]
-inOverlapOSPredictions = False
-if inOverlapOSPredictions:
-    fixedPositions = []
-    inBinPositions = []
-    inDatapointColor = ['#FF0000', '#16FFD4', '#FF00F2', '#FF6200']  # '#F79620'
-    for index in range(inFixedPosition[0], inFixedPosition[0] + 4):
-        fixedPositions.append(index)
-        addValue = index - 4
-        inBinPositions.append((inBinPositionRange[0] - 1 + addValue,
-                               inBinPositionRange[1] + addValue))
-    inFixedPosition = fixedPositions
-else:
-    if inFixedPosition and inFixedPosition[0] != 4:
-        addValue = inFixedPosition[0] - 4
-        inBinPositionRange[0] += addValue
-        inBinPositionRange[1] += addValue
-inMatrixESLabel = r'Enrichment Scores'
-inMatrixScaledESLabel = r'ΔS * Enrichment Scores'
 
 
 
@@ -719,7 +682,7 @@ def releaseCounts(substrates, countsFiltered, keepResidues,
                               columns=ngs.eMap.columns)
 
 
-    def populateMatrix(counts, popPosition, idxRel):
+    def populateMatrix(counts, popPosition, idxRel, plotS=False):
         # Record counts at released position
         print('======================== Populate Released Count Matrix '
               '=========================')
@@ -752,6 +715,9 @@ def releaseCounts(substrates, countsFiltered, keepResidues,
               f'\n{countsTotal}\n\n'
               f'Relative Frequency: {purple}Released counts{resetColor}\n'
               f'{releasedRF}\n\n')
+
+        if plotS:
+            ngs.calculateEntropy(releasedRF, plotS=True)
 
         # Calculate enrichment scores
         ngs.calculateEnrichment(
@@ -820,7 +786,8 @@ def releaseCounts(substrates, countsFiltered, keepResidues,
             fillPos.append(position)
     populateMatrix(counts=countsFiltered,
                    popPosition=fillPos,
-                   idxRel=len(populatedPositions))
+                   idxRel=len(populatedPositions),
+                   plotS=True)
 
     return countsReleased, releasedRF
 
@@ -828,6 +795,11 @@ def releaseCounts(substrates, countsFiltered, keepResidues,
 
 
 # ===================================== Run The Code =====================================
+if isinstance(inFixedPosition, int):
+    inFixedPosition = [inFixedPosition]
+if isinstance(inExcludedPosition, int):
+    inExcludedPosition = [inExcludedPosition]
+
 # # Fix AA at the important positions in the substrate
 fixedSubSeq = ngs.getDatasetTag()
 inDatasetTag = f'Motif {fixedSubSeq}'

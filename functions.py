@@ -1166,7 +1166,7 @@ class NGS:
             if iteration >= self.printNumber:
                 break
         print(f'\nTotal substrates: {purple}{fileType}\n'
-              f'     {red} {substrateTotal:,}{resetColor}\n')
+              f'     {red} {substrateTotal:,}{resetColor}\n\n')
 
         return substrates, substrateTotal
 
@@ -2026,9 +2026,7 @@ class NGS:
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
         # Save the figure
         if self.saveFigures:
@@ -2984,6 +2982,18 @@ class NGS:
         return self.eMap
 
 
+    def plotFig(self, plt, fig):
+        fig.canvas.mpl_connect('key_press_event', pressKey)
+        plt.tight_layout()
+        if self.setFigureTimer:
+            plt.ion()
+            plt.show()
+            plt.pause(self.figureTimerDuration)
+            plt.close(fig)
+            plt.ioff()
+        else:
+            plt.show()
+
 
     def plotEnrichmentScores(self, dataType, combinedMotifs=False,
                              posFilter=False, relFilter=False,
@@ -3099,16 +3109,7 @@ class NGS:
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
 
         # Save the figure
@@ -3245,16 +3246,7 @@ class NGS:
                         motif.ax.axvspan(index - spacer, index + spacer,
                                          facecolor='darkgrey', alpha=0.2)
 
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.tight_layout()
-            if self.setFigureTimer:
-                plt.ion()
-                plt.show()
-                plt.pause(self.figureTimerDuration)
-                plt.close(fig)
-                plt.ioff()
-            else:
-                plt.show()
+            self.plotFig(plt=plt, fig=fig)
 
             # Save the figure
             if self.saveFigures:
@@ -3396,16 +3388,7 @@ class NGS:
                     motif.ax.axvspan(index - spacer, index + spacer,
                                      facecolor='darkgrey', alpha=0.2)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
 
         # Save the figure
@@ -3588,16 +3571,7 @@ class NGS:
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
         # Save the figure
         figLabel = dataType
@@ -3861,9 +3835,7 @@ class NGS:
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
         # Save the figure
         if self.saveFigures:
@@ -4035,16 +4007,7 @@ class NGS:
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
 
 
@@ -4390,9 +4353,7 @@ class NGS:
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
         # Save the figure
         if self.saveFigures:
@@ -4636,9 +4597,7 @@ class NGS:
             # Change rubber band color
             selector.set_props(facecolor='none', edgecolor='green', linewidth=3)
 
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            fig.tight_layout()
-            plt.show()
+            self.plotFig(plt=plt, fig=fig)
 
 
         # Save the Figure
@@ -5326,9 +5285,7 @@ class NGS:
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
         # Save the figure
         if self.saveFigures:
@@ -5473,16 +5430,7 @@ class NGS:
             tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
         cbar.outline.set_linewidth(self.lineThickness)
 
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
 
         # Save the figure
@@ -5609,16 +5557,7 @@ class NGS:
             # Set axis limits
             plt.ylim(0, yMax)
 
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.tight_layout()
-            if self.setFigureTimer:
-                plt.ion()
-                plt.show()
-                plt.pause(self.figureTimerDuration)
-                plt.close(fig)
-                plt.ioff()
-            else:
-                plt.show()
+            self.plotFig(plt=plt, fig=fig)
 
             if self.saveFigures:
                 # Define: Save location
@@ -5727,16 +5666,7 @@ class NGS:
             for spine in ax.spines.values():
                 spine.set_linewidth(self.lineThickness)
 
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.tight_layout()
-            if self.setFigureTimer:
-                plt.ion()
-                plt.show()
-                plt.pause(self.figureTimerDuration)
-                plt.close(fig)
-                plt.ioff()
-            else:
-                plt.show()
+            self.plotFig(plt=plt, fig=fig)
 
             # Save the figure
             if self.saveFigures:
@@ -5816,16 +5746,7 @@ class NGS:
         plt.imshow(wordcloud, interpolation='bilinear')
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.axis('off')
-        fig.canvas.mpl_connect('key_press_event', pressKey)
-        fig.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)
 
 
         # Save the Figure
@@ -6443,16 +6364,7 @@ class NGS:
                 ax.tick_params(axis='both', which='major', length=self.tickLength,
                                labelsize=self.labelSizeTicks)
 
-                fig.canvas.mpl_connect('key_press_event', pressKey)
-                plt.tight_layout()
-                if self.setFigureTimer:
-                    plt.ion()
-                    plt.show()
-                    plt.pause(self.figureTimerDuration)
-                    plt.close(fig)
-                    plt.ioff()
-                else:
-                    plt.show()
+                self.plotFig(plt=plt, fig=fig)
 
                 # Save the Figure
                 if self.saveFigures:
@@ -6498,16 +6410,7 @@ class NGS:
                 label=f'R² = {r2:.2f}')], handletextpad=0, handlelength=0
                       )
 
-            fig.canvas.mpl_connect('key_press_event', pressKey)
-            plt.tight_layout()
-            if self.setFigureTimer:
-                plt.ion()
-                plt.show()
-                plt.pause(self.figureTimerDuration)
-                plt.close(fig)
-                plt.ioff()
-            else:
-                plt.show()
+            self.plotFig(plt=plt, fig=fig)
 
 
             # Save the Figure
@@ -6704,12 +6607,4 @@ class NGS:
                        labelsize=self.labelSizeTicks)
 
         fig.canvas.mpl_connect('key_press_event', pressKey)
-        plt.tight_layout()
-        if self.setFigureTimer:
-            plt.ion()
-            plt.show()
-            plt.pause(self.figureTimerDuration)
-            plt.close(fig)
-            plt.ioff()
-        else:
-            plt.show()
+        self.plotFig(plt=plt, fig=fig)

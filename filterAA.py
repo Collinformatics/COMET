@@ -12,18 +12,18 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Den'
+inEnzymeName = 'Mpro2'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = True
-inFixedResidue = 'R' # [['C','I','V']]
-inFixedPosition = [4]
+inFixedResidue = 'Q'
+inFixedPosition = 4
 inExcludeResidues = False
-inExcludedResidue = 'A' # [['C','I','V'],['C','I','V'],['C','I','V'],['C','I','V']] # ['Y','Y','Y','Y','Y','Y','Y']
-inExcludedPosition = [9] # ['1,2,3,4,6,7,8,9]
+inExcludedResidue = [['C','I','V'],['C','I','V'],['C','I','V'],['C','I','V']] # ['Y','Y','Y','Y','Y','Y','Y']
+inExcludedPosition = [1,2,3,4,6,7,8,9]
 inMinimumSubstrateCount = 1
 inMinDeltaS = 0.6
 inPrintFixedSubs = True
