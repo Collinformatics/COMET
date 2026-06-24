@@ -746,7 +746,9 @@ class NGS:
                   f'{red} {round(throwawayPercent, self.roundVal)} %{resetColor}\n\n')
 
         # Rank the substrates
-        subSequence = dict(sorted(subSequence.items(), key=lambda x: x[1], reverse=True))
+        subSequence = dict(sorted(
+            subSequence.items(), key=lambda x: x[1], reverse=True)
+        )
 
         return subSequence
 
@@ -835,7 +837,9 @@ class NGS:
                                       index=self.xAxisLabels)
 
         # Print: Counts
-        columnSumsFormated = columnSums.apply(lambda col: col.map(includeCommas)).copy()
+        columnSumsFormated = columnSums.apply(
+            lambda col: col.map(includeCommas)
+        ).copy()
         print(f'{columnSumsFormated}\n')
         countedDataPrint = countedData.apply(lambda col: col.map(includeCommas))
         print(f'Counted data: {purple}{self.enzymeName}{resetColor}\n'
@@ -1168,7 +1172,9 @@ class NGS:
             thread.join()
 
         # Sort loaded data
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
+        substrates = dict(sorted(
+            substrates.items(), key=lambda x: x[1], reverse=True)
+        )
 
         # Print: Loaded data substrates
         print(f'Loaded data: {purple}{fileType}{resetColor}')
@@ -1414,9 +1420,9 @@ class NGS:
                         substrates = loadedSubs
                     else:
                         for substrate, count in loadedSubs.items():
-                            if substrate in substrates.keys():
-                                substrates[substrate] += count
-                            else:
+                            if substrate not in substrates.keys():
+                            #     substrates[substrate] += count
+                            # else:
                                 substrates[substrate] = count
 
                 # Define motif positions and extract the sequence
@@ -1464,7 +1470,7 @@ class NGS:
                 totalCounts = 0
                 for substrate, count in loadedSubs.items():
                     if substrate in foundMotifs.keys():
-                        continue
+                        continue # Don't double count substrate
                     else:
                         foundMotifs[substrate] = True
                     totalMotifs += count
@@ -1486,11 +1492,23 @@ class NGS:
         self.motifLen = len(next(iter(motifs)))
 
         # Sort the substrate dictionary by counts
-        motifs = dict(sorted(motifs.items(), key=lambda x: x[1], reverse=True))
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
+        substrates = dict(sorted(
+            substrates.items(), key=lambda x: x[1], reverse=True)
+        )
+        motifs = dict(sorted(
+            motifs.items(), key=lambda x: x[1], reverse=True)
+        )
 
         iteration = 0
-        print(f'Top Motifs:')
+        print(f'Top Substrates:')
+        for substrate, count, in substrates.items():
+            print(f'     {pink}{substrate}{resetColor}, '
+                  f'Counts: {red}{count:,}{resetColor}')
+            iteration += 1
+            if iteration >= self.printNumber:
+                break
+        iteration = 0
+        print(f'\nTop Motifs:')
         for motif, count, in motifs.items():
             print(f'     {blue}{motif}{resetColor}, Counts: {red}{count:,}{resetColor}')
             iteration += 1
@@ -1850,7 +1868,7 @@ class NGS:
 
         # Plot bar graphs
         ##
-        # ===============================================================================
+        # ================================================================================
         self.plotBarGraphCSV(
             substrates=subsCounts, dataType='Counts',
             combinedMotifs=combinedMotifs, minCounts=minCounts,
@@ -1861,7 +1879,7 @@ class NGS:
             combinedMotifs=combinedMotifs, minCounts=minCounts,
             saveLocation=pathFigs[1]
         )
-        # ===============================================================================
+        # ================================================================================
         #
         self.plotBarGraphCSV(
             substrates=subsZCounts, dataType='Z Counts',
@@ -1883,8 +1901,9 @@ class NGS:
 
 
 
-    def plotBarGraphCSV(self, substrates, dataType, barColor='#BF5700',
-                        barWidth=3, combinedMotifs=False, minCounts=False,
+    def plotBarGraphCSV(self, substrates, dataType,
+                        barColor='#BF5700', barWidth=3,
+                        combinedMotifs=False, minCounts=False,
                         saveLocation=False):
         print('================================ Plot: Bar Graph '
               '================================')
@@ -2347,7 +2366,8 @@ class NGS:
 
 
 
-    def getDatasetTag(self, useCodonProb=False, codon=None, combinedMotifs=False):
+    def getDatasetTag(self, useCodonProb=False,
+                      codon=None, combinedMotifs=False):
         if combinedMotifs:
             continuous = True
             if len(self.fixedPos) == 1:
@@ -2560,10 +2580,12 @@ class NGS:
               f'{purple}{fixedString}{resetColor}\n')
 
         # Sort the substrate dictionary by counts
-        substrates = dict(sorted(substrates.items(), key=lambda x: x[1], reverse=True))
+        substrates = dict(sorted(
+            substrates.items(), key=lambda x: x[1], reverse=True)
+        )
 
 
-        # Select substrates that contain selected AA at a specified position in the substrate
+        # Select substrates that contain selected AA at a specified position
         if self.excludeAAs:
             # Verify if the substrates contain the residue(s) you wish to remove
             for substrate, count in substrates.items():
@@ -2728,8 +2750,9 @@ class NGS:
                     fixedSubsTotal += count
 
         # Rank fixed substrates
-        rankedFixedSubstrates = dict(sorted(fixedSubs.items(),
-                                            key=lambda x: x[1], reverse=True))
+        rankedFixedSubstrates = dict(sorted(
+            fixedSubs.items(), key=lambda x: x[1], reverse=True)
+        )
 
         # Print: Fixed substrates
         if printRankedSubs:
@@ -3404,7 +3427,8 @@ class NGS:
 
 
 
-    def fixedMotifStats(self, countsList, initialRF, motifFrame, datasetTag):
+    def fixedMotifStats(self, countsList, initialRF,
+                        motifFrame, datasetTag):
         print('================== Statistical Evaluation: Fixed Motif Counts '
               '===================')
         print(f'Count Lists: {len(countsList)}\n{countsList}\n\n')
@@ -3662,8 +3686,9 @@ class NGS:
 
 
 
-    def plotMotifEnrichment(self, motifs, barColor='#BF5700', barWidth=0.65,
-                            clusterNumPCA=None, combinedMotifs=False, limitNBars=False,
+    def plotMotifEnrichment(self, motifs, barColor='#BF5700',
+                            barWidth=0.65, clusterNumPCA=None,
+                            combinedMotifs=False, limitNBars=False,
                             predActivity=False, predModel=None, predType=None,
                             scaleEMap=False):
         NSubs = len(motifs.keys())
@@ -3955,7 +3980,8 @@ class NGS:
 
 
 
-    def plotScatter(self, valuesExp, valuesPred, matrixType, color='#BF5700'):
+    def plotScatter(self, valuesExp, valuesPred, matrixType,
+                    color='#BF5700'):
         x, y = valuesExp.values(), valuesPred.values()
 
         # Normalize predicted values
@@ -4014,7 +4040,8 @@ class NGS:
 
 
     def motifEnrichment(self, subsInit, subsFinal, motifs,
-                        predActivity=False, predModel=False, predType=False):
+                        predActivity=False, predModel=False,
+                        predType=False):
         print('=============================== Motif Enrichment '
               '================================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n\n'
@@ -4084,7 +4111,9 @@ class NGS:
                     ratios[substrate] = count / countInit
 
                 # Sort collected substrates and add to the list
-                ratios = dict(sorted(ratios.items(), key=lambda x: x[1], reverse=True))
+                ratios = dict(sorted(
+                    ratios.items(), key=lambda x: x[1], reverse=True)
+                )
 
                 iteration = 0
                 print('Enrichment Ratios:')
@@ -4196,7 +4225,8 @@ class NGS:
 
 
     def plotBarGraph(self, substrates, dataType, barColor='#BF5700',
-                     barWidth=0.75, combinedMotifs=False, plotAllSubs=False):
+                     barWidth=0.75, combinedMotifs=False,
+                     plotAllSubs=False):
         print('================================ Plot: Bar Graph '
               '================================')
         print(f'Plot all: {plotAllSubs}')
@@ -4631,8 +4661,9 @@ class NGS:
                     collectionSet[substrate] = substrates[substrate]
 
                 # Sort collected substrates and add to the list
-                collectionSet = dict(sorted(collectionSet.items(),
-                                            key=lambda x: x[1], reverse=True))
+                collectionSet = dict(sorted(
+                    collectionSet.items(), key=lambda x: x[1], reverse=True)
+                )
                 collectedSubs.append(collectionSet)
 
                 # Print: Collected substrates
@@ -5607,7 +5638,8 @@ class NGS:
 
 
 
-    def plotPositionalProbDist(self, probability, entropyScores, sortType, datasetTag):
+    def plotPositionalProbDist(self, probability, entropyScores, sortType,
+                               datasetTag):
         print('======================== Plot: Probability Distribution '
               '=========================')
         for position in entropyScores.index:
@@ -5777,7 +5809,8 @@ class NGS:
 
 
 
-    def findSequence(self, substrates, sequence, sortType, combinedMotifs=False):
+    def findSequence(self, substrates, sequence, sortType,
+                     combinedMotifs=False):
         print('================================= Find Sequence '
               '=================================')
         if 'initial' in sortType.lower():
@@ -5850,16 +5883,19 @@ class NGS:
 
         # Total occurrences
         print('Total occurrences:')
-        hitsTotal = dict(sorted(hitsTotal.items(), key=lambda item: item[1], reverse=True))
+        hitsTotal = dict(sorted(
+            hitsTotal.items(), key=lambda item: item[1], reverse=True)
+        )
         for substrate, count in hitsTotal.items():
             print(f'  {blue}{substrate}{resetColor}, {red}{count:,}{resetColor}')
-
-        print(f'\nHit Population: {red}{totalHits:,}{resetColor} / {red}{totalSubstrates:,}'
+        print()
+        print(f'Hit Population: {red}{totalHits:,}{resetColor} / {red}{totalSubstrates:,}'
               f'{resetColor} = {red}{round(hitsPercent,self.roundVal)} %'
               f'{resetColor}\n\n')
 
 
-    def findAAInSequence(self, substrates, AA, idxPos, sortType, combinedMotifs=False):
+    def findAAInSequence(self, substrates, AA, idxPos, sortType,
+                         combinedMotifs=False):
         print('================================= Find Sequence '
               '=================================')
         idxPos -= 1 # Adjust index
@@ -6008,7 +6044,8 @@ class NGS:
 
 
 
-    def generateSubstrates(self, df, eMap, minES, dataType, subsReq={}, filter={}):
+    def generateSubstrates(self, df, eMap, minES, dataType,
+                           subsReq={}, filter={}):
         print('============================== Generate Substrates '
               '==============================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
@@ -6197,13 +6234,15 @@ class NGS:
 
 
 
-    def normalizeProbRatios(self, finalRF, initialRF, pData=True, pHeader=True):
+    def normalizeProbRatios(self, finalRF, initialRF,
+                            pData=True, pHeader=True):
         if pData:
             if pHeader:
                 print('========================= Normalize Probability Ratios '
                       '==========================')
             else:
-                print(f'Normalize Probability Ratios: {purple}{self.datasetTag}{resetColor}')
+                print(f'Normalize Probability Ratios: '
+                      f'{purple}{self.datasetTag}{resetColor}')
             print(f'Relative Frequency: {purple}Final{resetColor}\n{finalRF}\n')
             print(f'Relative Frequency: {purple}Initial{resetColor}\n{initialRF}\n\n')
 
