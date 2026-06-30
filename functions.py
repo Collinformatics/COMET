@@ -173,6 +173,15 @@ class NGS:
                  NSubsPCA, plotSuffixTree, saveFigures, setFigureTimer,
                  expressDNA=False, xAxisLabelsMotif=None, motifFilter=False,
                  releasedCounts=False, plotFigMotifEnrich=False):
+        if not isinstance(fixedAA, list):
+            fixedAA = [fixedAA]
+        if not isinstance(fixedPosition, list):
+            fixedPosition = [fixedPosition]
+        if not isinstance(excludeAA, list):
+            excludeAA = [excludeAA]
+        if not isinstance(excludePosition, list):
+            excludePosition = [excludePosition]
+
         # Parameters: Figures
         self.labelSizeTitle = 20 # Set fontsize
         self.labelSizeAxis = 17 # Set fontsize
@@ -282,11 +291,6 @@ class NGS:
         self.roundVal = 3
         np.set_printoptions(suppress=True) # Prevent data from printing in sci notation
         np.seterr(divide='ignore')
-
-        if isinstance(self.fixedPos, int):
-            self.fixedPos = [self.fixedPos]
-        if isinstance(self.excludePos, int):
-            self.excludePos = [self.excludePos]
 
         # Verify directory paths
         if not os.path.exists(self.pathFolder):
@@ -2283,6 +2287,8 @@ class NGS:
                 self.titleWords = f'{enzName}\n{self.motifTag}'
             else:
                 self.titleWords = f'{enzName}\n{self.datasetTagMotif}'
+        elif self.excludeAAs:
+            self.titleWords = f'{enzName}\n{self.datasetTag}'
         else:
             self.titleWords = f'{enzName}\nUnfiltered'
 
@@ -3675,30 +3681,32 @@ class NGS:
             for predType, predictions in motifs.items():
                 print(f'Evaluating Predictions: {purple}{predType}{resetColor}\n'
                       f'Predictions: {type(predictions)}')
-                motifES = self.motifEnrichment(
+                self.motifEnrichment(
                     subsInit=subsInit, subsFinal=subsFinal, motifs=predictions,
-                    predActivity=predActivity, predModel=predModel, predType=predType)
+                    predActivity=predActivity, predModel=predModel, predType=predType
+                )
 
                 # Plot: Word cloud
-                self.plotWordCloud(substrates=motifES, combinedMotifs=combinedMotifs,
+                self.plotWordCloud(substrates=motifs, combinedMotifs=combinedMotifs,
                                    predActivity=predActivity, predModel=predModel)
 
             return None
         else:
             # Calculate: Motif enrichment
-            motifES = self.motifEnrichment(
+            self.motifEnrichment(
                 subsInit=subsInit, subsFinal=subsFinal, motifs=motifs,
-                predActivity=predActivity, predModel=predModel)
+                predActivity=predActivity, predModel=predModel
+            )
 
-        # Plot: Word cloud
-        if self.plotFigWords:
-            self.plotWordCloud(substrates=motifES, combinedMotifs=combinedMotifs)
+            # Plot: Word cloud
+            if self.plotFigWords:
+                self.plotWordCloud(substrates=motifs, combinedMotifs=combinedMotifs)
 
 
         predMotif = False
         if predMotif:
             # Predict: Motif enrichment
-            self.predMotifEnrichment(motifES=motifES)
+            self.predMotifEnrichment(motifES=motifs)
 
         # Plot: Bar graphs
         if self.plotFigBars:
@@ -3711,10 +3719,10 @@ class NGS:
         if self.plotFigPCA:
             # Convert substrate data to numerical
             tokensESM, subsESM, subCountsESM = self.ESM(
-                substrates=motifES, subLabel=subLabel)
+                substrates=motifs, subLabel=subLabel)
 
             # Cluster substrates
-            subPopulations = self.plotPCA(substrates=motifES, data=tokensESM,
+            subPopulations = self.plotPCA(substrates=motifs, data=tokensESM,
                                           indices=subsESM, N=subCountsESM,
                                           combinedMotifs=combinedMotifs)
             for NCluster, motifCluster in enumerate(subPopulations):
@@ -3735,12 +3743,6 @@ class NGS:
                 # Plot: Word cloud
                 self.plotWordCloud(substrates=motifCluster, clusterNumPCA=NClusterAdj,
                                    combinedMotifs=combinedMotifs)
-
-        # Suffix tree
-        if self.plotSuffixTree:
-            tree = None
-
-        return motifES
 
 
 
@@ -4105,117 +4107,18 @@ class NGS:
         if len(self.motifIndexExtracted) > 1:
             combinedMotifs = True
 
-        if predActivity:
-            motifEnrichment = motifs
-        else:
-            k = None
-            motifEnrichment = {}
-            ratios = {}
-            totalCountsInit = 0
-            totalCountsFinal = 0
-            totalMissingSubs = 0
-            totalUniqueSubsFinal = len(subsFinal)
-
-
-            # ============================================================================
-
-            # Calc: ER
-                # Use: CountFinal / CountInit
-
-                # Or Use: (CountFinal / NFinalSubs) / (CountInit / NInitSubs)
-
-                # Use?: log2(ratio)
-
-            # ============================================================================
-
-
-            # Sort input sequences
-            subsFinal = dict(sorted(subsFinal.items(),
-                                    key=lambda x: x[1], reverse=True))
-
-            # Print: Substrates
-            iteration = 0
-            print(f'Substrates: {magenta}Final Sort{resetColor}')
-            for substrate, count in subsFinal.items():
-                print(f'     {pink}{substrate}{resetColor}, '
-                      f'Count:{red} {count:,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    print('')
-                    break
-
-
-            # Evaluate: Motif enrichment
-            for substrate in subsFinal.keys():
-                if substrate not in subsInit.keys():
-                    totalMissingSubs += 1
-            print(f'Dataset Evaluation:\n'
-                  f'    Total substrates in the Final Sort: '
-                  f'{red}{totalUniqueSubsFinal:,}{resetColor}\n'
-                  f'    Final Sort substrates missing in the Initial Sort: '
-                  f'{red}{totalMissingSubs:,}{resetColor}\n'
-                  f'    Percentage of unaccounted Final Sort substrates: {yellow}'
-                  f'{round(100*(totalMissingSubs / 
-                                totalUniqueSubsFinal), self.roundVal)} %'
-                  f'{resetColor}')
-
-
-            # Evaluate: Motifs
-            for motif in motifs.keys():
-                for substrate, ratio in ratios.items():
-                    if motif in substrate:
-                        if motif in motifEnrichment.keys():
-                            motifEnrichment[motif] += ratio
-                        else:
-                            motifEnrichment[motif] = ratio
-            totalMotifs = len(motifs.keys())
-            print(f'Unique Motifs: {red}{totalMotifs:,}{resetColor}\n')
-
-            # Sort collected substrates and add to the list
-            motifEnrichment = dict(sorted(
-                motifEnrichment.items(), key=lambda x: x[1], reverse=True)
-            )
-
-        iteration = 0
-        if predActivity:
-            print(f'Predicted Activity: {pink}Top {predType} Sequences{resetColor}')
-            print(f'Model: {purple}{predModel}{resetColor}')
-            for substrate, values in motifEnrichment.items():
-                print(f'Value: {type(values)}')
-                for key, value in values.items():
-                    print(f'     {key}: {value}')
-                value = float(value)
-                print(f'     {pink}{substrate}{resetColor}: {red}{round(value, 3):,}'
-                      f'{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            print('\n')
-        else:
-            print(f'Enrichment Motifs: {pink}Top Sequences{resetColor}')
-            for motif, value in motifEnrichment.items():
-                value = float(value)
-                print(f'     {blue}{motif}{resetColor}, '
-                      f'ER: {red}{round(value, 3):,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            print('\n')
-
-
         # Plot: Motif enrichment
         if predActivity and self.plotFigMotifEnrich:
             self.plotMotifEnrichment(
-                motifs=motifEnrichment, combinedMotifs=combinedMotifs,
+                motifs=motifs, combinedMotifs=combinedMotifs,
                 limitNBars=True, predActivity=predActivity, predModel=predModel,
                 predType=predType)
         else:
             if self.plotFigMotifEnrich:
                 self.plotMotifEnrichment(
-                    motifs=motifEnrichment, combinedMotifs=combinedMotifs,
+                    motifs=motifs, combinedMotifs=combinedMotifs,
                     predActivity=predActivity, predModel=predModel, predType=predType)
 
-        return motifEnrichment
 
 
     def decayRate(self, y):
@@ -5790,7 +5693,7 @@ class NGS:
             title = self.titleCombined
         else:
             title = self.titleWords
-            title += f'\nTop {totalWords} Subst.rates'
+            title += f'\nTop {totalWords} Substrates'
 
 
         # Create word cloud

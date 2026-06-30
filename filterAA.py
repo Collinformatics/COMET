@@ -17,18 +17,18 @@ inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
-inFixResidues = False
-inFixedResidue = ['L','L'] # ['R',['A','G']] # [['L', 'M'], 'L'] # ['L', 'L'] #
-inFixedPosition = [3,5]
+inFixResidues = True
+inFixedResidue = ['A','G'] # ['R',['A','G']] # [['L', 'M'], 'L'] # ['L', 'L'] #
+inFixedPosition = [4,5]
 inExcludeResidues = True
-inExcludedResidue = ['A']
-inExcludedPosition = 10
+inExcludedResidue = ['A','A']
+inExcludedPosition = [9,10]
 inMinimumSubstrateCount = 1
 inShowSampleSize = True
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = False
-inDropResidue = ['R10'] # To drop 9th to last AA: ['R9'], For nothing: []
+inDropResidue = ['R9'] # To drop 9th to last AA: ['R9'], For nothing: []
 
 # Input 3: Making Figures
 inBlockFigures = False
