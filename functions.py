@@ -1504,67 +1504,57 @@ class NGS:
 
 
     def dropColumnsFromMatrix(self, countMatrix, datasetType, dropColumn):
-        printMatrix = False
-        for pos in dropColumn:
-            if pos in countMatrix.columns:
-                printMatrix = True
-                print(f'Dropping column: {blue}{dropColumn}{resetColor}')
-                countMatrix = countMatrix.drop(columns=pos)
-
         if isinstance(dropColumn, str):
-            idx = self.xAxisLabels.index(dropColumn)
-        elif isinstance(dropColumn, list) and dropColumn[0]:
-            idx = self.xAxisLabels.index(dropColumn[0])
-        else:
+            dropColumn = [dropColumn]
+        if dropColumn[0] not in countMatrix.columns:
             return countMatrix
-        print(self.xAxisLabels)
-        print(len(self.xAxisLabels), idx)
+        idx = countMatrix.columns.get_loc(dropColumn[0])
+        dropPos =  list(countMatrix.columns[idx:])
+        countMatrix = countMatrix.iloc[:,0:idx]
         if len(self.xAxisLabels) > idx:
-            print(self.xAxisLabels)
             print(self.xAxisLabels[:idx])
-
+            self.xAxisLabels = self.xAxisLabels[:idx]
         if self.xAxisLabelsMotif is not None and len(self.xAxisLabelsMotif) > idx:
             print(self.xAxisLabelsMotif[:idx])
-        sys.exit()
+            self.xAxisLabelsMotif = self.xAxisLabelsMotif[:idx]
 
-        if printMatrix:
-            countsFormatted = countMatrix.to_string(
-                formatters={column: '{:,.0f}'.format for column in
-                            countMatrix.select_dtypes(include='number').columns})
-            print(f'Counts: {purple}{datasetType}{resetColor}\n{countsFormatted}\n\n')
-
+        countsFormatted = countMatrix.to_string(
+            formatters={column: '{:,.0f}'.format for column in
+                        countMatrix.select_dtypes(include='number').columns})
+        print(f'Dropping: {dropPos}')
+        print(f'Counts: {purple}{datasetType}{resetColor}\n{countsFormatted}\n\n')
+        
         return countMatrix
 
 
 
     def dropAA(self, substrates, dropColumn):
         if isinstance(dropColumn, str):
-            idx = int(dropColumn.replace('R', '')) - 1
-        else:
-            idx = int(dropColumn[0].replace('R', '')) - 1
-        subLen = len(next(iter(substrates)))
-        if subLen <= idx:
+            dropColumn = [dropColumn]
+        if dropColumn[0] not in self.xAxisLabels:
             return substrates
-
-        print(self.xAxisLabels)
-        print(idx)
-        if dropColumn in self.xAxisLabels:
-            print(self.xAxisLabels)
-
-        if self.xAxisLabelsMotif is not None and dropColumn in self.xAxisLabelsMotif:
-            print(self.xAxisLabelsMotif)
-        sys.exit()
+        idx = self.xAxisLabels.index(dropColumn[0])
+        subLen = len(next(iter(substrates)))
+        # print(f'Dropping: {dropColumn[0]}\n'
+        #       f'Len: {subLen}\n'
+        #       f'Idx: {idx}\n')
 
         subs = {}
-        print(f'Dropping: {dropColumn[0]}\n'
-              f'Len: {subLen}\n'
-              f'Idx: {idx}\n')
         for substrate, count in substrates.items():
             sub = substrate[0:idx]
             if sub in subs.keys():
                 subs[sub] += count
             else:
                 subs[sub] = count
+
+        if len(self.xAxisLabels) > idx:
+            print(self.xAxisLabels[:idx])
+            self.xAxisLabels = self.xAxisLabels[:idx]
+        if self.xAxisLabelsMotif is not None and len(self.xAxisLabelsMotif) > idx:
+            print(self.xAxisLabelsMotif[:idx])
+            self.xAxisLabelsMotif = self.xAxisLabelsMotif[:idx]
+
+
 
         return subs
 
