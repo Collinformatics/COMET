@@ -243,9 +243,11 @@ class NGS:
         self.filterSubs = filterSubs
         self.fixedAA = fixedAA
         self.fixedPos = fixedPosition
+        self.fixedPos, self.fixedAA = zip(*sorted(zip(self.fixedPos, self.fixedAA)))
         self.excludeAAs = excludeAAs
         self.excludeAA = excludeAA
-        self.excludePosition = excludePosition
+        self.excludePos = excludePosition
+        self.excludePos, self.excludeAA = zip(*sorted(zip(self.excludePos, self.excludeAA)))
         self.minSubCount = minCounts
         self.minEntropy = minEntropy
         self.xAxisLabels = xAxisLabels
@@ -259,7 +261,7 @@ class NGS:
         self.initialize = True
         self.maxValue = 0
         self.releasedCounts = releasedCounts
-        
+
         # Parameters: DNA Processing
         self.expressDNA = expressDNA # Only set as True when processing DNA seqs
         self.minQS = 20 # Minium Phred quality score for extracted substrates
@@ -283,8 +285,8 @@ class NGS:
 
         if isinstance(self.fixedPos, int):
             self.fixedPos = [self.fixedPos]
-        if isinstance(self.excludePosition, int):
-            self.excludePosition = [self.excludePosition]
+        if isinstance(self.excludePos, int):
+            self.excludePos = [self.excludePos]
 
         # Verify directory paths
         if not os.path.exists(self.pathFolder):
@@ -968,7 +970,7 @@ class NGS:
             for index, removedAA in enumerate(self.excludeAA):
                 fixResidueList.append(
                     f'{removedAA}@R'
-                    f'{self.excludePosition[index]}'.replace(' ', ''))
+                    f'{self.excludePos[index]}'.replace(' ', ''))
             excludeTag = f'Exclude {' '.join(fixResidueList)}'
 
         # Define: File path
@@ -2521,7 +2523,7 @@ class NGS:
                 for index, removedAA in enumerate(self.excludeAA):
                     fixResidueList.append(
                         f'{removedAA}@R'
-                        f'{self.excludePosition[index]}'.replace(' ', '')
+                        f'{self.excludePos[index]}'.replace(' ', '')
                     )
                 excludeTag = f'Exclude {' '.join(fixResidueList)}'
                 self.datasetTag = f'{excludeTag} Fixed {self.datasetTag}'
@@ -2534,12 +2536,12 @@ class NGS:
                         if index == 0:
                             fixResidueList.append(
                                 f'Exclude_{removedAA}@R'
-                                f'{self.excludePosition[index]}'.replace(
+                                f'{self.excludePos[index]}'.replace(
                                     ' ', '')
                             )
                         else:
                             fixResidueList.append(
-                                f'{removedAA}@R{self.excludePosition[index]}'.replace(
+                                f'{removedAA}@R{self.excludePos[index]}'.replace(
                                     ' ', '')
                             )
     
@@ -2585,12 +2587,12 @@ class NGS:
                         if index == 0:
                             fixResidueList.append(
                                 f'Exclude_{removedAA}@R'
-                                f'{self.excludePosition[index]}'.replace(
+                                f'{self.excludePos[index]}'.replace(
                                     ' ', '')
                             )
                         else:
                             fixResidueList.append(
-                                f'{removedAA}@R{self.excludePosition[index]}'.replace(
+                                f'{removedAA}@R{self.excludePos[index]}'.replace(
                                     ' ', '')
                             )
                     self.datasetTag = ' '.join(fixResidueList)
@@ -2656,7 +2658,7 @@ class NGS:
                 keepSub = True
                 for indexExclude, AAExclude in enumerate(self.excludeAA):
                     if len(AAExclude) == 1:
-                        indexRemoveAA = self.excludePosition[indexExclude] - 1
+                        indexRemoveAA = self.excludePos[indexExclude] - 1
 
                         # Is the AA acceptable?
                         if substrate[indexRemoveAA] == AAExclude:
@@ -2665,7 +2667,7 @@ class NGS:
                     else:
                         # Remove Multiple AA at a specific position
                         for AAExcludeMulti in AAExclude:
-                            indexRemoveAA = self.excludePosition[indexExclude] - 1
+                            indexRemoveAA = self.excludePos[indexExclude] - 1
                             for AAExclude in AAExcludeMulti:
 
                                 # Is the AA acceptable?
@@ -2698,7 +2700,7 @@ class NGS:
                     fixedSubs[substrate] = count
                     fixedSubsTotal += count
         else:
-            # Fix AAs, and dont exclude any AAs
+            # Fix AAs, and don't exclude any AAs
             if len(self.fixedAA) == 1 and len(self.fixedAA[0]) == 1:
                 for substrate, count in substrates.items():
                     # Inspect substrate count
@@ -2787,8 +2789,7 @@ class NGS:
                 keepSub = True
                 for indexExclude, AAExclude in enumerate(self.excludeAA):
                     if len(AAExclude) == 1:
-                        indexRemoveAA = self.excludePosition[indexExclude] - 1
-                        print(indexRemoveAA, self.excludePosition)
+                        indexRemoveAA = self.excludePos[indexExclude] - 1
                         # Is the AA acceptable?
                         if substrate[indexRemoveAA] == AAExclude:
                             keepSub = False
@@ -2796,7 +2797,7 @@ class NGS:
                     else:
                         # Remove Multiple AA at a specific position
                         for AAExcludeMulti in AAExclude:
-                            indexRemoveAA = self.excludePosition[indexExclude] - 1
+                            indexRemoveAA = self.excludePos[indexExclude] - 1
                             for AAExclude in AAExcludeMulti:
 
                                 # Is the AA acceptable?
