@@ -223,7 +223,8 @@ elif inExcludeResidues:
 if saveSubs:
     # Save the data
     if inDropResidue:
-        substratesFinal = ngs.dropAA(substrates=substratesFinal, dropColumn=inDropResidue)
+        substratesFinal = ngs.truncateSubs(substrates=substratesFinal,
+                                           dropColumn=inDropResidue)
 
     if countsFinal is None:
         # Count fixed substrates

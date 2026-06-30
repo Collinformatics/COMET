@@ -1508,37 +1508,41 @@ class NGS:
             dropColumn = [dropColumn]
         if dropColumn[0] not in countMatrix.columns:
             return countMatrix
+        print('================================ Truncate Matrix '
+              '================================')
         idx = countMatrix.columns.get_loc(dropColumn[0])
         dropPos =  list(countMatrix.columns[idx:])
         countMatrix = countMatrix.iloc[:,0:idx]
         if len(self.xAxisLabels) > idx:
-            print(self.xAxisLabels[:idx])
+            # print(self.xAxisLabels[:idx])
             self.xAxisLabels = self.xAxisLabels[:idx]
         if self.xAxisLabelsMotif is not None and len(self.xAxisLabelsMotif) > idx:
-            print(self.xAxisLabelsMotif[:idx])
+            # print(self.xAxisLabelsMotif[:idx])
             self.xAxisLabelsMotif = self.xAxisLabelsMotif[:idx]
 
         countsFormatted = countMatrix.to_string(
             formatters={column: '{:,.0f}'.format for column in
                         countMatrix.select_dtypes(include='number').columns})
-        print(f'Dropping: {dropPos}')
+        print(f'Dropping: {blue}{dropPos}{resetColor}')
         print(f'Counts: {purple}{datasetType}{resetColor}\n{countsFormatted}\n\n')
-        
+
         return countMatrix
 
 
 
-    def dropAA(self, substrates, dropColumn):
+    def truncateSubs(self, substrates, dropColumn):
         if isinstance(dropColumn, str):
             dropColumn = [dropColumn]
-        if dropColumn[0] not in self.xAxisLabels:
-            return substrates
-        idx = self.xAxisLabels.index(dropColumn[0])
+        idx = int(dropColumn[0].replace('R', '')) - 1
+        dropPos = list(substrates.keys())
         subLen = len(next(iter(substrates)))
-        # print(f'Dropping: {dropColumn[0]}\n'
-        #       f'Len: {subLen}\n'
-        #       f'Idx: {idx}\n')
-
+        if subLen <= idx:
+            return substrates
+        print('============================== Truncate Substrates '
+              '==============================')
+        print(f'Dropping: {blue}{' '.join(dropColumn)}{resetColor}\n'
+              f'Substrate len: {pink}{subLen}{resetColor}\n'
+              f'Truncated len: {blue}{idx}{resetColor}\n')
         subs = {}
         for substrate, count in substrates.items():
             sub = substrate[0:idx]
@@ -1546,6 +1550,13 @@ class NGS:
                 subs[sub] += count
             else:
                 subs[sub] = count
+        subs = dict(sorted(subs.items(), key=lambda x: x[1], reverse=True))
+        print('Substrates:')
+        for i, (sub, count) in enumerate(subs.items()):
+            print(f'    {blue}{sub}{resetColor}: Counts: {red}{count:,}{resetColor}')
+            if i >= self.printNumber:
+                break
+        print('\n')
 
         if len(self.xAxisLabels) > idx:
             print(self.xAxisLabels[:idx])
@@ -1553,8 +1564,6 @@ class NGS:
         if self.xAxisLabelsMotif is not None and len(self.xAxisLabelsMotif) > idx:
             print(self.xAxisLabelsMotif[:idx])
             self.xAxisLabelsMotif = self.xAxisLabelsMotif[:idx]
-
-
 
         return subs
 
