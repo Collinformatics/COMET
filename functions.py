@@ -2788,7 +2788,7 @@ class NGS:
                 for indexExclude, AAExclude in enumerate(self.excludeAA):
                     if len(AAExclude) == 1:
                         indexRemoveAA = self.excludePosition[indexExclude] - 1
-
+                        print(indexRemoveAA, self.excludePosition)
                         # Is the AA acceptable?
                         if substrate[indexRemoveAA] == AAExclude:
                             keepSub = False

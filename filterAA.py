@@ -21,7 +21,7 @@ inFixResidues = False
 inFixedResidue = ['L','L'] # ['R',['A','G']] # [['L', 'M'], 'L'] # ['L', 'L'] #
 inFixedPosition = [3,5]
 inExcludeResidues = True
-inExcludedResidue = 'A'
+inExcludedResidue = ['A']
 inExcludedPosition = 10
 inMinimumSubstrateCount = 1
 inShowSampleSize = True
@@ -214,7 +214,7 @@ if inFixResidues and loadUnfilteredSubs:
     substratesFinal, countsFinalTotal = ngs.fixResidue(
         substrates=substratesFinal, fixedString=ngs.datasetTag,
         printRankedSubs=True, sortType='Final Sort')
-elif inExcludeResidues:
+elif inExcludeResidues and loadUnfilteredSubs:
     saveSubs = True
     substratesFinal, countsFinalTotal = ngs.exclResidue(
         substrates=substratesFinal, fixedString=ngs.datasetTag,
