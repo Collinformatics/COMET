@@ -3685,7 +3685,6 @@ class NGS:
                 self.plotWordCloud(substrates=motifs, combinedMotifs=combinedMotifs)
 
         # Plot: Bar graphs
-        self.plotFigBars = True ##$$
         if self.plotFigBars:
             self.plotBarGraph(substrates=motifs, dataType='Counts',
                               combinedMotifs=combinedMotifs)
@@ -3967,12 +3966,15 @@ class NGS:
         # print()
 
         # Define: Figure title
-        if plotAllSubs:
-            title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
-                     f'{self.datasetTag}\nTop {NSubs:,} Substrates')
+        enzName = self.enzymeName.replace(' - ', '\n')
+        if self.releasedCounts:
+            title = self.titleReleased
+        elif combinedMotifs:
+            title = self.titleCombined
         else:
-            title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
-                     f'{self.datasetTag}\nTop {NSubs:,} Substrates')
+            title = self.titleWords
+            title += f'\nTop {NSubs} Substrates'
+        title = title.replace(self.enzymeName, enzName)
 
 
         # Plot the data
@@ -4057,7 +4059,8 @@ class NGS:
                 seqLength = self.motifLen
 
             # Define: Save location
-            figLabel = (f'{self.enzymeName}-Bars-{dataType}-'
+            enzName = enzName.replace(' ', '_')
+            figLabel = (f'{enzName}-Bars-{dataType}-'
                         f'{self.datasetTag}-{seqLength}AA-'
                         f'N_{NSubs}-MinCounts_{self.minSubCount}.png')
             if combinedMotifs:
@@ -5925,8 +5928,6 @@ class NGS:
                 print(f'    {pink}{substrate}{resetColor} ({ranked[index]}), '
                       f'Score: {colorP}{s}{resetColor}, '
                       f'Nat Log: {colorP}{l}{resetColor}')
-                if index == self.printNumber - 1:
-                    break
             if errorBars:
                 print(f'Error Bars: {errorBars}')
             print('')
