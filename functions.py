@@ -252,11 +252,9 @@ class NGS:
         self.filterSubs = filterSubs
         self.fixedAA = fixedAA
         self.fixedPos = fixedPosition
-        self.fixedPos, self.fixedAA = zip(*sorted(zip(self.fixedPos, self.fixedAA)))
         self.excludeAAs = excludeAAs
         self.excludeAA = excludeAA
         self.excludePos = excludePosition
-        self.excludePos, self.excludeAA = zip(*sorted(zip(self.excludePos, self.excludeAA)))
         self.minSubCount = minCounts
         self.minEntropy = minEntropy
         self.xAxisLabels = xAxisLabels
@@ -2424,7 +2422,7 @@ class NGS:
     def getDatasetTag(self, useCodonProb=False,
                       codon=None, combinedMotifs=False):
         if combinedMotifs:
-            continuous = True
+            continuous, multiCombinedFrames = True, False
             if len(self.fixedPos) == 1:
                 # tags = []
                 # for idxList in range(len(self.fixedAA)):
@@ -2445,7 +2443,6 @@ class NGS:
                 fixedAA = list(fixedAA)
                 # print(f'Fixed Pos: {fixedPos}\n'
                 #       f'Fixed AA:  {fixedAA}\n')
-                multiCombinedFrames = False
                 for index in range(len(fixedPos) - 1):
                     # print(f'Idx: {index}')
                     pos1, pos2 = fixedPos[index], fixedPos[index + 1]
@@ -3673,47 +3670,30 @@ class NGS:
 
 
 
-    def processSubstrates(self, subsInit, subsFinal, motifs, subLabel,
-                          combinedMotifs=False, predActivity=False,
-                          predModel=False):
+    def processSubstrates(self, motifs, subLabel, combinedMotifs=False,
+                          predActivity=False, predModel=False):
         if predActivity:
             # Calculate: Motif enrichment
             for predType, predictions in motifs.items():
                 print(f'Evaluating Predictions: {purple}{predType}{resetColor}\n'
                       f'Predictions: {type(predictions)}')
-                self.motifEnrichment(
-                    subsInit=subsInit, subsFinal=subsFinal, motifs=predictions,
-                    predActivity=predActivity, predModel=predModel, predType=predType
-                )
-
-                # Plot: Word cloud
-                self.plotWordCloud(substrates=motifs, combinedMotifs=combinedMotifs,
-                                   predActivity=predActivity, predModel=predModel)
-
-            return None
+            # Plot: Word cloud
+            self.plotWordCloud(substrates=motifs, combinedMotifs=combinedMotifs,
+                               predActivity=predActivity, predModel=predModel)
         else:
-            # Calculate: Motif enrichment
-            self.motifEnrichment(
-                subsInit=subsInit, subsFinal=subsFinal, motifs=motifs,
-                predActivity=predActivity, predModel=predModel
-            )
-
             # Plot: Word cloud
             if self.plotFigWords:
                 self.plotWordCloud(substrates=motifs, combinedMotifs=combinedMotifs)
 
-
-        predMotif = False
-        if predMotif:
-            # Predict: Motif enrichment
-            self.predMotifEnrichment(motifES=motifs)
-
         # Plot: Bar graphs
+        self.plotFigBars = True ##$$
         if self.plotFigBars:
+            # self.plotBarGraph(substrates=motifs, dataType='Counts',
+            #                   combinedMotifs=combinedMotifs)
             self.plotBarGraph(substrates=motifs, dataType='Counts',
-                              combinedMotifs=combinedMotifs)
-            self.plotBarGraph(substrates=motifs, dataType='Relative Frequency',
-                              combinedMotifs=combinedMotifs)
+                              combinedMotifs=combinedMotifs, plotAllSubs=True)
+            # self.plotBarGraph(substrates=motifs, dataType='Relative Frequency',
+            #                   combinedMotifs=combinedMotifs)
 
         # PCA
         if self.plotFigPCA:
@@ -4093,8 +4073,7 @@ class NGS:
 
 
 
-    def motifEnrichment(self, subsInit, subsFinal, motifs,
-                        predActivity=False, predModel=False,
+    def motifEnrichment(self, motifs, predActivity=False, predModel=False,
                         predType=False):
         print('=============================== Motif Enrichment '
               '================================')
@@ -4150,6 +4129,7 @@ class NGS:
               '================================')
         print(f'Plot all: {plotAllSubs}')
         if plotAllSubs:
+            barWidth = 1
             limitNSubs = len(substrates.keys())
             print(f'Plotting {red}{limitNSubs:,}{resetColor} substrates\n')
         else:
@@ -4198,15 +4178,29 @@ class NGS:
 
             # Evaluate: Y axis
             yMin = 0
-            maxValue = max(y)
-            magnitude = math.floor(math.log10(maxValue))
-            val = 5 * 10 ** (magnitude - 1)
-            yMax = val
-            while yMax < maxValue:
-                yMax += val
-            # print(f'\nY Axis:\n'
-            #       f'  Max: {yMax}\n'
-            #       f'  Min: {yMin}\n')
+            if plotAllSubs:
+                maxValue = max(y)
+                print(f'Max: {blue}{maxValue:,}{resetColor}')
+                magnitude = math.floor(math.log10(maxValue))
+                print(f'Magnitude: {blue}{magnitude:,}{resetColor}')
+                if magnitude > 1:
+                    mag = 10**(magnitude-1)
+                    print(f'Mag: {blue}{mag:,}{resetColor}')
+                    v = maxValue / mag
+                    yMax = math.ceil(v)
+                    print(f'Val: {blue}{v:,}{resetColor}')
+                    print(f'Max: {blue}{yMax:,}{resetColor}\n')
+                    yMax = yMax * mag
+                else:
+                    yMax = np.ceil(maxValue / 10) * 10
+            else:
+                maxValue = max(y)
+                magnitude = math.floor(math.log10(maxValue))
+                val = 5 * 10 ** (magnitude - 1)
+                yMax = val
+                while yMax < maxValue:
+                    yMax += val
+            print(f'Max: {yMax:,}\n')
         elif 'relative frequency' in dataType.lower():
             # Evaluate: Substrates
             for substrate, value in substrates.items():
@@ -4240,16 +4234,23 @@ class NGS:
             yMax = math.ceil(max(y)) + spacer
             yMin = math.floor(min(y))
         NSubs = len(x)
-        print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n\n')
-
+        print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n')
+        print(f'Y Axis:\n'
+              f'* Max: {yMax:,}\n'
+              f'* Min: {yMin:,}\n')
+        print()
 
         # Define: Figure title
-        title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
-                 f'{self.datasetTag}\nTop {NSubs:,} Substrates')
+        if plotAllSubs:
+            title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
+                     f'{self.datasetTag}\nTop {NSubs:,} Substrates')
+        else:
+            title = (f'{self.enzymeName.replace(' - ', '\n')}\n'
+                     f'{self.datasetTag}\nTop {NSubs:,} Substrates')
 
 
         # Plot the data
-        fig, ax = plt.subplots(figsize=self.figSize)
+        fig, ax = plt.subplots(figsize=self.figSize) ##$$
         bars = plt.bar(x, y, color=barColor, width=barWidth)
         plt.ylabel(dataType, fontsize=self.labelSizeAxis)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
@@ -4258,10 +4259,23 @@ class NGS:
 
 
         # Determine x values
-        xTicks = np.arange(0, NSubs)
-        ax.set_xticks(xTicks)
-        ax.set_xticklabels(x, rotation=90, ha='center')
-        ax.set_xlim(left=xTicks[0] - barWidth, right=xTicks[-1] + barWidth)
+        if plotAllSubs:
+            # Evaluate: X axis
+            magnitude = math.floor(math.log10(NSubs))
+            step = 10 ** (magnitude) / 2
+            xMax = 0
+            while xMax < NSubs:
+                xMax += step
+            xTicks = np.arange(0, xMax + 1, step, dtype=int)
+            # Set: x ticks
+            ax.set_xticks(xTicks)
+            ax.set_xticklabels(xTicks, ha='center')
+            ax.set_xlim(-step / 10, xTicks[-1])
+        else:
+            xTicks = np.arange(0, NSubs)
+            ax.set_xticks(xTicks)
+            ax.set_xticklabels(x, rotation=90, ha='center')
+            ax.set_xlim(left=xTicks[0] - barWidth, right=xTicks[-1] + barWidth)
 
         # Set: y ticks
         plotYTicks = True
@@ -4290,9 +4304,10 @@ class NGS:
             plt.yticks(yTicks)
 
         # Set the edge color
-        for bar in bars:
-            bar.set_edgecolor('black')
-            bar.set_linewidth(self.lineThickness)
+        if not plotAllSubs:
+            for bar in bars:
+                bar.set_edgecolor('black')
+                bar.set_linewidth(self.lineThickness)
 
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
