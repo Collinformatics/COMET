@@ -13,10 +13,10 @@ inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'']
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'']
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-inIndexNTerminus = 1 # Define the index if the first AA in the motif
+inIndexNTerminus = 0 # Define the index if the first AA in the motif
 
 # Input 3: Computational Parameters
 inFixedResidue = [['L','M'],'L']
@@ -32,7 +32,7 @@ inMinimumSubstrateCount = 1
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
-inDropResidue = ['R9'] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
+inDropResidue = [''] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
 
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
@@ -56,7 +56,7 @@ if inBlockFigures:
     inPlotLogo = False
     inPlotWeblogo = False
     inPlotMotifEnrichment = False
-    inPlotWordCloud = False
+    # inPlotWordCloud = False
     inPlotStats = False
     # inPlotBarGraphs = False
     inPlotPCA = False
@@ -73,43 +73,16 @@ inMaxBgSubstrateCount = 30
 inModulo = 40000 # Increase to select fewer Bg substrates
 inScaleModulo = True # Continually increase modulus value to keep fewer low count bg subs
 
-# Input 6: Printing The Data
-inPrintLoadedSubs = True
-inPrintSampleSize = True
-inPrintCounts = True
-inPrintRF = True
-inPrintES = True
-inPrintEntropy = True
-inPrintMotifData = True
-inPrintNumber = 10
-
-# Input 7: Find Protein Sequences
+# Input 6: Find Protein Sequences
 inFindSequences = False
 inFindSeq = ['AVLQSG', 'VILQSG','VILQTG','VILQSP','VILHSG','VIMQSG','VPLQSG','NILQSG']
 inFindAAInSequence = False
 inFindAA = ['A', 'F', 'W']
 inAAPos = 4
 
-# Input 8: Plot Heatmap
-inShowEnrichmentScores = True # Both cannot be True
-inShowEnrichmentAsSquares = False # Both cannot be True
-
-# Input 9: Plot Sequence Motif
-inBigLettersOnTop = False
-
-# Input 10: Motif Enrichment
-inPlotNBars = 50
-
-# Input 11: Word Cloud
-inLimitWords = True
-inTotalWords = inPlotNBars
-
-# Input 12: PCA
-inNumberOfPCs = 2
-inTotalSubsPCA = int(5*10**4)
-
-# Input 13: Predict Activity
-inPredictActivity = False
+# Input 7: Predict Activity
+inPredictActivity = True
+inRotateXLabel = 0
 inPredictSubstrates = []
 inUseNaturalSubs = False
 if inUseNaturalSubs:
@@ -170,6 +143,34 @@ inErrorBars = []
 inEMapStartIndex = 0  # Sub: ACDEFGHI, if idx = 1 start at C
 inRankScores = False
 inScalePredMatrix = False  # Scale EM by ΔS
+
+# Input 8: Heatmap
+inShowEnrichmentScores = True # Both cannot be True
+inShowEnrichmentAsSquares = False # Both cannot be True
+
+# Input 9: Enrichment Logo
+inBigLettersOnTop = False
+
+# Input 10: Bar Graphs
+inPlotNBars = 50
+
+# Input 11: Word Cloud
+inLimitWords = True
+inTotalWords = inPlotNBars
+
+# Input 12: PCA
+inNumberOfPCs = 2
+inTotalSubsPCA = int(5*10**4)
+
+# Input 13: Printing The Data
+inPrintLoadedSubs = True
+inPrintSampleSize = True
+inPrintCounts = True
+inPrintRF = True
+inPrintES = True
+inPrintEntropy = True
+inPrintMotifData = True
+inPrintNumber = 10
 
 
 
@@ -329,6 +330,7 @@ if inFindAAInSequence:
 if inPredictActivity:
     ngs.predictActivity(
         activityExp=inSubstrateActivity, errorBars=inErrorBars,
-        finalRF=rfCombinedReleasedMotif, initialRF=rfInitial, predModel=ngs.datasetTag,
-        predLabel=inPredictionLabel, combinedMotifs=combinedMotifs
+        finalRF=rfCombinedReleasedMotif, initialRF=rfInitial,
+        predModel=ngs.datasetTag, predLabel=inPredictionLabel,
+        combinedMotifs=combinedMotifs, rotateLabel=inRotateXLabel
     )

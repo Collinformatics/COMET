@@ -1439,7 +1439,6 @@ class NGS:
 
                 # Print: Loaded data
                 iteration = 0
-                print(f'Loaded Substrates: {purple}{motifTag}{resetColor}')
                 print(f'* Motif Indices: {blue}{self.xAxisLabels[startSub]}-'
                       f'{self.xAxisLabels[endSub - 1]}{resetColor}')
                 for substrate, count in loadedSubs.items():
@@ -3923,30 +3922,11 @@ class NGS:
                     break
 
             # Evaluate: Y axis
-            yMin = 0
-            if plotAllSubs:
-                maxValue = max(y)
-                print(f'Max: {blue}{maxValue:,}{resetColor}')
-                magnitude = math.floor(math.log10(maxValue))
-                print(f'Magnitude: {blue}{magnitude:,}{resetColor}')
-                if magnitude > 1:
-                    mag = 10**(magnitude-1)
-                    print(f'Mag: {blue}{mag:,}{resetColor}')
-                    v = maxValue / mag
-                    yMax = math.ceil(v)
-                    print(f'Val: {blue}{v:,}{resetColor}')
-                    print(f'Max: {blue}{yMax:,}{resetColor}\n')
-                    yMax = yMax * mag
-                else:
-                    yMax = np.ceil(maxValue / 10) * 10
-            else:
-                maxValue = max(y)
-                magnitude = math.floor(math.log10(maxValue))
-                val = 5 * 10 ** (magnitude - 1)
-                yMax = val
-                while yMax < maxValue:
-                    yMax += val
-            print(f'Max: {yMax:,}\n')
+            maxValue, yMin, mag = max(y), 0, 10
+            magnitude = math.floor(math.log10(maxValue))
+            if magnitude > 1:
+                mag = 10 ** (magnitude - 1)
+            yMax = math.ceil(maxValue / mag) * mag
         elif 'relative frequency' in dataType.lower():
             # Evaluate: Substrates
             for substrate, value in substrates.items():
@@ -3980,11 +3960,11 @@ class NGS:
             yMax = math.ceil(max(y)) + spacer
             yMin = math.floor(min(y))
         NSubs = len(x)
-        print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n')
-        print(f'Y Axis:\n'
-              f'* Max: {yMax:,}\n'
-              f'* Min: {yMin:,}\n')
-        print()
+        print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n\n')
+        # print(f'Y Axis:\n'
+        #       f'* Max: {yMax:,}\n'
+        #       f'* Min: {yMin:,}\n')
+        # print()
 
         # Define: Figure title
         if plotAllSubs:
@@ -4004,24 +3984,25 @@ class NGS:
         plt.ylim(yMin, yMax)
 
 
-        # Determine x values
+        # Set: x ticks
         if plotAllSubs:
-            # Evaluate: X axis
+            # Determine x values
             magnitude = math.floor(math.log10(NSubs))
             step = 10 ** (magnitude) / 2
             xMax = 0
             while xMax < NSubs:
                 xMax += step
             xTicks = np.arange(0, xMax + 1, step, dtype=int)
-            # Set: x ticks
+
             ax.set_xticks(xTicks)
             ax.set_xticklabels(xTicks, ha='center')
             ax.set_xlim(-step / 10, xTicks[-1])
         else:
             xTicks = np.arange(0, NSubs)
             ax.set_xticks(xTicks)
-            ax.set_xticklabels(x, rotation=90, ha='center')
+            ax.set_xticklabels(x, rotation=0, ha='center')
             ax.set_xlim(left=xTicks[0] - barWidth, right=xTicks[-1] + barWidth)
+        plt.xticks(rotation=90, ha='center')
 
         # Set: y ticks
         plotYTicks = True
@@ -4045,7 +4026,6 @@ class NGS:
             step = yMax / 10
             yTicks = np.linspace(yMin, yMax, 11)
         plt.ylim(yMin, yMax)
-        plt.xticks(rotation=90, ha='center')
         if plotYTicks:
             plt.yticks(yTicks)
 
@@ -4058,7 +4038,8 @@ class NGS:
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
                        labelsize=self.labelSizeTicks, width=self.lineThickness)
-        plt.xticks(rotation=90, ha='center')
+        if not plotAllSubs and self.labelSizeTicks > 13:
+            ax.tick_params(axis='x', which='major', labelsize=13)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -5848,10 +5829,10 @@ class NGS:
 
 
 
-    def predictActivity(self, activityExp, finalRF, initialRF,
-                        predModel, predLabel, errorBars=False,
-                        combinedMotifs=False, barWidth=0.35,
-                        colorExp='#BF5700', colorPred='#F8971F'):
+    def predictActivity(self, activityExp, finalRF, initialRF, predModel,
+                        predLabel, errorBars=False, combinedMotifs=False,
+                        barWidth=0.35, colorExp='#BF5700',
+                        colorPred='#F8971F', rotateLabel=45):
         from scipy.optimize import curve_fit
 
 
@@ -6006,7 +5987,7 @@ class NGS:
 
             # Set xticks
             ax.set_xticks(xTicks)
-            ax.set_xticklabels(labels, rotation=45)
+            ax.set_xticklabels(labels, rotation=rotateLabel)
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
