@@ -1,33 +1,8 @@
 # Python Modules
-- You will need to install the following modules:
+- You will need to use requirements.txt to install the required modules:
 
-      pip install biopython
-      pip install cupy-cuda12x
-      pip install fair-esm
-      pip install logomaker
-      pip install matplotlib
-      pip install numpy
-      pip install openpyxl
-      pip install pandas
-      pip install playsound
-      pip install PyObjC
-      pip install seaborn
-      pip install scikit-learn
-      pip install torch
-      pip install wordcloud
-      pip install xgboost
+      pip install -r requirements.txt
 
-- For GPU accelleration on an NIVIDA GPU, you will need to install a different version of PyTorch:
-
-  - NOTE: Ignore this section if your computer does not have an NVIDIA graphis card.
-
-  If you already ran the previous PyTorch installation, you will need to uninstall it with:
-
-      pip uninstall torch
-
-  To install a CUDA (V 12.1) enabled version of PyTorch run:
-
-      pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Keyboard Shortcuts
 
