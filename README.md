@@ -2,13 +2,13 @@
 
 You will need to install the required modules, there are two options:
 
-- Install with miniconda:
+1: Install with miniconda:
 
-              conda env create -f environment.yml
+    conda env create -f environment.yml
 
-2) If you don't want to use miniconda, then use requirements.txt to install the needed packages:
+2: If you don't want to use miniconda, then use requirements.txt to install the needed packages:
 
-               pip install -r requirements.txt
+    pip install -r requirements.txt
 
 
 # Keyboard Shortcuts
