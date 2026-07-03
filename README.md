@@ -1,5 +1,12 @@
 # Python Modules
-- You will need to use requirements.txt to install the required modules:
+
+You will need to use requirements.txt to install the required modules:
+
+Install with miniconda:
+
+      conda env create -f environment.yml
+
+If you dont want to use miniconda then use requirements.txt to install the needed packages
 
       pip install -r requirements.txt
 
