@@ -8,12 +8,11 @@ import gzip
 from itertools import combinations, product
 import logomaker
 import math
-from matplotlib.font_manager import FontProperties
+import matplotlib
 from matplotlib.lines import Line2D
 import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap, Normalize
-from matplotlib.pyplot import title
+from matplotlib.colors import Colormap, LinearSegmentedColormap, Normalize
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import RectangleSelector
 from sklearn.decomposition import PCA
@@ -3182,9 +3181,13 @@ class NGS:
         ax.set_yticks(yTicks)
         ax.set_yticklabels(scores.index)
 
-        # Set invalid values to grey
-        cmap = plt.cm.get_cmap(cMapCustom)
-        cmap.set_bad(color='lightgrey')
+        # Colormap
+        if isinstance(cMapCustom, Colormap):
+            cmap = cMapCustom
+        else:
+            # Look up premade colormap
+            cmap = matplotlib.colormaps[cMapCustom]
+        cmap.set_bad(color='lightgrey') # Set invalid values to gray
 
         # Modify the colorbar
         divider = make_axes_locatable(ax)
@@ -4982,9 +4985,13 @@ class NGS:
         for _, spine in ax.spines.items():
             spine.set_visible(True)
 
-        # Set invalid values to grey
-        cmap = plt.cm.get_cmap(cMapCustom)
-        cmap.set_bad(color='lightgrey')
+        # Colormap
+        if isinstance(cMapCustom, Colormap):
+            cmap = cMapCustom
+        else:
+            # Look up premade colormap
+            cmap = matplotlib.colormaps[cMapCustom]
+        cmap.set_bad(color='lightgrey') # Set invalid values to gray
 
         # Modify the colorbar
         divider = make_axes_locatable(ax)
@@ -6059,8 +6066,9 @@ class NGS:
                 spine.set_linewidth(self.lineThickness)
 
             # Legend
+            # matplotlib.font_manager import FontProperties
             ax.legend(
-                prop=FontProperties(size=10, weight='bold'), handles=[Line2D(
+                prop=matplotlib.font_manager.FontProperties(size=10, weight='bold'), handles=[Line2D(
                 [], [], linestyle='None', marker='None',
                 label=f'R² = {r2:.3f}')], handletextpad=0, handlelength=0
             )
