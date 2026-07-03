@@ -127,8 +127,8 @@ def getFileNames(enzyme):
         inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
     elif enzyme.lower() == 'veev' or enzyme.lower() == 've':
         enzyme = 'Venezuelan Equine Encephalitis Virus - nsP2'
-        inFileNamesInitialSort = ['VEEV-I_S1_L001']
-        inFileNamesFinalSort = ['VEEV-R4_S2_L001']
+        inFileNamesInitialSort = ['VEEV-I_S1']
+        inFileNamesFinalSort = ['VEEV-R4_S2']
         inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10']
     elif enzyme.lower() == 'wnv':
         enzyme = 'West Nile Virus - NS2B/NS3'
@@ -5212,11 +5212,11 @@ class NGS:
 
             enzName = self.enzymeName.replace(' - ', '-')
             if codonType == datasetTag:
-                title = f'\n{codonType} Codon'
+                title = f'\n\n{codonType} Codon'
             elif 'initial' in sortType.lower():
-                title = f'{enzName}\nUnsorted Library'
+                title = f'\n{enzName}\nUnsorted Library'
             else:
-                title = f'{enzName}\nSorted Library'
+                title = f'\n{enzName}\nSorted Library'
 
             fig, ax = plt.subplots(figsize=self.figSize)
             plt.ylabel('Relative Frequency', fontsize=self.labelSizeAxis)

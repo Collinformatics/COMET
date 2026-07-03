@@ -25,7 +25,7 @@ inPathDNASeqs = os.path.join(inPathFolder, 'Fastq') # Define the fastq folder na
 inFileType = 'fastq' # Define the file type
 
 # Input 2: Saving The Data 'Mpro2-I_S1_L001'
-inSaveFileName = 'VEEV-R4_S2-MinCounts' # Add this name to filePaths() in functions.py
+inSaveFileName = 'VEEV-R4_S2' # Add this name to filePaths() in functions.py
 
 # Input 3: Substrate Parameters
 inAAPositions = ['R1','R2','R3','R4','R5','R6','R7','R8','R9','R10']
