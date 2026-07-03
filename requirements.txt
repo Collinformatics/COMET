@@ -1,0 +1,14 @@
+biopython
+fair-esm
+logomaker
+matplotlib
+numpy
+openpyxl
+pandas
+playsound
+PyObjC
+seaborn
+scikit-learn
+torch
+wordcloud
+xgboost
