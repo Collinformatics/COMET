@@ -155,12 +155,13 @@ def pressKey(event):
     elif event.key == 'e':
         sys.exit()
     elif event.key == 'r':
-        python = sys.executable # Doesnt seem to work on windows?
+        python = sys.executable # Doesn't seem to work on windows?
         os.execl(python, python, *sys.argv)
 
 
 def includeCommas(x):
     return f'{x:,}'
+
 
 
 class NGS:
@@ -171,7 +172,7 @@ class NGS:
                  plotFigEM, plotFigEMScaled, plotFigLogo, plotFigWebLogo, plotFigWords,
                  wordLimit, wordsTotal, plotFigBars, NSubBars, plotFigPCA, numPCs,
                  NSubsPCA, plotSuffixTree, saveFigures, setFigureTimer,
-                 expressDNA=False, xAxisLabelsMotif=None, motifFilter=False,
+                 translateDNA=False, xAxisLabelsMotif=None, motifFilter=False,
                  releasedCounts=False, plotFigMotifEnrich=False):
         if not isinstance(fixedAA, list):
             fixedAA = [fixedAA]
@@ -184,8 +185,8 @@ class NGS:
 
         # Parameters: Figures
         self.labelSizeTitle = 20 # Set fontsize
-        self.labelSizeAxis = 17 # Set fontsize
-        self.labelSizeTicks = 15 # Set fontsize
+        self.labelSizeAxis = 18 # Set fontsize
+        self.labelSizeTicks = 16 # Set fontsize
         self.labelSizeEM = 11 # Set fontsize
         self.lineThickness = 1.5
         self.tickLength = 4
@@ -270,7 +271,7 @@ class NGS:
         self.releasedCounts = releasedCounts
 
         # Parameters: DNA Processing
-        self.expressDNA = expressDNA # Only set as True when processing DNA seqs
+        self.translateDNA = translateDNA # Only set as True when processing DNA seqs
         self.minQS = 20 # Minium Phred quality score for extracted substrates
         self.fileSize = []
         self.countExtractedSubs = []
@@ -2132,7 +2133,7 @@ class NGS:
 
         # Define: Save path
         filePathCountsReleased = None
-        if self.expressDNA:
+        if self.translateDNA:
             folder = os.path.join(self.pathFolder, 'Data')
 
             if not os.path.exists(folder):
@@ -2141,7 +2142,7 @@ class NGS:
             self.pathSaveFigs = os.path.join(self.pathFolder, 'Figures')
 
             filePathSubs = os.path.join(folder, f'substrates_{saveTag}.pkl')
-            filePathCounts = os.path.join(folder, f'counts_{saveTag}')
+            filePathCounts = os.path.join(folder, f'counts_{saveTag}.csv')
         else:
             if self.datasetTag == 'Unfiltered':
                 return
@@ -5209,15 +5210,13 @@ class NGS:
                       f' {purple}{self.enzymeName} {sortType}{resetColor}')
             print(f'{rf}\n')
 
-            if sortType == 'Initial Sort':
-                title = f'Unsorted {self.enzymeName} Library'
+            enzName = self.enzymeName.replace(' - ', '-')
+            if codonType == datasetTag:
+                title = f'\n{codonType} Codon'
+            elif 'initial' in sortType.lower():
+                title = f'{enzName}\nUnsorted Library'
             else:
-                if datasetTag is None or datasetTag == 'Unfiltered':
-                    title = f'Sorted {self.enzymeName} Library'
-                elif codonType == datasetTag:
-                    title = f'{codonType} Codon'
-                else:
-                    title = f'Sorted_{self.enzymeName}-Library-{datasetTag}'
+                title = f'{enzName}\nSorted Library'
 
             fig, ax = plt.subplots(figsize=self.figSize)
             plt.ylabel('Relative Frequency', fontsize=self.labelSizeAxis)
@@ -5272,7 +5271,7 @@ class NGS:
 
             if self.saveFigures:
                 # Define: Save location
-                enzName = self.enzymeName.replace(' - ', '-').replace('/','_')
+                enzName = enzName.replace('/','_')
                 if datasetTag is None:
                     figLabel = (f'AA Distribution-{enzName}-{sortType}-'
                                 f'YMax_{yMax}-{codonType}-{len(rf.columns)}AA-'
@@ -5440,7 +5439,7 @@ class NGS:
             title = self.titleCombined
         else:
             title = self.titleWords
-            title += f'\nTop {totalWords} Substrates'
+            # title += f'\nTop {totalWords} Substrates'
 
 
         # Create word cloud

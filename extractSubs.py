@@ -17,10 +17,7 @@ from functions import NGS
 # ===================================== User Inputs ======================================
 # Input 1: File Location
 inFileName = [
-    'Mpro2-R4_S3_L001_R1_001', 'Mpro2-R4_S3_L001_R2_001',
-    'Mpro2-R4_S3_L002_R1_001', 'Mpro2-R4_S3_L002_R2_001',
-    'Mpro2-R4_S3_L003_R1_001', 'Mpro2-R4_S3_L003_R2_001',
-    'Mpro2-R4_S3_L004_R1_001', 'Mpro2-R4_S3_L004_R2_001'
+    'VEEV-R4_S2_L001_R1_001', 'VEEV-R4_S2_L001_R2_001',
 ] # Define file name(s)
 inEnzymeName = inFileName[0].split('-')[0]
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
@@ -28,10 +25,10 @@ inPathDNASeqs = os.path.join(inPathFolder, 'Fastq') # Define the fastq folder na
 inFileType = 'fastq' # Define the file type
 
 # Input 2: Saving The Data 'Mpro2-I_S1_L001'
-inSaveFileName = 'Mpro2-R4_S3-MinCounts' # Add this name to filePaths() in functions.py
+inSaveFileName = 'VEEV-R4_S2-MinCounts' # Add this name to filePaths() in functions.py
 
 # Input 3: Substrate Parameters
-inAAPositions = ['R1','R2','R3','R4','R5','R6','R7','R8']
+inAAPositions = ['R1','R2','R3','R4','R5','R6','R7','R8','R9','R10']
 
 # Input 4: Substrate Recognition
 inPrintNumber = 10
@@ -61,8 +58,8 @@ ngs = NGS(enzyme=None, enzymeName=inEnzymeName, substrateLength=len(inAAPosition
           filesFinal=None, plotPosS=False, plotFigEM=False, plotFigEMScaled=False,
           plotFigLogo=False, plotFigWebLogo=False, plotFigWords=False, wordLimit=False,
           wordsTotal=False, plotFigBars=False, NSubBars=False, plotFigPCA=False,
-          numPCs=False, NSubsPCA=False, plotSuffixTree=False, saveFigures=False,
-          setFigureTimer=None, expressDNA=True)
+          numPCs=False, NSubsPCA=False, plotSuffixTree=False,
+          saveFigures=False, setFigureTimer=None, translateDNA=True)
 
 
 
