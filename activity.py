@@ -23,71 +23,124 @@ pd.set_option('display.float_format', '{:,.3f}'.format)
 """
 
 # Input: Data
+inPlotBoth = False # Add the secondary enzyme to the figures
 inEnzyme = f'M{"ᵖʳᵒ"}2'
 inEnzyme2 = f'M{"ᵖʳᵒ"}' # Secondary enzyme
-inPlotBoth = True # Add the secondary enzyme to the figures
 inSigFigs = 0
 inRoundVal = 3
 inNatLog = False
 inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
                 'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR']
+inPredActivity = [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049]
+inPredActivity2 = [0.748, 1.0, 0.007, 0.009, 0.03, 0.453, 0.005, 0.027]
 inEmptyList = [0 for i in range(1, len(inSubstrates) + 1)]
 inData = {
     'Substrates': inSubstrates,
 
-    f'% Product {inEnzyme}': [0.76, 0.82, 0.38, 0.0, 0.32, 0.66, 0.0, 0.23],
+    f'% Product {inEnzyme}': [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1],
     f'Activity Z {inEnzyme}': inEmptyList,
     f'Activity Rank {inEnzyme}': inEmptyList,
     f'% St Dev {inEnzyme}': [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05],
-    f'Predicted {inEnzyme}': [0.976, 1.0, 0.035, 0.005, 0.053, 0.362, 0.006, 0.01],
+    f'Predicted {inEnzyme}': inPredActivity,
     f'Predicted Z {inEnzyme}': inEmptyList,
     f'Predicted Rank {inEnzyme}': inEmptyList,
 
-    f'% Product {inEnzyme2}': [0.54, 0.66, 0.34, 0.0, 0.26, 0.61, 0.0, 0.22],
+    f'% Product {inEnzyme2}': [32.1, 39.1, 14.9, 0.0, 16.0, 36.5, 0.0, 15.6],
     f'Activity Z {inEnzyme2}': inEmptyList,
     f'Activity Rank {inEnzyme2}': inEmptyList,
     f'% St Dev {inEnzyme2}': [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033],
-    f'Predicted {inEnzyme2}': [0.572, 1.0, 0.015, 0.01, 0.038, 0.51, 0.034, 0.066],
+    f'Predicted {inEnzyme2}': inPredActivity2,
     f'Predicted Z {inEnzyme2}': inEmptyList,
     f'Predicted Rank {inEnzyme2}': inEmptyList,
 }
 
-# Input: Plot Figures
-inPlotBarGraph = True
-inPlotTable = True
+# inActivityMpro2 = [61, 29, 5, 28, 13, 37, 22, 22, 22, 28, 33]
+# inPredictSubstrates = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
+#                        'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
+#                        'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
+# inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
+#                 'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR',
+#
+#                 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS', 'VKLQNNEL',
+#                 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA', 'ATLQAENV',
+#                 'TRLQSLEN', 'PKLQSSQA'
+#                 ]
+# inEmptyList = [0 for i in range(1, len(inSubstrates) + 1)]
+# inExpActivity = [1.0, 1.07, 0.315]
+# inData = {
+#     'Substrates': inSubstrates,
+#
+#     f'% Product {inEnzyme}': [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1,
+#                               29, 5, 28, 13, 37, 22, 22, 22, 28, 33],
+#     f'Activity Z {inEnzyme}': inEmptyList,
+#     f'Activity Rank {inEnzyme}': inEmptyList,
+#     f'% St Dev {inEnzyme}': [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05,
+#                              0,0,0,0,0,
+#                              0,0,0,0],
+#     f'Predicted {inEnzyme}': [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049,
+#                               0.258, 0.005, 0.151, 0.053, 0.342, 0.149, 0.073,
+#                               0.708, 0.124, 0.051],
+#     f'Predicted Z {inEnzyme}': inEmptyList,
+#     f'Predicted Rank {inEnzyme}': inEmptyList,
+#
+#     # f'% Product {inEnzyme2}': inEmptyList,
+#     # f'Activity Z {inEnzyme2}': inEmptyList,
+#     # f'Activity Rank {inEnzyme2}': inEmptyList,
+#     # f'% St Dev {inEnzyme2}': inEmptyList,
+#     # f'Predicted {inEnzyme2}': inEmptyList,
+#     # f'Predicted Z {inEnzyme2}': inEmptyList,
+#     # f'Predicted Rank {inEnzyme2}': inEmptyList,
+# }
+
+# Input: Figures
+inPlotBarGraph = False
+inPlotTable = False
+inFigSaveTag = '' # Add label to saved figures
+inSavePath = '/Users/ca34522/Documents/Papers/COMET/Figures/'
+inFigTitle = f'Enzyme Activity'
 inColor1 = '#BF5700'
 inColor2 = '#F8971F'
-
-# Input: Table
-inTableCols = [
-    f'% Product {inEnzyme2}', f'Activity Rank {inEnzyme2}', f'Predicted Rank {inEnzyme2}',
-    f'% Product {inEnzyme}', f'Activity Rank {inEnzyme}', f'Predicted Rank {inEnzyme}'
-]
-
-# Input: Z-Scores
-inCalcZScores = [ # Format: (x, y), use "x" values to calc the Z-Score saved in "y"
-    (f'% Product {inEnzyme2}', f'Activity Z {inEnzyme2}'),
-    (f'Predicted {inEnzyme2}', f'Predicted Z {inEnzyme2}'),
-    (f'% Product {inEnzyme}', f'Activity Z {inEnzyme}'),
-    (f'Predicted {inEnzyme}', f'Predicted Z {inEnzyme}')
-]
-
-# Input: Save Figure
-inSavePath = '/Users/ca34522/Documents/Papers/COMET/Figures'
 inFigResolution = 600
 
 # Input: Figure Params
 inFigSize = (9.5, 8)
-inTitle = 'Enzyme Activity'
 inTickLength = 4
 inLinewidth = 1.5
-inTitleSize = 18
-inLabelSize = 16
-inLabelTickSize = 13
+inTitleSize = 20
+inLabelSize = 17
+inLabelTickSize = 15
 
+# Input: Table
+if inPlotBoth:
+    inTableCols = [
+        f'% Product {inEnzyme2}', f'Activity Rank {inEnzyme2}',
+        f'Predicted Rank {inEnzyme2}',
+        f'% Product {inEnzyme}', f'Activity Rank {inEnzyme}',
+        f'Predicted Rank {inEnzyme}'
+    ]
+
+    # Input: Z-Scores
+    inCalcZScores = [ # Format: (x, y), use "x" values to calc the Z-Score saved in "y"
+        (f'% Product {inEnzyme2}', f'Activity Z {inEnzyme2}'),
+        (f'Predicted {inEnzyme2}', f'Predicted Z {inEnzyme2}'),
+        (f'% Product {inEnzyme}', f'Activity Z {inEnzyme}'),
+        (f'Predicted {inEnzyme}', f'Predicted Z {inEnzyme}')
+    ]
+else:
+    inTableCols = [
+        f'% Product {inEnzyme}', f'Activity Rank {inEnzyme}', f'Predicted Rank {inEnzyme}'
+    ]
+
+    # Input: Z-Scores
+    inCalcZScores = [  # Format: (x, y), use "x" values to calc the Z-Score saved in "y"
+        (f'% Product {inEnzyme}', f'Activity Z {inEnzyme}'),
+        (f'Predicted {inEnzyme}', f'Predicted Z {inEnzyme}')
+    ]
 
 def normalizeData():
     for key in inData.keys():
+        if inEnzyme2 in key:
+            continue
         if '% Product' in key and 'Rank' not in key and 'ln' not in key:
             maxValue = max(inData[key])
             norm = []
@@ -172,6 +225,14 @@ def plotTable():
     # table.drop(f'Predicted {inEnzyme2}', axis=1, inplace=True)
     # table.drop(f'Predicted {inEnzyme}', axis=1, inplace=True)
     print(f'Table:\n{table}\n')
+
+    print()
+    for col in table.columns:
+        x = table.loc[:, col]
+        print(col)
+        for i in x:
+            print(i)
+        print()
     # sys.exit()
 
     # Make figure
@@ -204,7 +265,10 @@ def plotTable():
     plt.show()
 
     if inSavePath:
-        path = os.path.join(inSavePath, 'activity_table.png')
+        figName = 'enzActivity_table.png'
+        if inFigSaveTag:
+            figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+        path = os.path.join(inSavePath, figName)
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
               f'     {path}\n\n')
@@ -284,34 +348,41 @@ def plotBars(data, e1, e2, barWidth=0.35):
            color=inColor2, edgecolor='black', linewidth=inLinewidth)
     ax.bar(xTicks + barWidth / 2, y2, barWidth, label=l2,
            color=inColor1, edgecolor='black', linewidth=inLinewidth)
-    plt.title(inTitle, fontsize=inTitleSize, fontweight='bold')
+    plt.title(inFigTitle, fontsize=inTitleSize, fontweight='bold')
     ax.set_ylabel('Normalized Activity', fontsize=inLabelSize)
+
+    # Set the thickness of the figure border
+    for _, spine in ax.spines.items():
+        spine.set_visible(True)
+        spine.set_linewidth(inLinewidth)
 
     # Legend
     legend_props = {
-        'size': inLabelTickSize,
+        'size': inLabelTickSize-2,
         'weight': 'bold'
     }
-    ax.legend(edgecolor='black', prop=legend_props)
+    ax.legend(edgecolor='black', prop=legend_props, loc='best')
 
     # Set xticks
     ax.set_xticks(xTicks)
-    ax.set_xticklabels(substrates, rotation=0)
+    ax.set_xticklabels(substrates, rotation=45)
 
     # Set yticks
     ax.set_ylim([0, 1.1])
 
     # Set tick parameters
     ax.tick_params(axis='both', which='major', length=inTickLength,
-                   labelsize=inLabelTickSize)
-    ax.tick_params(axis='x', labelsize=inLabelTickSize)
+                   labelsize=inLabelTickSize, width=inLinewidth)
 
     fig.canvas.mpl_connect('key_press_event', pressKey)
     plt.tight_layout()
     plt.show()
 
     if inSavePath:
-        path = os.path.join(inSavePath, 'enzActivity_bars.png')
+        figName = 'enzActivity_bars.png'
+        if inFigSaveTag:
+            figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+        path = os.path.join(inSavePath, figName)
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
               f'     {path}\n\n')
@@ -345,67 +416,59 @@ if inNatLog:
 data = pd.DataFrame(0.0, index=inData['Substrates'], columns=[])
 data[f'Activity {inEnzyme}'] = inData[f'% Product {inEnzyme}']
 data[f'Activity Z {inEnzyme}'] = inData[f'Activity Z {inEnzyme}']
+# print(f'L1: {len(inData['Substrates'])}\n'
+#       f'L2: {len(inData[f'Predicted {inEnzyme}'])}')
 data[f'Pred {inEnzyme}'] = inData[f'Predicted {inEnzyme}']
 data[f'Predicted Z {inEnzyme}'] = inData[f'Predicted Z {inEnzyme}']
 x = ['AVLQSG', 'VILQSG', 'VILQTG', 'VILQSP',
      'VILHSG', 'VIMQSG', 'VPLQSG', 'NILQSG']
-# data[f'Predicted Z {inEnzyme}'] = [
-#     -0.497679174, -1.163590908, -1.320950508, -1.541718721,
-#     -1.36593771, -1.147068858, -1.0361408, -1.221100092
-# ] # Transformer
-# data[f'Predicted Z {inEnzyme}'] = [
-#     -0.117790319025517, -0.20222044, -0.256611586, -0.351389557,
-#     -0.319180578, -0.451004088, -0.174632221, -0.164621562
-# ] # LSTM
 actR2 = round(r2_score(data[f'Activity {inEnzyme}'],
                        data[f'Pred {inEnzyme}']), inRoundVal)
 actZR2 = round(r2_score(data[f'Activity Z {inEnzyme}'],
                         data[f'Predicted Z {inEnzyme}']), inRoundVal)
 print(f'{data}\n\n')
 
-
-# Evaluate the secondary set
-data2 = pd.DataFrame(0.0, index=inData['Substrates'], columns=[])
-data2[f'Activity {inEnzyme2}'] = inData[f'% Product {inEnzyme2}']
-data2[f'Activity Z {inEnzyme2}'] = inData[f'Activity Z {inEnzyme2}']
-data2[f'Pred {inEnzyme2}'] = inData[f'Predicted {inEnzyme2}']
-data2[f'Predicted Z {inEnzyme2}'] = inData[f'Predicted Z {inEnzyme2}']
-print(f'{data2}\n\n')
-actEnzR2 = round(
-    r2_score(data2[f'Activity {inEnzyme2}'],
-             data2[f'Pred {inEnzyme2}']), inRoundVal
-)
-actEnzZR2 = round(
-    r2_score(data2[f'Activity Z {inEnzyme2}'],
-             data2[f'Predicted Z {inEnzyme2}']), inRoundVal
-)
-
+# Figure labels
+l1, l2 = f'{inEnzyme}', f'{inEnzyme2}'
+l1, l2 = f'SARS-CoV-2 {inEnzyme.replace('2', '')}', f'SARS-CoV {inEnzyme2}'
 
 # Plot data
 mkr1, mkr2, edgeWidth = 'D', 'o', 1
 fig, ax = plt.subplots(figsize=inFigSize)
-plt.title(f'Enzyme Activity', fontsize=inTitleSize, fontweight='bold')
-
+plt.title(inFigTitle, fontsize=inTitleSize, fontweight='bold')
 x, y = f'Activity Z {inEnzyme}', f'Predicted Z {inEnzyme}'
 x_fit, y_fit, fitCurve = fitData(x=data[x].values, y=data[y].values)
-l1 = f'{inEnzyme} R² = {fitCurve:.3f}'
-# l1 = f'SARS-CoV-2 {inEnzyme.replace('2', '')} R² = {fitCurve:.3f}'
+l1 += f' R² = {fitCurve:.3f}'
 data.plot(x=x, y=y, ax=ax, color=inColor1, marker=mkr1, linestyle='none',
           markeredgecolor='black', markeredgewidth=edgeWidth, legend=l1)
 ax.plot(x_fit, y_fit, color=inColor1, linestyle='-', linewidth=inLinewidth)
 
-# Legend
+
+# Evaluate the secondary set
 if inPlotBoth:
+    data2 = pd.DataFrame(0.0, index=inData['Substrates'], columns=[])
+    data2[f'Activity {inEnzyme2}'] = inData[f'% Product {inEnzyme2}']
+    data2[f'Activity Z {inEnzyme2}'] = inData[f'Activity Z {inEnzyme2}']
+    data2[f'Pred {inEnzyme2}'] = inData[f'Predicted {inEnzyme2}']
+    data2[f'Predicted Z {inEnzyme2}'] = inData[f'Predicted Z {inEnzyme2}']
+    print(f'{data2}\n\n')
+    actEnzR2 = round(
+        r2_score(data2[f'Activity {inEnzyme2}'],
+                 data2[f'Pred {inEnzyme2}']), inRoundVal
+    )
+    actEnzZR2 = round(
+        r2_score(data2[f'Activity Z {inEnzyme2}'],
+                 data2[f'Predicted Z {inEnzyme2}']), inRoundVal
+    )
+
     x, y = f'Activity Z {inEnzyme2}', f'Predicted Z {inEnzyme2}'
     x_fit2, y_fit2, fitCurve2 = fitData(x=data2[x].values, y=data2[y].values)
-    l2 = f'{inEnzyme2} R² = {fitCurve2:.3f}'
-    # l2 = f'SARS-CoV {inEnzyme2} R² = {fitCurve2:.3f}'
+    l2 += f' R² = {fitCurve2:.3f}'
     data2.plot(x=x, y=y, ax=ax, color=inColor2, marker=mkr2, linestyle='none',
                markeredgecolor='black', markeredgewidth=edgeWidth, legend=l2)
     ax.plot(x_fit2, y_fit2, color=inColor2, linestyle='-', linewidth=1.5)
-
     ax.legend(
-        prop=FontProperties(size=inLabelTickSize, weight='bold'),
+        prop=FontProperties(size=inLabelTickSize-2, weight='bold'), loc='upper left',
         handles=[
             Line2D([], [], color=inColor2, marker=mkr2,
                    markeredgecolor='black', markeredgewidth=edgeWidth,
@@ -416,28 +479,42 @@ if inPlotBoth:
         ]
     )
 else:
-    ax.legend(prop=FontProperties(size=inLabelTickSize, weight='bold'),
+    ax.legend(prop=FontProperties(size=inLabelTickSize-2, weight='bold'), loc='upper left',
               handles=[Line2D([], [], linestyle='None', marker='None',
                               markeredgecolor='black', markeredgewidth=edgeWidth,
                               label=l1)], handletextpad=0, handlelength=0
               )
+
+# Set the thickness of the figure border
+for _, spine in ax.spines.items():
+    spine.set_visible(True)
+    spine.set_linewidth(inLinewidth)
+
 # X Axis
 ax.set_xlabel('Experimental Activity Z Scores', fontsize=inLabelSize)
-ax.set_xticks(ax.get_xticks()) # Fix the tick positions
+ax.set_xticks(ax.get_xticks())
 ax.set_xticklabels(ax.get_xticklabels(), ha='center', fontsize=inLabelSize-2)
 
 # Y Axis
 ax.set_ylabel('Predicted Activity Z Scores', fontsize=inLabelSize)
-ax.tick_params(axis='y', labelsize=inLabelSize-2)
+ax.set_yticks(ax.get_yticks())
+# ax.set_ylim([-1.0, 2.5]) # Set yticks
+
+# Set tick parameters
+ax.tick_params(axis='both', which='major', length=inTickLength,
+                   labelsize=inLabelTickSize, width=inLinewidth)
 
 plt.tight_layout()
 fig.canvas.mpl_connect('key_press_event', pressKey)
 plt.show()
 
 if inSavePath:
-    path = os.path.join(inSavePath, 'enzActivity.png')
+    figName = 'enzActivity.png'
+    if inFigSaveTag:
+        figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+    path = os.path.join(inSavePath, figName)
     fig.savefig(path, dpi=inFigResolution)
-    print(f'Saving figure at path:\n'
+    print(f'Saving figure at path: 1\n'
           f'     {path}\n\n')
 else:
     print(f'The figure was not saved\n\n')
