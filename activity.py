@@ -350,7 +350,8 @@ def processData(data, tags, zTags, natLog):
         print(f'{table.to_string(index=False)}\n')
 
         if inSavePath and inSaveTables:
-            fileName = f'enzActivity_table_{enzyme}.csv'.replace('/', '-')
+            fileName = f'enzActivity_table_{enzyme}.csv'
+            fileName = fileName.replace(' ', '_').replace('/', '-')
             path = os.path.join(inSavePath, fileName)
             table.to_csv(path, index=False)
     print()
