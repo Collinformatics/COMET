@@ -29,95 +29,12 @@ inEnzyme2 = f'M{"ᵖʳᵒ"}' # Secondary enzyme
 inSigFigs = 0
 inRoundVal = 3
 inNatLog = False
-inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
-                'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR']
-inPredActivity = [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049]
-inPredActivity2 = [0.748, 1.0, 0.007, 0.009, 0.03, 0.453, 0.005, 0.027]
-inEmptyList = [0 for i in range(1, len(inSubstrates) + 1)]
-inData = {
-    'Substrates': inSubstrates,
-
-    f'% Product {inEnzyme}': [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1],
-    f'Activity Z {inEnzyme}': inEmptyList,
-    f'Activity Rank {inEnzyme}': inEmptyList,
-    f'% St Dev {inEnzyme}': [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05],
-    f'Predicted {inEnzyme}': inPredActivity,
-    f'Predicted Z {inEnzyme}': inEmptyList,
-    f'Predicted Rank {inEnzyme}': inEmptyList,
-
-    f'% Product {inEnzyme2}': [32.1, 39.1, 14.9, 0.0, 16.0, 36.5, 0.0, 15.6],
-    f'Activity Z {inEnzyme2}': inEmptyList,
-    f'Activity Rank {inEnzyme2}': inEmptyList,
-    f'% St Dev {inEnzyme2}': [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033],
-    f'Predicted {inEnzyme2}': inPredActivity2,
-    f'Predicted Z {inEnzyme2}': inEmptyList,
-    f'Predicted Rank {inEnzyme2}': inEmptyList,
-}
-
-
-# inExpActivity = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1,
-#                  9, 5, 28, 13, 37, 22, 22, 22, 28, 33]
-inActivityMpro2 = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
-inSubstrateActivity = {
-    'AVLQSG': inActivityMpro2[0],
-    'VILQSG': inActivityMpro2[1],
-    'VILQTG': inActivityMpro2[2],
-    'VILQSP': inActivityMpro2[3],
-    'VILHSG': inActivityMpro2[4],
-    'VIMQSG': inActivityMpro2[5],
-    'VPLQSG': inActivityMpro2[6],
-    'NILQSG': inActivityMpro2[7],
-}
-inActivityMpro2 = [61, 29, 5, 28, 13, 37, 22, 22, 22, 28, 33]
-inSubstratesNat = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
-                   'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
-                   'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
-inPredActivity = [1.000, 0.258, 0.005, 0.151,
-                  0.053, 0.342, 0.149, 0.073,
-                  0.708, 0.124, 0.051]
-inSubstrates = ['VILQSGFR', 'VILQTGFR', 'VILQSPFR',
-                'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR',
-
-                'AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS', 'VKLQNNEL',
-                'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA', 'ATLQAENV',
-                'TRLQSLEN', 'PKLQSSQA'
-                ]
-inExpActivity = [1.074, 0.315, 0.000,
-                 0.284, 0.803, 0.000, 0.350,
-
-                 1.000, 0.440, 0.040, 0.350,
-                 0.060, 0.770, 0.330, 0.300,
-                 0.180, 0.210, 0.400]
-inPredActivity = [1.000, 0.010, 0.004,
-                  0.055, 0.388, 0.007, 0.009,
-
-                  0.964, 0.249, 0.005, 0.145,
-                  0.051, 0.330, 0.144, 0.071,
-                  0.683, 0.120, 0.050]
-inEmptyList = [0 for i in range(1, len(inSubstrates) + 1)]
-inData = {
-    'Substrates': inSubstrates,
-
-    f'% Product {inEnzyme}': inExpActivity,
-    f'Activity Z {inEnzyme}': inEmptyList,
-    f'Activity Rank {inEnzyme}': inEmptyList,
-    f'% St Dev {inEnzyme}': inEmptyList,
-    f'Predicted {inEnzyme}': inPredActivity,
-    f'Predicted Z {inEnzyme}': inEmptyList,
-    f'Predicted Rank {inEnzyme}': inEmptyList,
-
-    f'% Product {inEnzyme2}': inEmptyList,
-    f'Activity Z {inEnzyme2}': inEmptyList,
-    f'Activity Rank {inEnzyme2}': inEmptyList,
-    f'% St Dev {inEnzyme2}': inEmptyList,
-    f'Predicted {inEnzyme2}': inEmptyList,
-    f'Predicted Z {inEnzyme2}': inEmptyList,
-    f'Predicted Rank {inEnzyme2}': inEmptyList,
-}
+inSaveTables = True
 
 # Input: Figures
 inPlotBarGraph = False
 inPlotTable = False
+inTableCols = ['% Product','Activity Z','Activity Rank','Predicted Z','Predicted Rank']
 inFigSaveTag = '' # Add label to saved figures
 inSavePath = '/Users/ca34522/Documents/Papers/COMET/Figures/'
 inFigTitle = f'\nEnzyme Activity'
@@ -133,35 +50,14 @@ inTitleSize = 20
 inLabelSize = 18
 inLabelTickSize = 16
 
-# Input: Table
-if inPlotBoth:
-    inTableCols = [
-        f'% Product {inEnzyme2}', f'Activity Rank {inEnzyme2}',
-        f'Predicted Rank {inEnzyme2}',
-        f'% Product {inEnzyme}', f'Activity Rank {inEnzyme}',
-        f'Predicted Rank {inEnzyme}'
-    ]
-
-    # Input: Z-Scores
-    inCalcZScores = [ # Format: (x, y), use "x" values to calc the Z-Score saved in "y"
-        (f'% Product {inEnzyme2}', f'Activity Z {inEnzyme2}'),
-        (f'Predicted {inEnzyme2}', f'Predicted Z {inEnzyme2}'),
-        (f'% Product {inEnzyme}', f'Activity Z {inEnzyme}'),
-        (f'Predicted {inEnzyme}', f'Predicted Z {inEnzyme}')
-    ]
-else:
-    inTableCols = [
-        f'% Product {inEnzyme}', f'Activity Rank {inEnzyme}', f'Predicted Rank {inEnzyme}'
-    ]
-
-    # Input: Z-Scores
-    inCalcZScores = [  # Format: (x, y), use "x" values to calc the Z-Score saved in "y"
-        (f'% Product {inEnzyme}', f'Activity Z {inEnzyme}'),
-        (f'Predicted {inEnzyme}', f'Predicted Z {inEnzyme}')
-    ]
-
 
 # ========================================================================================
+# Input: Datasets
+inPlotNDatasets = 3 # Max num of plotted datasets
+inPlotColors = ['#BF5700', '#101010', '#2E9418']
+inPlotMarkers = ['D', 'o', '^']
+inDataTags=['% Product', 'Predicted']
+inDataZTags = ['Activity Z', 'Predicted Z']
 inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
                 'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR']
 inExpActivity = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
@@ -170,8 +66,6 @@ inPredActivity = [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049]
 inPredActivity2 = [0.748, 1.0, 0.007, 0.009, 0.03, 0.453, 0.005, 0.027]
 inStDev = [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05]
 inStDev2 = [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033]
-
-
 inSubstratesNat = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
                    'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
                    'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
@@ -182,17 +76,14 @@ inPredActivityNat = [1.000, 0.258, 0.005, 0.151,
                      0.053, 0.342, 0.149, 0.073,
                      0.708, 0.124, 0.051]
 inStDevNat = [0 for _ in range(len(inSubstratesNat))]
-
 inEnzymes = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Activity
     (f'M{"ᵖʳᵒ"}2', inSubstrates, inExpActivity, inStDev, inPredActivity),
     (f'M{"ᵖʳᵒ"}', inSubstrates, inExpActivity2, inStDev2, inPredActivity2),
-    (f'M{"ᵖʳᵒ"}2 Nat', inSubstratesNat, inExpActivityNat, inStDevNat, inPredActivityNat)
+    (f'M{"ᵖʳᵒ"}2 pp1a/b', inSubstratesNat, inExpActivityNat, inStDevNat, inPredActivityNat)
 ]
+
+# Build dataset
 inData = {}
-inPlotNDatasets = 3
-
-# ========================================================================================
-
 for idx, enzyme in enumerate(inEnzymes, start=1):
     if idx <= inPlotNDatasets:
         emptyList = [0 for _ in range(len(enzyme[1]))]
@@ -200,28 +91,23 @@ for idx, enzyme in enumerate(inEnzymes, start=1):
         inData[f'{enzyme[0]}'] = {
             'Substrates': enzyme[1],
             f'% Product': enzyme[2],
+            f'% St Dev': enzyme[3],
             f'Activity Z': emptyList,
             f'Activity Rank': emptyList,
-            f'% St Dev': enzyme[3],
             f'Predicted': enzyme[4],
             f'Predicted Z': emptyList,
             f'Predicted Rank': emptyList,
         }
 
-for k, v in inData.items():
-    print(f'{k}:')
-    for t, d in v.items():
-        print(f'* {t}: {d}')
-    print()
 
-
-def normalizeData():
-    tags = ['% Product', 'Predicted']
-    for enzyme in inData.keys():
+# ========================================================================================
+def normalizeData(data, tags):
+    for enzyme in data.keys():
         for tag in tags:
-            values = inData[enzyme][tag]
+            values = data[enzyme][tag]
             maxValue = max(values)
-            inData[enzyme][tag] = [v / maxValue for v in values]
+            data[enzyme][tag] = [v / maxValue for v in values]
+    return data
 
 
 def convertNum(data, key):
@@ -244,56 +130,9 @@ def convertNum(data, key):
     return activity
 
 
-def plotTable():
-    data = {}
-    for col in inData.keys():
-        # print(f'\nCOL: {col}')
-        if '% st dev' in col.lower():
-            continue
-        elif 'substrates' in col.lower():
-            data[col] = inData[col]
-        elif '% product' in col.lower() and 'rank' not in col.lower():
-            data[col] = convertNum(inData, col)
-        elif ('predicted' in col.lower() and
-              'rank' not in col.lower() and
-              'ln' not in col.lower()):
-            # print(f'Col: {col}')
-            key = col.replace('Rank', 'Z')
-            vals = []
-            for v in inData[col]:
-
-                vals.append(round(v, inRoundVal))
-                # if inSigFigs == 0 or not inSigFigs:
-                #     vals.append(int(v * 100))
-                # else:
-                #     vals.append(str(round((v * 100), 0)))
-            # data[col] = [str(v) for v in vals]
-            data[col] = vals
-            # print(f'* Pred: {data[col]}\n')
-        elif 'rank' in col.lower():
-            key = col.replace('Rank', 'Z')
-            print(f'* Rank: {col}, {key}')
-            # print(inData[key])
-            rank = list(pd.Series(inData[key]).rank(ascending=False, method='min'))
-            l = []
-            for val in rank:
-                l.append(f'{str(int(val))}')
-            data[col] = l
-        else:
-            x = []
-            for i in range(len(inData[col])):
-                x.append(round(inData[col][i], inRoundVal))
-            data[col] = x
-            # print(f'* Data: {data[col]}')
-    # print()
-    # for k, v in data.items():
-    #     print(f'* {k}\n{v}\n')
-    # print()
-
+def plotTable(data, tableCol):
     # Create table
-    if 'Substrates' not in inTableCols:
-        inTableCols.insert(0, 'Substrates')
-    table = pd.DataFrame('', index=[], columns=inTableCols)
+    table = pd.DataFrame('', index=[], columns=tableCol)
     for col in table.columns:
         table.loc[:, col] = data[col]
 
@@ -351,35 +190,41 @@ def plotTable():
         print(f'The figure was not saved\n\n')
 
 
-def zScore():
-    tags = ['% Product', 'Predicted']
-    for enzyme in inData.keys():
+def zScore(data, tags, zTags):
+    for enzyme in data.keys():
         # print(f'{enzyme}:')
-        for tag in tags:
+        for i, tag in enumerate(tags):
             # print(f'* {tag}')
-            values = inData[enzyme][tag]
+            values = data[enzyme][tag]
             avg = np.mean(values)
             stdev = np.std(values)
             z = []
             for x in values:
                 z.append(float((x - avg) / stdev))
+            zRank = pd.Series(z).rank(ascending=False, method='min')
+            zRank = [int(x) for x in zRank]
             # for i in range(len(values)):
             #     x, y = round(float(values[i]), inRoundVal), round(float(z[i]), inRoundVal)
             #     print(f'* Value: {x}, Z Score: {y}')
             # print()
-            inData[enzyme][tag] = z
+            data[enzyme][f'{zTags[i]}'] = z
+            data[enzyme][f'{zTags[i].replace(' Z', ' Rank')}'] = zRank
             # print(f'  * {values}\n'
             #       f'  * {z}\n')
 
+    return data
 
-def ln():
-    tags = ['% Product', 'Predicted']
+
+def ln(data, tags):
     x = []
-    for val in inData.keys():
-        l = np.log(val)
-        x.append(l)
-        print(f'*: ln({round(val, inRoundVal)}) -> {round(l, inRoundVal)}')
-    print()
+    for enzyme in data.keys():
+        for tag in tags:
+            val = data[enzyme][tag]
+            l = np.log(val)
+            x.append(l)
+            print(f'*: ln({round(val, inRoundVal)}) -> {round(l, inRoundVal)}')
+            data[enzyme][tag] = l
+        print()
     return x
 
 
@@ -388,12 +233,14 @@ def fnExp(x, a, b, c):
 
 
 def fitData(x, y):
+    x, y = np.array(x), np.array(y)
+
     # Fit the curve
     popt, pcov = curve_fit(fnExp, x, y, p0=[1, 1, 0], maxfev=10000)
     a, b, c = popt
 
     # Generate smooth curve for plotting
-    xFit = np.linspace(x.min(), x.max(), 300)
+    xFit = np.linspace(min(x), max(x), 300)
     yFit = fnExp(xFit, *popt)
 
     # R² for the exponential fit
@@ -405,7 +252,8 @@ def fitData(x, y):
     return xFit, yFit, r2
 
 
-def plotBars(data, e1, e2, barWidth=0.35):
+def plotBars(data, barWidth=0.35):
+    e1, e2 = None, None
     substrates = data['Substrates']
     xTicks = np.arange(len(substrates))
     y1 = data[f'% Product {e1}']
@@ -472,102 +320,86 @@ def plotBars(data, e1, e2, barWidth=0.35):
         print(f'The figure was not saved\n\n')
 
 
-# ========================================================================================
-normalizeData()
+def pdata(data):
+    print(f'Data:')
+    for k, v in data.items():
+        print(f'{k}:')
+        for t, d in v.items():
+            print(f'  {t}: {d}')
+        print()
 
+
+def processData(data, tags, zTags, natLog):
+    data = normalizeData(data, tags)
+    data = zScore(data, tags, zTags)
+    if natLog:
+        data = ln(data, zTags)
+    # pdata(data)
+
+    # Build tables
+    tables = {}
+    columns = ['% Product', '% St Dev'] + tags + zTags
+    for enzyme in inData.keys():
+        columns = list(inData[enzyme])
+        df = pd.DataFrame(0.0, index=[], columns=[])
+        for col in columns:
+            df.loc[:, col] = inData[enzyme][col]
+        tables[enzyme] = df
+    for enzyme, table in tables.items():
+        print(f'{enzyme}:')
+        print(f'{table.to_string(index=False)}\n')
+
+        if inSavePath and inSaveTables:
+            fileName = f'enzActivity_table_{enzyme}.csv'.replace('/', '-')
+            path = os.path.join(inSavePath, fileName)
+            table.to_csv(path, index=False)
+    print()
+
+    return tables
+
+
+
+# ========================================================================================
+tables = processData(data=inData, tags=inDataTags, zTags=inDataZTags, natLog=inNatLog)
+# Plot data
 if inPlotBarGraph:
-    plotBars(data=inData, e1=inEnzyme2, e2=inEnzyme)
-
-# Calculate Z-Scores
-zScore()
-# for tags in inCalcZScores:
-#     inData[tags[1]] = zScore(tags[0])
-    # inData[tags[1]] = ln(inData[tags[0]])
-
+    plotBars(data=tables)
 if inPlotTable:
-    plotTable()
-# sys.exit()
+    plotTable(data=tables, tableCol=inTableCols)
 
-# Evaluate the natural log
-if inNatLog:
-    ln()
 
 
 # ========================================================================================
-# Evaluate data
-data = pd.DataFrame(0.0, index=inData['Substrates'], columns=[])
-print(f'L: {len(inData['Substrates'])}')
-print(f'L: {len(inData['Substrates'])}')
-data[f'Activity {inEnzyme}'] = inData[f'% Product {inEnzyme}']
-data[f'Activity Z {inEnzyme}'] = inData[f'Activity Z {inEnzyme}']
-# print(f'L1: {len(inData['Substrates'])}\n'
-#       f'L2: {len(inData[f'Predicted {inEnzyme}'])}')
-data[f'Pred {inEnzyme}'] = inData[f'Predicted {inEnzyme}']
-data[f'Predicted Z {inEnzyme}'] = inData[f'Predicted Z {inEnzyme}']
-x = ['AVLQSG', 'VILQSG', 'VILQTG', 'VILQSP',
-     'VILHSG', 'VIMQSG', 'VPLQSG', 'NILQSG']
-actR2 = round(r2_score(data[f'Activity {inEnzyme}'],
-                       data[f'Pred {inEnzyme}']), inRoundVal)
-actZR2 = round(r2_score(data[f'Activity Z {inEnzyme}'],
-                        data[f'Predicted Z {inEnzyme}']), inRoundVal)
-print(f'{data}\n\n')
-
-# Figure labels
-l1, l2 = f'{inEnzyme}', f'{inEnzyme2}'
-l1, l2 = f'SARS-CoV-2 {inEnzyme.replace('2', '')}', f'SARS-CoV {inEnzyme2}'
 
 # Plot data
-mkr1, mkr2, edgeWidth = 'D', 'o', 1
 fig, ax = plt.subplots(figsize=inFigSize)
 plt.title(inFigTitle, fontsize=inTitleSize, fontweight='bold')
 x, y = f'Activity Z {inEnzyme}', f'Predicted Z {inEnzyme}'
-x_fit, y_fit, fitCurve = fitData(x=data[x].values, y=data[y].values)
-l1 += f' R² = {fitCurve:.3f}'
-data.plot(x=x, y=y, ax=ax, color=inColor1, marker=mkr1, linestyle='none',
-          markeredgecolor='black', markeredgewidth=edgeWidth, legend=l1)
-ax.plot(x_fit, y_fit, color=inColor1, linestyle='-', linewidth=inLinewidth)
+for idx, enzyme in enumerate(inData.keys()):
+    x = inData[enzyme][inDataZTags[0]]
+    y = inData[enzyme][inDataZTags[1]]
 
+    # Figure labels
+    label = enzyme
+    l1, l2, = f'M{"ᵖʳᵒ"}2', f'M{"ᵖʳᵒ"}'
+    if l1 in label:
+        label = label.replace(
+            l1, f'SARS-CoV-2 {l1.replace("2", "")}'
+        )
+    elif l2 in label:
+        label = label.replace(l2, f'SARS-CoV M{"ᵖʳᵒ"}')
+    # print(f'{enzyme}: {label}')
+    x_fit, y_fit, fitCurve = fitData(x=x, y=y)
+    label += f' R² = {fitCurve:.3f}'
 
-# Evaluate the secondary set
-if inPlotBoth:
-    data2 = pd.DataFrame(0.0, index=inData['Substrates'], columns=[])
-    data2[f'Activity {inEnzyme2}'] = inData[f'% Product {inEnzyme2}']
-    data2[f'Activity Z {inEnzyme2}'] = inData[f'Activity Z {inEnzyme2}']
-    data2[f'Pred {inEnzyme2}'] = inData[f'Predicted {inEnzyme2}']
-    data2[f'Predicted Z {inEnzyme2}'] = inData[f'Predicted Z {inEnzyme2}']
-    print(f'{data2}\n\n')
-    actEnzR2 = round(
-        r2_score(data2[f'Activity {inEnzyme2}'],
-                 data2[f'Pred {inEnzyme2}']), inRoundVal
-    )
-    actEnzZR2 = round(
-        r2_score(data2[f'Activity Z {inEnzyme2}'],
-                 data2[f'Predicted Z {inEnzyme2}']), inRoundVal
-    )
-
-    x, y = f'Activity Z {inEnzyme2}', f'Predicted Z {inEnzyme2}'
-    x_fit2, y_fit2, fitCurve2 = fitData(x=data2[x].values, y=data2[y].values)
-    l2 += f' R² = {fitCurve2:.3f}'
-    data2.plot(x=x, y=y, ax=ax, color=inColor2, marker=mkr2, linestyle='none',
-               markeredgecolor='black', markeredgewidth=edgeWidth, legend=l2)
-    ax.plot(x_fit2, y_fit2, color=inColor2, linestyle='-', linewidth=1.5)
-    ax.legend(
-        prop=FontProperties(size=inLabelTickSize-2, weight='bold'), loc='upper left',
-        handles=[
-            Line2D([], [], color=inColor2, marker=mkr2,
-                   markeredgecolor='black', markeredgewidth=edgeWidth,
-                   linewidth=inLinewidth, label=l2),
-            Line2D([], [], color=inColor1, marker=mkr1,
-                   markeredgecolor='black', markeredgewidth=edgeWidth,
-                   linewidth=inLinewidth, label=l1),
-        ]
-    )
-else:
-    ax.legend(prop=FontProperties(size=inLabelTickSize-2, weight='bold'), loc='upper left',
-              handles=[Line2D([], [], linestyle='None', marker='None',
-                              markeredgecolor='black', markeredgewidth=edgeWidth,
-                              label=l1)], handletextpad=0, handlelength=0
-              )
+    # Add data
+    edgeWidth = 1
+    ax.plot(x, y, color=inPlotColors[idx], marker=inPlotMarkers[idx], linestyle='none',
+            markeredgecolor='black', markeredgewidth=edgeWidth, label=label)
+    ax.plot(x_fit, y_fit, color=inPlotColors[idx], linestyle='-', linewidth=inLinewidth)
+ax.legend(prop=FontProperties(size=inLabelTickSize - 2, weight='bold'),
+          edgecolor='black', linewidth=inLinewidth, loc='best', framealpha=0.9,
+          handlelength=0.8,  handletextpad=0.2, borderpad=0.4, columnspacing=0.8)
 
 # Set the thickness of the figure border
 for _, spine in ax.spines.items():
