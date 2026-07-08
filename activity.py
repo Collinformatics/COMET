@@ -84,6 +84,7 @@ inEnzymes = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Acti
 
 # Build dataset
 inData = {}
+inNormalizeSub = 'AVLQSGFR' # Optional: Normalize activity to a substrate
 for idx, enzyme in enumerate(inEnzymes, start=1):
     if idx <= inPlotNDatasets:
         emptyList = [0 for _ in range(len(enzyme[1]))]
@@ -106,6 +107,9 @@ def normalizeData(data, tags):
         for tag in tags:
             values = data[enzyme][tag]
             maxValue = max(values)
+            if inNormalizeSub:
+                idxMaxValue = data[enzyme]['Substrates'].index(inNormalizeSub)
+                maxValue = values[idxMaxValue]
             data[enzyme][tag] = [v / maxValue for v in values]
     return data
 
@@ -182,6 +186,9 @@ def plotTable(data, tableCol):
         figName = 'enzActivity_table.png'
         if inFigSaveTag:
             figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+        if inNormalizeSub:
+            figName = figName.replace('.png',
+                                      f'_Norm_{inNormalizeSub}.png')
         path = os.path.join(inSavePath, figName)
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
@@ -312,6 +319,9 @@ def plotBars(data, barWidth=0.35):
         figName = 'enzActivity_bars.png'
         if inFigSaveTag:
             figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+        if inNormalizeSub:
+            figName = figName.replace('.png',
+                                      f'_Norm_{inNormalizeSub}.png')
         path = os.path.join(inSavePath, figName)
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
@@ -351,6 +361,9 @@ def processData(data, tags, zTags, natLog):
 
         if inSavePath and inSaveTables:
             fileName = f'enzActivity_table_{enzyme}.csv'
+            if inNormalizeSub:
+                fileName = fileName.replace('.csv',
+                                            f'_Norm_{inNormalizeSub}.csv')
             fileName = fileName.replace(' ', '_').replace('/', '-')
             path = os.path.join(inSavePath, fileName)
             table.to_csv(path, index=False)
@@ -429,9 +442,12 @@ if inSavePath:
     figName = 'enzActivity.png'
     if inFigSaveTag:
         figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+    if inNormalizeSub:
+        figName = figName.replace('.png',
+                                  f'_Norm_{inNormalizeSub}.png')
     path = os.path.join(inSavePath, figName)
     fig.savefig(path, dpi=inFigResolution)
-    print(f'Saving figure at path: 1\n'
+    print(f'Saving figure at path:\n'
           f'     {path}\n\n')
 else:
     print(f'The figure was not saved\n\n')
