@@ -54,50 +54,73 @@ inData = {
     f'Predicted Rank {inEnzyme2}': inEmptyList,
 }
 
-# inActivityMpro2 = [61, 29, 5, 28, 13, 37, 22, 22, 22, 28, 33]
-# inPredictSubstrates = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
-#                        'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
-#                        'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
-# inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
-#                 'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR',
-#
-#                 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS', 'VKLQNNEL',
-#                 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA', 'ATLQAENV',
-#                 'TRLQSLEN', 'PKLQSSQA'
-#                 ]
-# inEmptyList = [0 for i in range(1, len(inSubstrates) + 1)]
-# inExpActivity = [1.0, 1.07, 0.315]
-# inData = {
-#     'Substrates': inSubstrates,
-#
-#     f'% Product {inEnzyme}': [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1,
-#                               29, 5, 28, 13, 37, 22, 22, 22, 28, 33],
-#     f'Activity Z {inEnzyme}': inEmptyList,
-#     f'Activity Rank {inEnzyme}': inEmptyList,
-#     f'% St Dev {inEnzyme}': [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05,
-#                              0,0,0,0,0,
-#                              0,0,0,0],
-#     f'Predicted {inEnzyme}': [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049,
-#                               0.258, 0.005, 0.151, 0.053, 0.342, 0.149, 0.073,
-#                               0.708, 0.124, 0.051],
-#     f'Predicted Z {inEnzyme}': inEmptyList,
-#     f'Predicted Rank {inEnzyme}': inEmptyList,
-#
-#     # f'% Product {inEnzyme2}': inEmptyList,
-#     # f'Activity Z {inEnzyme2}': inEmptyList,
-#     # f'Activity Rank {inEnzyme2}': inEmptyList,
-#     # f'% St Dev {inEnzyme2}': inEmptyList,
-#     # f'Predicted {inEnzyme2}': inEmptyList,
-#     # f'Predicted Z {inEnzyme2}': inEmptyList,
-#     # f'Predicted Rank {inEnzyme2}': inEmptyList,
-# }
+
+# inExpActivity = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1,
+#                  9, 5, 28, 13, 37, 22, 22, 22, 28, 33]
+inActivityMpro2 = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
+inSubstrateActivity = {
+    'AVLQSG': inActivityMpro2[0],
+    'VILQSG': inActivityMpro2[1],
+    'VILQTG': inActivityMpro2[2],
+    'VILQSP': inActivityMpro2[3],
+    'VILHSG': inActivityMpro2[4],
+    'VIMQSG': inActivityMpro2[5],
+    'VPLQSG': inActivityMpro2[6],
+    'NILQSG': inActivityMpro2[7],
+}
+inActivityMpro2 = [61, 29, 5, 28, 13, 37, 22, 22, 22, 28, 33]
+inSubstratesNat = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
+                   'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
+                   'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
+inPredActivity = [1.000, 0.258, 0.005, 0.151,
+                  0.053, 0.342, 0.149, 0.073,
+                  0.708, 0.124, 0.051]
+inSubstrates = ['VILQSGFR', 'VILQTGFR', 'VILQSPFR',
+                'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR',
+
+                'AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS', 'VKLQNNEL',
+                'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA', 'ATLQAENV',
+                'TRLQSLEN', 'PKLQSSQA'
+                ]
+inExpActivity = [1.074, 0.315, 0.000,
+                 0.284, 0.803, 0.000, 0.350,
+
+                 1.000, 0.440, 0.040, 0.350,
+                 0.060, 0.770, 0.330, 0.300,
+                 0.180, 0.210, 0.400]
+inPredActivity = [1.000, 0.010, 0.004,
+                  0.055, 0.388, 0.007, 0.009,
+
+                  0.964, 0.249, 0.005, 0.145,
+                  0.051, 0.330, 0.144, 0.071,
+                  0.683, 0.120, 0.050]
+inEmptyList = [0 for i in range(1, len(inSubstrates) + 1)]
+inData = {
+    'Substrates': inSubstrates,
+
+    f'% Product {inEnzyme}': inExpActivity,
+    f'Activity Z {inEnzyme}': inEmptyList,
+    f'Activity Rank {inEnzyme}': inEmptyList,
+    f'% St Dev {inEnzyme}': inEmptyList,
+    f'Predicted {inEnzyme}': inPredActivity,
+    f'Predicted Z {inEnzyme}': inEmptyList,
+    f'Predicted Rank {inEnzyme}': inEmptyList,
+
+    f'% Product {inEnzyme2}': inEmptyList,
+    f'Activity Z {inEnzyme2}': inEmptyList,
+    f'Activity Rank {inEnzyme2}': inEmptyList,
+    f'% St Dev {inEnzyme2}': inEmptyList,
+    f'Predicted {inEnzyme2}': inEmptyList,
+    f'Predicted Z {inEnzyme2}': inEmptyList,
+    f'Predicted Rank {inEnzyme2}': inEmptyList,
+}
 
 # Input: Figures
 inPlotBarGraph = False
 inPlotTable = False
 inFigSaveTag = '' # Add label to saved figures
 inSavePath = '/Users/ca34522/Documents/Papers/COMET/Figures/'
-inFigTitle = f'Enzyme Activity'
+inFigTitle = f'\nEnzyme Activity'
 inColor1 = '#BF5700'
 inColor2 = '#F8971F'
 inFigResolution = 600
@@ -107,8 +130,8 @@ inFigSize = (9.5, 8)
 inTickLength = 4
 inLinewidth = 1.5
 inTitleSize = 20
-inLabelSize = 17
-inLabelTickSize = 15
+inLabelSize = 18
+inLabelTickSize = 16
 
 # Input: Table
 if inPlotBoth:
@@ -137,16 +160,68 @@ else:
         (f'Predicted {inEnzyme}', f'Predicted Z {inEnzyme}')
     ]
 
+
+# ========================================================================================
+inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
+                'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR']
+inExpActivity = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
+inExpActivity2 = [32.1, 39.1, 14.9, 0.0, 16.0, 36.5, 0.0, 15.6]
+inPredActivity = [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049]
+inPredActivity2 = [0.748, 1.0, 0.007, 0.009, 0.03, 0.453, 0.005, 0.027]
+inStDev = [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05]
+inStDev2 = [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033]
+
+
+inSubstratesNat = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
+                   'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
+                   'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
+inExpActivityNat = [1.000, 0.440, 0.040, 0.350,
+                    0.060, 0.770, 0.330, 0.300,
+                    0.180, 0.210, 0.400]
+inPredActivityNat = [1.000, 0.258, 0.005, 0.151,
+                     0.053, 0.342, 0.149, 0.073,
+                     0.708, 0.124, 0.051]
+inStDevNat = [0 for _ in range(len(inSubstratesNat))]
+
+inEnzymes = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Activity
+    (f'M{"ᵖʳᵒ"}2', inSubstrates, inExpActivity, inStDev, inPredActivity),
+    (f'M{"ᵖʳᵒ"}', inSubstrates, inExpActivity2, inStDev2, inPredActivity2),
+    (f'M{"ᵖʳᵒ"}2 Nat', inSubstratesNat, inExpActivityNat, inStDevNat, inPredActivityNat)
+]
+inData = {}
+inPlotNDatasets = 3
+
+# ========================================================================================
+
+for idx, enzyme in enumerate(inEnzymes, start=1):
+    if idx <= inPlotNDatasets:
+        emptyList = [0 for _ in range(len(enzyme[1]))]
+        # print(enzyme)
+        inData[f'{enzyme[0]}'] = {
+            'Substrates': enzyme[1],
+            f'% Product': enzyme[2],
+            f'Activity Z': emptyList,
+            f'Activity Rank': emptyList,
+            f'% St Dev': enzyme[3],
+            f'Predicted': enzyme[4],
+            f'Predicted Z': emptyList,
+            f'Predicted Rank': emptyList,
+        }
+
+for k, v in inData.items():
+    print(f'{k}:')
+    for t, d in v.items():
+        print(f'* {t}: {d}')
+    print()
+
+
 def normalizeData():
-    for key in inData.keys():
-        if inEnzyme2 in key:
-            continue
-        if '% Product' in key and 'Rank' not in key and 'ln' not in key:
-            maxValue = max(inData[key])
-            norm = []
-            for val in inData[key]:
-                norm.append(val / maxValue)
-            inData[key] = norm
+    tags = ['% Product', 'Predicted']
+    for enzyme in inData.keys():
+        for tag in tags:
+            values = inData[enzyme][tag]
+            maxValue = max(values)
+            inData[enzyme][tag] = [v / maxValue for v in values]
 
 
 def convertNum(data, key):
@@ -276,24 +351,31 @@ def plotTable():
         print(f'The figure was not saved\n\n')
 
 
-def zScore(tag):
-    # print(f'Calculate Z Score: {tag}')
-    values = inData[tag]
-    avg = np.mean(values)
-    stdev = np.std(values)
-    z = []
-    for x in values:
-        z.append((x - avg) / stdev)
-    for i in range(len(values)):
-        x, y = round(float(values[i]), inRoundVal), round(float(z[i]), inRoundVal)
-        # print(f'* Value: {x}, Z Score: {y}')
-    # print()
-    return z
+def zScore():
+    tags = ['% Product', 'Predicted']
+    for enzyme in inData.keys():
+        # print(f'{enzyme}:')
+        for tag in tags:
+            # print(f'* {tag}')
+            values = inData[enzyme][tag]
+            avg = np.mean(values)
+            stdev = np.std(values)
+            z = []
+            for x in values:
+                z.append(float((x - avg) / stdev))
+            # for i in range(len(values)):
+            #     x, y = round(float(values[i]), inRoundVal), round(float(z[i]), inRoundVal)
+            #     print(f'* Value: {x}, Z Score: {y}')
+            # print()
+            inData[enzyme][tag] = z
+            # print(f'  * {values}\n'
+            #       f'  * {z}\n')
 
 
-def ln(vals):
+def ln():
+    tags = ['% Product', 'Predicted']
     x = []
-    for val in vals:
+    for val in inData.keys():
         l = np.log(val)
         x.append(l)
         print(f'*: ln({round(val, inRoundVal)}) -> {round(l, inRoundVal)}')
@@ -397,8 +479,9 @@ if inPlotBarGraph:
     plotBars(data=inData, e1=inEnzyme2, e2=inEnzyme)
 
 # Calculate Z-Scores
-for tags in inCalcZScores:
-    inData[tags[1]] = zScore(tags[0])
+zScore()
+# for tags in inCalcZScores:
+#     inData[tags[1]] = zScore(tags[0])
     # inData[tags[1]] = ln(inData[tags[0]])
 
 if inPlotTable:
@@ -407,13 +490,14 @@ if inPlotTable:
 
 # Evaluate the natural log
 if inNatLog:
-    inData[f'Predicted {inEnzyme2}'] = ln(inData[f'Predicted {inEnzyme2}'])
-    inData[f'Predicted {inEnzyme}'] = ln(inData[f'Predicted {inEnzyme}'])
+    ln()
 
 
 # ========================================================================================
 # Evaluate data
 data = pd.DataFrame(0.0, index=inData['Substrates'], columns=[])
+print(f'L: {len(inData['Substrates'])}')
+print(f'L: {len(inData['Substrates'])}')
 data[f'Activity {inEnzyme}'] = inData[f'% Product {inEnzyme}']
 data[f'Activity Z {inEnzyme}'] = inData[f'Activity Z {inEnzyme}']
 # print(f'L1: {len(inData['Substrates'])}\n'
