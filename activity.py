@@ -1,12 +1,10 @@
 from functions import pressKey
 from matplotlib.font_manager import FontProperties
-from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 from scipy.optimize import curve_fit
-from sklearn.metrics import r2_score
 import sys
 
 
@@ -16,11 +14,6 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.float_format', '{:,.3f}'.format)
 
 
-"""
-    If a key in inData is "% St Dev", table will exclude it.
-    The "% Product" values will be converted from decimal to percentage.
-    The order of the keys in inData will have the same order in the table.
-"""
 
 # Input: Data
 inPlotBoth = False # Add the secondary enzyme to the figures
@@ -29,18 +22,8 @@ inEnzyme2 = f'M{"ᵖʳᵒ"}' # Secondary enzyme
 inSigFigs = 0
 inRoundVal = 3
 inNatLog = False
-inSaveTables = True
-
-# Input: Figures
-inPlotBarGraph = False
-inPlotTable = False
 inTableCols = ['% Product','Activity Z','Activity Rank','Predicted Z','Predicted Rank']
-inFigSaveTag = '' # Add label to saved figures
-inSavePath = '/Users/ca34522/Documents/Papers/COMET/Figures/'
-inFigTitle = f'\nEnzyme Activity'
-inColor1 = '#BF5700'
-inColor2 = '#F8971F'
-inFigResolution = 600
+inSaveTables = True
 
 # Input: Figure Params
 inFigSize = (9.5, 8)
@@ -50,14 +33,7 @@ inTitleSize = 20
 inLabelSize = 18
 inLabelTickSize = 16
 
-
-# ========================================================================================
 # Input: Datasets
-inPlotNDatasets = 3 # Max num of plotted datasets
-inPlotColors = ['#BF5700', '#101010', '#2E9418']
-inPlotMarkers = ['D', 'o', '^']
-inDataTags=['% Product', 'Predicted']
-inDataZTags = ['Activity Z', 'Predicted Z']
 inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
                 'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR']
 inExpActivity = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
@@ -76,20 +52,37 @@ inPredActivityNat = [1.000, 0.258, 0.005, 0.151,
                      0.053, 0.342, 0.149, 0.073,
                      0.708, 0.124, 0.051]
 inStDevNat = [0 for _ in range(len(inSubstratesNat))]
-inEnzymes = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Activity
+inDatasets = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Activity
     (f'M{"ᵖʳᵒ"}2', inSubstrates, inExpActivity, inStDev, inPredActivity),
     (f'M{"ᵖʳᵒ"}', inSubstrates, inExpActivity2, inStDev2, inPredActivity2),
     (f'M{"ᵖʳᵒ"}2 pp1a/b', inSubstratesNat, inExpActivityNat, inStDevNat, inPredActivityNat)
-]
+] # Plot this data
 
+# Input: Figures
+inPlotBarGraph = False
+inPlotTable = False
+inSavePath = '/Data/'
+inFigTitle = f'\nEnzyme Activity'
+inColor1 = '#BF5700'
+inColor2 = '#F8971F'
+inFigResolution = 600
+inFigSaveTag = f'' # Add label to saved figures
+inPlotNDatasets = 3 # Max num of plotted datasets
+inPlotColors = ['#BF5700', '#101010', '#2E9418']
+inPlotMarkers = ['D', 'o', '^']
+
+
+# ========================================================================================
 # Build dataset
-inData = {}
-inNormalizeSub = 'AVLQSGFR' # Optional: Normalize activity to a substrate
-for idx, enzyme in enumerate(inEnzymes, start=1):
+data = {}
+dataTags = ['% Product', 'Predicted']
+dataZTags = ['Activity Z', 'Predicted Z']
+inNormalizeSub = '' # Optional: Normalize activity to a substrate
+for idx, enzyme in enumerate(inDatasets, start=1):
     if idx <= inPlotNDatasets:
         emptyList = [0 for _ in range(len(enzyme[1]))]
         # print(enzyme)
-        inData[f'{enzyme[0]}'] = {
+        data[f'{enzyme[0]}'] = {
             'Substrates': enzyme[1],
             f'% Product': enzyme[2],
             f'% St Dev': enzyme[3],
@@ -99,7 +92,10 @@ for idx, enzyme in enumerate(inEnzymes, start=1):
             f'Predicted Z': emptyList,
             f'Predicted Rank': emptyList,
         }
-
+"""
+    This takes the data given to "inDatasets" an builds the "data" dictionary.
+    If you change a label, make sure it matches the labels in "dataTags" and "dataZTags"
+"""
 
 # ========================================================================================
 def normalizeData(data, tags):
@@ -183,12 +179,12 @@ def plotTable(data, tableCol):
     plt.show()
 
     if inSavePath:
-        figName = 'enzActivity_table.png'
+        figName = 'enzActivity-table.png'
         if inFigSaveTag:
-            figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+            figName = figName.replace('.png', f'-{inFigSaveTag}.png')
         if inNormalizeSub:
             figName = figName.replace('.png',
-                                      f'_Norm_{inNormalizeSub}.png')
+                                      f'-Norm_{inNormalizeSub}.png')
         path = os.path.join(inSavePath, figName)
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
@@ -220,19 +216,6 @@ def zScore(data, tags, zTags):
             #       f'  * {z}\n')
 
     return data
-
-
-def ln(data, tags):
-    x = []
-    for enzyme in data.keys():
-        for tag in tags:
-            val = data[enzyme][tag]
-            l = np.log(val)
-            x.append(l)
-            print(f'*: ln({round(val, inRoundVal)}) -> {round(l, inRoundVal)}')
-            data[enzyme][tag] = l
-        print()
-    return x
 
 
 def fnExp(x, a, b, c):
@@ -316,12 +299,12 @@ def plotBars(data, barWidth=0.35):
     plt.show()
 
     if inSavePath:
-        figName = 'enzActivity_bars.png'
+        figName = 'enzActivity-bars.png'
         if inFigSaveTag:
-            figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+            figName = figName.replace('.png', f'-{inFigSaveTag}.png')
         if inNormalizeSub:
             figName = figName.replace('.png',
-                                      f'_Norm_{inNormalizeSub}.png')
+                                      f'-Norm_{inNormalizeSub}.png')
         path = os.path.join(inSavePath, figName)
         fig.savefig(path, dpi=inFigResolution)
         print(f'Saving figure at path:\n'
@@ -342,39 +325,38 @@ def pdata(data):
 def processData(data, tags, zTags, natLog):
     data = normalizeData(data, tags)
     data = zScore(data, tags, zTags)
-    if natLog:
-        data = ln(data, zTags)
     # pdata(data)
 
     # Build tables
     tables = {}
-    columns = ['% Product', '% St Dev'] + tags + zTags
-    for enzyme in inData.keys():
-        columns = list(inData[enzyme])
+    for enzyme in data.keys():
+        columns = list(data[enzyme])
         df = pd.DataFrame(0.0, index=[], columns=[])
         for col in columns:
-            df.loc[:, col] = inData[enzyme][col]
+            df.loc[:, col] = data[enzyme][col]
         tables[enzyme] = df
     for enzyme, table in tables.items():
         print(f'{enzyme}:')
         print(f'{table.to_string(index=False)}\n')
 
         if inSavePath and inSaveTables:
-            fileName = f'enzActivity_table_{enzyme}.csv'
+            fileName = f'enzActivity-table-{enzyme}.csv'
             if inNormalizeSub:
                 fileName = fileName.replace('.csv',
-                                            f'_Norm_{inNormalizeSub}.csv')
-            fileName = fileName.replace(' ', '_').replace('/', '-')
+                                            f'-Norm_{inNormalizeSub}.csv')
+            fileName = fileName.replace(' ', '_').replace('/', '')
             path = os.path.join(inSavePath, fileName)
             table.to_csv(path, index=False)
     print()
 
-    return tables
-
+    return data, tables
 
 
 # ========================================================================================
-tables = processData(data=inData, tags=inDataTags, zTags=inDataZTags, natLog=inNatLog)
+data, tables = processData(
+    data=data, tags=dataTags, zTags=dataZTags, natLog=inNatLog
+)
+
 # Plot data
 if inPlotBarGraph:
     plotBars(data=tables)
@@ -382,16 +364,16 @@ if inPlotTable:
     plotTable(data=tables, tableCol=inTableCols)
 
 
-
 # ========================================================================================
+
 
 # Plot data
 fig, ax = plt.subplots(figsize=inFigSize)
 plt.title(inFigTitle, fontsize=inTitleSize, fontweight='bold')
 x, y = f'Activity Z {inEnzyme}', f'Predicted Z {inEnzyme}'
-for idx, enzyme in enumerate(inData.keys()):
-    x = inData[enzyme][inDataZTags[0]]
-    y = inData[enzyme][inDataZTags[1]]
+for idx, enzyme in enumerate(data.keys()):
+    x = data[enzyme][dataZTags[0]]
+    y = data[enzyme][dataZTags[1]]
 
     # Figure labels
     label = enzyme
@@ -408,11 +390,13 @@ for idx, enzyme in enumerate(inData.keys()):
 
     # Add data
     edgeWidth = 1
-    ax.plot(x, y, color=inPlotColors[idx], marker=inPlotMarkers[idx], linestyle='none',
-            markeredgecolor='black', markeredgewidth=edgeWidth, label=label)
-    ax.plot(x_fit, y_fit, color=inPlotColors[idx], linestyle='-', linewidth=inLinewidth)
+    ax.plot(x, y, color=inPlotColors[idx], marker=inPlotMarkers[idx],
+            linestyle='none', markeredgecolor='black',
+            markeredgewidth=edgeWidth, label=label)
+    ax.plot(x_fit, y_fit, color=inPlotColors[idx],
+            linestyle='-', linewidth=inLinewidth)
 ax.legend(prop=FontProperties(size=inLabelTickSize - 2, weight='bold'),
-          edgecolor='black', linewidth=inLinewidth, loc='best', framealpha=0.9,
+          edgecolor='black', linewidth=inLinewidth, loc='upper left', framealpha=0.9,
           handlelength=0.8,  handletextpad=0.2, borderpad=0.4, columnspacing=0.8)
 
 # Set the thickness of the figure border
@@ -439,12 +423,13 @@ fig.canvas.mpl_connect('key_press_event', pressKey)
 plt.show()
 
 if inSavePath:
-    figName = 'enzActivity.png'
+    figName = 'enzActivity-scatter.png'
     if inFigSaveTag:
-        figName = figName.replace('.png', f'_{inFigSaveTag}.png')
+        figName = figName.replace('.png', f'-{inFigSaveTag}.png')
     if inNormalizeSub:
         figName = figName.replace('.png',
-                                  f'_Norm_{inNormalizeSub}.png')
+                                  f'-Norm_{inNormalizeSub}.png')
+    figName = figName.replace('.png', f'-N_{len(data.keys())}.png')
     path = os.path.join(inSavePath, figName)
     fig.savefig(path, dpi=inFigResolution)
     print(f'Saving figure at path:\n'
