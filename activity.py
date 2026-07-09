@@ -38,8 +38,8 @@ inSubstrates = ['AVLQSGFR', 'VILQSGFR', 'VILQTGFR', 'VILQSPFR',
                 'VILHSGFR', 'VIMQSGFR', 'VPLQSGFR', 'NILQSGFR']
 inExpActivity = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
 inExpActivity2 = [32.1, 39.1, 14.9, 0.0, 16.0, 36.5, 0.0, 15.6]
-inPredActivity = [0.595, 1.0, 0.008, 0.004, 0.055, 0.417, 0.003, 0.049]
-inPredActivity2 = [0.748, 1.0, 0.007, 0.009, 0.03, 0.453, 0.005, 0.027]
+inPredActivity = [0.964, 1.0, 0.01, 0.004, 0.055, 0.388, 0.007, 0.009]
+inPredActivity2 = [0.646, 1.0, 0.007, 0.008, 0.028, 0.493, 0.005, 0.038]
 inStDev = [0.1, 0.09, 0.02, 0, 0.06, 0.09, 0, 0.05]
 inStDev2 = [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033]
 inSubstratesNat = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
@@ -61,12 +61,12 @@ inDatasets = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Act
 # Input: Figures
 inPlotBarGraph = False
 inPlotTable = False
-inSavePath = '/Data/'
+inSavePath = 'Data/Figures/'
 inFigTitle = f'\nEnzyme Activity'
 inColor1 = '#BF5700'
 inColor2 = '#F8971F'
 inFigResolution = 600
-inFigSaveTag = f'' # Add label to saved figures
+inFigSaveTag = f'Q@R4_Pred-8AA' # Add label to saved figures
 inPlotNDatasets = 3 # Max num of plotted datasets
 inPlotColors = ['#BF5700', '#101010', '#2E9418']
 inPlotMarkers = ['D', 'o', '^']
