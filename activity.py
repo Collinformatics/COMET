@@ -341,6 +341,8 @@ def processData(data, tags, zTags, natLog):
 
         if inSavePath and inSaveTables:
             fileName = f'enzActivity-table-{enzyme}.csv'
+            if inFigSaveTag:
+                fileName = fileName.replace('.csv', f'-{inFigSaveTag}.csv')
             if inNormalizeSub:
                 fileName = fileName.replace('.csv',
                                             f'-Norm_{inNormalizeSub}.csv')
