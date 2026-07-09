@@ -94,7 +94,7 @@ for idx, enzyme in enumerate(inDatasets, start=1):
         }
 """
     This takes the data given to "inDatasets" an builds the "data" dictionary.
-    If you change a label, make sure it matches the labels in "dataTags" and "dataZTags"
+    If you change a label, make sure it matches the labels in "dataTags" and "dataZTags".
 """
 
 # ========================================================================================
