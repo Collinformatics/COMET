@@ -5908,15 +5908,16 @@ class NGS:
                     pos = values.columns[index]
                     value = values.loc[AA, pos]
                     S = entropy.loc[pos, 'ΔS']
-                    x = value
-                    # y = value # R2: 0.622
-                    # y = value / (S ** value) # R2: 0.671
-                    y = value / (S ** value)
+                    x = S ** value
+                    # y = value # R2: 0.622, 0.980
+                    # y = value / (S ** value) # R2: 0.671, 0.978
+                    y = value / x
                     spacer = (spacerMax - len(pos)) * ' '
                     print(f'* {blue}{AA}@{pos}{resetColor}:{spacer} '
-                          f'ER: {red}{value:.4f}{resetColor}, '
-                          f'∆S: {S:.4f}, x: {purple}{x:.4f}{resetColor}, '
-                          f'y: {red}{y:.3e}{resetColor}')
+                          f'ER: {purple}{value:.4f}{resetColor}, '
+                          f'∆S: {S:.4f}, '
+                          f'Adj: {greenLight}{x:.4f}{resetColor}, '
+                          f'ER/Adj: {red}{y:.4f}{resetColor}')
                     # print(f'* {blue}{AA}@{pos}{resetColor} ({round(S, 4)}): '
                     #       f'{round(value, 4)} -> {round(x, 4)}')
                     # print(f'* {blue}{AA}@{pos}{resetColor}: {round(value,4)}')
