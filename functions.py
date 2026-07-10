@@ -392,6 +392,20 @@ class NGS:
         return LinearSegmentedColormap.from_list('custom_colormap', colorList)
 
 
+    @staticmethod
+    def roundup(val, upperLim=True):
+        # Round decimal up to units of 5
+        vNew = val * 10
+        vDiv = vNew / 5.0
+        if upperLim:
+            val = np.ceil(vDiv) * 5
+        else:
+            val = np.floor(vDiv) * 5
+        val /= 10
+        # print(f'Value: {val}, {vNew}, {vDiv}')
+        # print(f'* New Value: {val}\n')
+        return val
+
 
     @staticmethod
     def zScore(dist, AA):
@@ -5874,7 +5888,7 @@ class NGS:
         # for pos in matrix.columns:
         #     matrix.loc[:, pos] = matrix.loc[:, pos] * entropy.loc[pos, 'ΔS']
         # print(f'Normalized RF Ratios:\n{matrix}\n\n')
-        # self.calculateEntropy(rf=matrix, plotFig=True) ##
+        # self.calculateEntropy(rf=matrix, plotFig=True)
 
 
         def plotPredActivity(values, errorBars, tag):
@@ -5884,21 +5898,25 @@ class NGS:
             activityPred = {}
             subLen = len(next(iter(activityExp)))
             neutral = 1 / len(values.index)
+            spacerMax = max([len(pos) for pos in values.columns])
             for substrate in activityExp.keys():
                 print(f'{pink}{substrate}{resetColor}')
                 score = 0
-                for index in range(subLen):
+                for index in range(subLen): ##
                     # Evaluate substrate
                     AA = substrate[index]
                     pos = values.columns[index]
                     value = values.loc[AA, pos]
                     S = entropy.loc[pos, 'ΔS']
                     x = value
-                    y = value * S
-                    print(f'* {blue}{AA}@{pos}{resetColor}: '
-                          f'ER: {red}{round(value, 4)}{resetColor}, '
-                          f'∆S: {round(S, 4)} -> {purple}{round(x, 4)}{resetColor}'
-                          f' = {red}{y:.3e}{resetColor}')
+                    # y = value # R2: 0.622
+                    # y = value / (S ** value) # R2: 0.671
+                    y = value / (S ** value)
+                    spacer = (spacerMax - len(pos)) * ' '
+                    print(f'* {blue}{AA}@{pos}{resetColor}:{spacer} '
+                          f'ER: {red}{value:.4f}{resetColor}, '
+                          f'∆S: {S:.4f}, x: {purple}{x:.4f}{resetColor}, '
+                          f'y: {red}{y:.3e}{resetColor}')
                     # print(f'* {blue}{AA}@{pos}{resetColor} ({round(S, 4)}): '
                     #       f'{round(value, 4)} -> {round(x, 4)}')
                     # print(f'* {blue}{AA}@{pos}{resetColor}: {round(value,4)}')
@@ -5924,7 +5942,7 @@ class NGS:
                     break
             print()
 
-            def ZScores(data, tag=''): ##
+            def ZScores(data, tag=''):
                 # Calculate: Z-scores
                 z = {}
                 mu = np.average(list(data.values()))
@@ -5985,8 +6003,8 @@ class NGS:
             expScores = [round(a, 3) for a in activityExp.values()]
             expScoresNorm = [round(float(a), 3) for a in activityExpNorm.values()]
             print(f'Activity: {purple}{self.enzymeName}{resetColor}')
-            print(f'* Predicted Activity:    {colorP}{scores}{resetColor}')
-            print(f'* Normalized Activity:   {colorE}{expScoresNorm}{resetColor}')
+            print(f'* Predicted Z-Scores:    {colorP}{scores}{resetColor}')
+            print(f'* Experimental Z-Scores: {colorE}{expScoresNorm}{resetColor}')
             print(f'* Experimental Activity: {colorE}{expScores}{resetColor}\n\n')
 
             # Set title
@@ -6021,6 +6039,14 @@ class NGS:
             #     handlelength=0, handletextpad=0, edgecolor='black',
             #     linewidth=self.lineThickness, loc='upper left', framealpha=0.9
             # )
+
+            # Y-axis
+            spacer = 0.2
+            yMax = round(np.ceil(max(np.max(predVals), np.max(expVals)) * 10), 2) / 10
+            yMin = round(np.floor(min(np.min(predVals), np.min(expVals)) * 10), 2) / 10
+            yMax = np.ceil((round(yMax*10,2)/10)+spacer)
+            yMin = np.floor((round(yMin*10,2)/10)-spacer)
+            plt.ylim(yMin, yMax)
 
             # Set xticks
             ax.set_xticks(xTicks)
@@ -6139,7 +6165,7 @@ class NGS:
 
             # Also check Spearman rank correlation (more robust to outliers)
             rho, p = spearmanr(x, y)
-            print(f'Spearman ρ: {rho:.3f}, p={p:.3f}')
+            print(f'Spearman ρ: {rho:.3f}, p={p:.3f}\n')
 
             # Make figure
             fig, ax = plt.subplots(figsize=self.figSize)
@@ -6155,11 +6181,15 @@ class NGS:
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
             plt.axhline(y=0, color='black', linewidth=self.lineThickness)
             # plt.grid(True, linestyle='-', color='black')
-            # plt.xlim(-0.03, 1.03)
-            # plt.xticks(ticks)
-            # plt.xticks(ticks)
-            # plt.ylim(-0.03, 1.03)
-            # plt.yticks(ticks)
+
+            # Axis
+            spacer = 0.2
+            xMax = self.roundup(max(x) + spacer)
+            xMin = self.roundup(min(x) - spacer, upperLim=False)
+            yMax = self.roundup(max(y) + spacer)
+            yMin = self.roundup(min(y) - spacer, upperLim=False)
+            plt.xlim(xMin, xMax)
+            plt.ylim(yMin, yMax)
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
