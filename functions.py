@@ -1580,7 +1580,7 @@ class NGS:
                          chopSeq=False):
         print('============================== Save Substrate CSV '
               '===============================')
-        print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')  ##
+        print(f'Minimum substrate count: {red}{minCounts:,}{resetColor}')
         excValid = False
         predScores = True
 
@@ -1919,8 +1919,6 @@ class NGS:
 
 
         # Plot bar graphs
-        ##
-        # ================================================================================
         self.plotBarGraphCSV(
             substrates=subsCounts, dataType='Counts',
             combinedMotifs=combinedMotifs, minCounts=minCounts,
@@ -1931,8 +1929,6 @@ class NGS:
             combinedMotifs=combinedMotifs, minCounts=minCounts,
             saveLocation=pathFigs[1]
         )
-        # ================================================================================
-        #
         self.plotBarGraphCSV(
             substrates=subsZCounts, dataType='Z Counts',
             combinedMotifs=combinedMotifs, minCounts=minCounts,
@@ -4916,7 +4912,7 @@ class NGS:
 
 
 
-    def plotMatrix(self, data, figLabel, totalCounts=False):
+    def plotMatrix(self, data, figLabel, totalCounts=False, printData=True):
         # Remove commas from string values and convert to float
         if totalCounts:
             data = data.applymap(
@@ -4930,7 +4926,8 @@ class NGS:
         #     cBarMax = 1
         cBarMax = np.ceil(data.values.max() * 10) / 10
         cBarMin = 0
-        print(f'Data:\n{data}\n\nMin: {cBarMin}\nMax: {cBarMax}')
+        if printData:
+            print(f'Data:\n{data}\n\nMin: {cBarMin}\nMax: {cBarMax}')
 
         # Convert the counts to a data frame for Seaborn heatmap
         if self.residueLabelType == 0:
@@ -5033,7 +5030,7 @@ class NGS:
 
     def calculateEntropy(self, rf, fixFullFrame=None,
                          combinedMotifs=False, manualEntropy=False,
-                         manualFrame=None):
+                         manualFrame=None, plotFig=False):
         print('============================== Calculate: Entropy '
               '===============================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
@@ -5065,7 +5062,7 @@ class NGS:
             print(f'Ranked Substrate Frame:\n'
                   f'{blue}{self.subFrame}{resetColor}\n\n')
 
-        if self.plotFigEntropy:
+        if self.plotFigEntropy or plotFig:
             self.plotEntropy(entropy=self.entropy, combinedMotifs=combinedMotifs)
 
         return self.entropy
@@ -5819,11 +5816,11 @@ class NGS:
 
         # Calculate: RF ratios
         ratio = pd.DataFrame(0.0, index=finalRF.index, columns=finalRF.columns)
-        for col in ratio.columns:
+        for pos in ratio.columns:
             if len(initialRF.columns) == 1:
-                ratio.loc[:, col] = finalRF.loc[:, col] / initialRF.iloc[:, 0]
+                ratio.loc[:, pos] = finalRF.loc[:, pos] / initialRF.iloc[:, 0]
             else:
-                ratio.loc[:, col] = finalRF.loc[:, col] / initialRF.loc[:, col]
+                ratio.loc[:, pos] = finalRF.loc[:, pos] / initialRF.loc[:, pos]
         ratio = ratio.replace([-np.inf, np.inf], 0.0) # Remove inf values
         if pData:
             print(f'RF Ratios:\n{ratio}\n\n')
@@ -5831,9 +5828,9 @@ class NGS:
 
         # Calculate: Ratio probability
         norm = pd.DataFrame(0.0, index=finalRF.index, columns=finalRF.columns)
-        for col in norm.columns:
+        for pos in norm.columns:
             for AA in norm.index:
-                norm.loc[AA, col] = ratio.loc[AA, col] / sum(ratio.loc[:, col])
+                norm.loc[AA, pos] = ratio.loc[AA, pos] / sum(ratio.loc[:, pos])
         if pData:
             print(f'Normalized RF Ratios:\n{norm}\n\n')
 
@@ -5845,9 +5842,6 @@ class NGS:
                         predLabel, errorBars=False, combinedMotifs=False,
                         barWidth=0.35, colorExp='#BF5700',
                         colorPred='#F8971F', rotateLabel=45):
-        from scipy.optimize import curve_fit
-
-
         print('============================ Predict Substrate Activity '
               '=============================')
         N = len(activityExp.keys())
@@ -5859,29 +5853,28 @@ class NGS:
         matrix = self.normalizeProbRatios(finalRF=finalRF,
                                           initialRF=initialRF,
                                           pHeader=False)
-        self.plotMatrix(data=matrix, figLabel='Prediction Matrix')
+        # self.plotMatrix(data=matrix, figLabel='Prediction Matrix', printData=False)
 
+        entropy = pd.DataFrame(0.0, index=matrix.columns, columns=['ΔS'])
+        entropyMax = np.log2(len(matrix.index))
+        for indexColumn in matrix.columns:
+            S = 0
+            for indexRow, probRatio in matrix.iterrows():
+                prob = probRatio[indexColumn]
+                if prob == 0:
+                    continue
+                else:
+                    S += -prob * np.log2(prob)
+            entropy.loc[indexColumn, 'ΔS'] = entropyMax - S
+        maxS = max(entropy.iloc[:, 0])
+        for pos in entropy.index:
+            entropy.loc[pos, 'ΔS'] = entropy.loc[pos, 'ΔS'] / maxS
+        print(f'{entropy}\n\n')
 
-        def fnExp(x, a, b, c):
-            return a * np.exp(b * x) + c
-
-
-        def fitData(x, y):
-            # Fit the curve
-            popt, pcov = curve_fit(fnExp, x, y, p0=[1, 1, 0], maxfev=10000)
-            a, b, c = popt
-
-            # Generate smooth curve for plotting
-            xFit = np.linspace(min(x), max(x), 300)
-            yFit = fnExp(xFit, *popt)
-
-            # R² for the exponential fit
-            yPred = fnExp(x, *popt)
-            ss_res = np.sum((y - yPred) ** 2)
-            ss_tot = np.sum((y - np.mean(y)) ** 2)
-            r2 = 1 - (ss_res / ss_tot)
-
-            return xFit, yFit, r2
+        # for pos in matrix.columns:
+        #     matrix.loc[:, pos] = matrix.loc[:, pos] * entropy.loc[pos, 'ΔS']
+        # print(f'Normalized RF Ratios:\n{matrix}\n\n')
+        # self.calculateEntropy(rf=matrix, plotFig=True) ##
 
 
         def plotPredActivity(values, errorBars, tag):
@@ -5890,6 +5883,7 @@ class NGS:
             # Calculate: Activity
             activityPred = {}
             subLen = len(next(iter(activityExp)))
+            neutral = 1 / len(values.index)
             for substrate in activityExp.keys():
                 print(f'{pink}{substrate}{resetColor}')
                 score = 0
@@ -5898,19 +5892,28 @@ class NGS:
                     AA = substrate[index]
                     pos = values.columns[index]
                     value = values.loc[AA, pos]
-                    print(f'* {pink}{AA}@{pos}{resetColor}: {round(value,4)}')
+                    S = entropy.loc[pos, 'ΔS']
+                    x = value
+                    y = value * S
+                    print(f'* {blue}{AA}@{pos}{resetColor}: '
+                          f'ER: {red}{round(value, 4)}{resetColor}, '
+                          f'∆S: {round(S, 4)} -> {purple}{round(x, 4)}{resetColor}'
+                          f' = {red}{y:.3e}{resetColor}')
+                    # print(f'* {blue}{AA}@{pos}{resetColor} ({round(S, 4)}): '
+                    #       f'{round(value, 4)} -> {round(x, 4)}')
+                    # print(f'* {blue}{AA}@{pos}{resetColor}: {round(value,4)}')
                     if score == 0:
-                        score = value
+                        score = y
                     else:
-                        score *= value
+                        score *= y
                 print(f'Score: {colorP}{score:.3e}{resetColor}\n')
                 activityPred[substrate] = score
             ranked = pd.Series(activityPred.values()).rank(
                 ascending=False, method='min').astype(int)
 
 
-            maxActivity = max(activityPred.values())
             dec = self.roundVal - 1
+            maxActivity = max(activityPred.values())
             print(f'Matrix Type: {purple}{tag}{resetColor}\n'
                   f'Predicted Activity: '
                   f'(Max Score: {colorP}{maxActivity:.{dec}e}{resetColor})')
@@ -5921,35 +5924,50 @@ class NGS:
                     break
             print()
 
+            def ZScores(data, tag=''): ##
+                # Calculate: Z-scores
+                z = {}
+                mu = np.average(list(data.values()))
+                sigma = np.std(list(data.values()))
+                # print(f'Z-Scores: {tag}\n'
+                #       f'* µ: {red}{mu:.3e}{resetColor}\n'
+                #       f'* σ: {red}{sigma:.3e}{resetColor}\n')
+                for seq, count in data.items():
+                    z[seq] = (count - mu) / sigma
+                return z
+
             # Normalize values
             activityExpNorm = {}
-            maxExpActivity = max(activityExp.values())
-            for index, (substrate, activity) in enumerate(activityPred.items()):
-                activityPred[substrate] = activity / maxActivity
-                activityExpNorm[substrate] = activityExp[substrate] / maxExpActivity
-            print(f'Predicted Normalized Activity:')
+            # maxExpActivity = max(activityExp.values())
+            # for index, (substrate, activity) in enumerate(activityPred.items()):
+            #     activityPred[substrate] = activity / maxActivity
+            #     activityExpNorm[substrate] = activityExp[substrate] / maxExpActivity
+            activityPred = ZScores(activityPred, 'Predicted Activity')
+            activityExpNorm = ZScores(activityExp, 'Experimental Activity')
+            # print(f'Predicted Normalized Activity:')
             scores = []
             for index, (substrate, activity) in enumerate(activityPred.items()):
                 s = f'{activity:,.{self.roundVal}f}'
                 l = np.log(activity)
                 l = f'{l:,.{self.roundVal}f}'
                 scores.append(float(s))
-                print(f'    {pink}{substrate}{resetColor} ({ranked[index]}), '
-                      f'Score: {colorP}{s}{resetColor}, '
-                      f'Nat Log: {colorP}{l}{resetColor}')
-            if errorBars:
-                print(f'Error Bars: {errorBars}')
-            print('')
+            #     print(f'    {pink}{substrate}{resetColor} ({ranked[index]}), '
+            #           f'Score: {colorP}{s}{resetColor}, '
+            #           f'Nat Log: {colorP}{l}{resetColor}')
+            # if errorBars:
+            #     print(f'Error Bars: {errorBars}')
+            # print('')
             # sys.exit()
 
-            # Rank activity scores
-            rankedActivity = dict(sorted(activityPred.items(),
-                                       key=lambda x: x[1], reverse=True))
-            print(f'Ranked Predicted Activity:')
-            for index, (substrate, activity) in enumerate(rankedActivity.items(),start=1):
-                print(f'    {pink}{substrate}{resetColor}, '
-                      f'Score: {colorP}{activity:,.{self.roundVal}f}{resetColor}')
-            print('')
+
+            # # Rank activity scores
+            # rankedActivity = dict(sorted(activityPred.items(),
+            #                            key=lambda x: x[1], reverse=True))
+            # print(f'Ranked Predicted Activity:')
+            # for index, (substrate, activity) in enumerate(rankedActivity.items(),start=1):
+            #     print(f'    {pink}{substrate}{resetColor}, '
+            #           f'Score: {colorP}{activity:,.{self.roundVal}f}{resetColor}')
+            # print('')
 
             # Compare predictions
             print(f'Predicted Vs Experimental Activity:')
@@ -5965,12 +5983,11 @@ class NGS:
 
             # Compare values
             expScores = [round(a, 3) for a in activityExp.values()]
-            expScoresNorm = [round(a, 3) for a in activityExpNorm.values()]
+            expScoresNorm = [round(float(a), 3) for a in activityExpNorm.values()]
             print(f'Activity: {purple}{self.enzymeName}{resetColor}')
             print(f'* Predicted Activity:    {colorP}{scores}{resetColor}')
             print(f'* Normalized Activity:   {colorE}{expScoresNorm}{resetColor}')
             print(f'* Experimental Activity: {colorE}{expScores}{resetColor}\n\n')
-
 
             # Set title
             enzName = self.enzymeName.replace(' - ', '\n')
@@ -5978,20 +5995,20 @@ class NGS:
             if predLabel:
                 title += f'\n{predLabel}'
 
-
             # Plot bar graph
             labels = list(activityPred.keys())
             predVals = [activityPred[k] for k in labels]
             expVals = [activityExpNorm[k] for k in labels]
             xTicks = np.arange(len(labels))
 
-
+            # Make figure
             fig, ax = plt.subplots(figsize=self.figSize)
             ax.bar(xTicks - barWidth / 2, predVals, barWidth, label='Predicted',
                    color=colorPred, edgecolor='black', linewidth=self.lineThickness)
             ax.bar(xTicks + barWidth / 2, expVals, barWidth, label='Experimental',
                    color=colorExp, edgecolor='black', linewidth=self.lineThickness)
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+            plt.axhline(y=0, color='black', linewidth=self.lineThickness)
             ax.set_ylabel('Normalized Activity', fontsize=self.labelSizeAxis)
             ax.legend(edgecolor='black', linewidth=self.lineThickness, loc='best',
                       prop=FontProperties(weight='bold', size=self.labelSizeTicks - 2))
@@ -6045,9 +6062,86 @@ class NGS:
             y = list(activityPred.values())
             ticks = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
+
+            # ============================================================================
+            # ============================================================================
+            from scipy.optimize import curve_fit
+
+            def fnExp(x, a, b, c):
+                return a * np.exp(b * x) + c
+
+            def fitData(x, y):
+                # Fit the curve
+                popt, pcov = curve_fit(fnExp, x, y, p0=[1, 1, 0], maxfev=10000)
+                a, b, c = popt
+
+                # Generate smooth curve for plotting
+                xFit = np.linspace(min(x), max(x), 300)
+                yFit = fnExp(xFit, *popt)
+
+                # R² for the exponential fit
+                yPred = fnExp(x, *popt)
+                ss_res = np.sum((y - yPred) ** 2)
+                ss_tot = np.sum((y - np.mean(y)) ** 2)
+                r2 = 1 - (ss_res / ss_tot)
+                return xFit, yFit, r2
+
+
+            def fnLog(x, a, b):
+                return a * np.log(x) - b
+
+            def fitDataLog(x, y):
+                popt, pcov = curve_fit(fnLog, x, y, maxfev=10000)
+                a, b = popt
+
+                # Generate smooth curve for plotting
+                xFit = np.linspace(min(x), max(x), 300)
+                yFit = fnLog(xFit, *popt)
+
+                # R²
+                yPred = fnLog(np.array(x), *popt)
+                ss_res = np.sum((np.array(y) - yPred) ** 2)
+                ss_tot = np.sum((np.array(y) - np.mean(y)) ** 2)
+                r2 = 1 - (ss_res / ss_tot)
+                return xFit, yFit, r2
+
+
+            def fnPoly(x, a, b, c):
+                return a * x ** 2 + b * x + c
+
+            def fitDataPoly(x, y):
+                popt, pcov = curve_fit(fnPoly, x, y, maxfev=10000)
+                xFit = np.linspace(min(x), max(x), 300)
+                yFit = fnPoly(xFit, *popt)
+                yPred = fnPoly(np.array(x), *popt)
+                ss_res = np.sum((np.array(y) - yPred) ** 2)
+                ss_tot = np.sum((np.array(y) - np.mean(y)) ** 2)
+                r2 = 1 - (ss_res / ss_tot)
+                return xFit, yFit, r2
+            # ============================================================================
+            # ============================================================================
+
             x_fit, y_fit, r2 = fitData(x=np.array(x), y=np.array(y))
+            print(f'R2 exp: {r2:.3f}')
+            # x_fit, y_fit, r2 = fitDataPoly(x=np.array(x), y=np.array(y))
+            # print(f'R2 poly: {r2:.3f}')
 
 
+            from scipy.stats import pearsonr, spearmanr
+
+            # Try linear first
+            coeffs = np.polyfit(x, y, 1)
+            yPred = np.polyval(coeffs, x)
+            ss_res = np.sum((np.array(y) - yPred) ** 2)
+            ss_tot = np.sum((np.array(y) - np.mean(y)) ** 2)
+            r2_linear = 1 - (ss_res / ss_tot)
+            print(f'Linear R²: {r2_linear:.3f}')
+
+            # Also check Spearman rank correlation (more robust to outliers)
+            rho, p = spearmanr(x, y)
+            print(f'Spearman ρ: {rho:.3f}, p={p:.3f}')
+
+            # Make figure
             fig, ax = plt.subplots(figsize=self.figSize)
             if errorBars:
                 plt.errorbar(x, y, yerr=errorBars, fmt="o",
@@ -6059,12 +6153,13 @@ class NGS:
             plt.xlabel('Experimental Activity', fontsize=self.labelSizeAxis)
             plt.ylabel('Predicted Activity', fontsize=self.labelSizeAxis)
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+            plt.axhline(y=0, color='black', linewidth=self.lineThickness)
             # plt.grid(True, linestyle='-', color='black')
-            plt.xlim(-0.03, 1.03)
-            plt.xticks(ticks)
-            plt.xticks(ticks)
-            plt.ylim(-0.03, 1.03)
-            plt.yticks(ticks)
+            # plt.xlim(-0.03, 1.03)
+            # plt.xticks(ticks)
+            # plt.xticks(ticks)
+            # plt.ylim(-0.03, 1.03)
+            # plt.yticks(ticks)
 
             # Set tick parameters
             ax.tick_params(axis='both', which='major', length=self.tickLength,
