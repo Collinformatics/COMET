@@ -13,6 +13,7 @@ from matplotlib.lines import Line2D
 import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap, LinearSegmentedColormap, Normalize
+from matplotlib.font_manager import FontProperties
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import RectangleSelector
 from sklearn.decomposition import PCA
@@ -758,6 +759,7 @@ class NGS:
         print('============================= Calculate: AA Counts '
               '==============================')
         print(f'Dataset: {purple}{datasetType}{resetColor}\n'
+              f'Total substrate count: {red}{sum(substrates.values()):,}{resetColor}\n'
               f'Unique substrate count: {red}{len(substrates):,}{resetColor}')
 
         # Determine substrate length
@@ -5035,6 +5037,7 @@ class NGS:
         print('============================== Calculate: Entropy '
               '===============================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}\n'
+              f'Total substrate count: {red}{self.nSubsFinal:,}{resetColor}\n'
               f'Unique Substrates: {red}{self.nSubsFinalUniqueSeqs:,}{resetColor}\n')
 
         self.entropy = pd.DataFrame(0.0, index=rf.columns, columns=['ΔS'])
@@ -5990,7 +5993,17 @@ class NGS:
                    color=colorExp, edgecolor='black', linewidth=self.lineThickness)
             plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
             ax.set_ylabel('Normalized Activity', fontsize=self.labelSizeAxis)
-            ax.legend(edgecolor='black', fontsize=self.labelSizeTicks)
+            ax.legend(edgecolor='black', linewidth=self.lineThickness, loc='best',
+                      prop=FontProperties(weight='bold', size=self.labelSizeTicks - 2))
+
+            # invisibleHandle = Line2D([], [], linestyle='None', marker='None',
+            #                          color='none')
+            # ax.legend(
+            #     handles=[invisibleHandle], labels=['Predicted', 'Experimental'],
+            #     prop=FontProperties(size=self.labelSizeTicks - 2),
+            #     handlelength=0, handletextpad=0, edgecolor='black',
+            #     linewidth=self.lineThickness, loc='upper left', framealpha=0.9
+            # )
 
             # Set xticks
             ax.set_xticks(xTicks)
@@ -6066,11 +6079,13 @@ class NGS:
                 spine.set_linewidth(self.lineThickness)
 
             # Legend
-            # matplotlib.font_manager import FontProperties
+            invisibleHandle = Line2D([], [], linestyle='None', marker='None',
+                                      color='none')
             ax.legend(
-                prop=matplotlib.font_manager.FontProperties(size=10, weight='bold'), handles=[Line2D(
-                [], [], linestyle='None', marker='None',
-                label=f'R² = {r2:.3f}')], handletextpad=0, handlelength=0
+                handles=[invisibleHandle], labels=[f'R² = {r2:.3f}'],
+                prop=FontProperties(size=self.labelSizeTicks - 2, weight='bold'),
+                handlelength=0, handletextpad=0, edgecolor='black',
+                linewidth=self.lineThickness, loc='upper left', framealpha=0.9
             )
 
             self.plotFig(plt=plt, fig=fig)
