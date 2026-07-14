@@ -3902,8 +3902,7 @@ class NGS:
             print(f'Collecting the top {red}{limitNSubs:,}{resetColor} substrates\n')
 
         # Evaluate data
-        valTotal, x, y = 0, [], []
-        totalCounts = sum(substrates.values())
+        totalCounts, x, y = sum(substrates.values()), [], []
         print(f'Substrates:')
         if 'counts' in dataType.lower():
             for i, (substrate, count) in enumerate(substrates.items()):
@@ -3911,7 +3910,7 @@ class NGS:
                       f'Counts: {red}{count:,}{resetColor}')
                 if i >= self.printNumber:
                     break
-            print(f'Total Counts: {red}{valTotal:,}{resetColor}')
+            print(f'Total Counts: {red}{totalCounts:,}{resetColor}')
 
             labelY = 'Counts'
             # Evaluate: Substrates
@@ -3926,6 +3925,7 @@ class NGS:
             magnitude = math.floor(math.log10(maxValue))
             if magnitude > 1:
                 mag = 10 ** (magnitude - 1)
+            yMax = math.ceil(maxValue / mag) * mag
             yMax = math.ceil(maxValue / mag) * mag
         elif 'rf' in dataType.lower():
             for i, (substrate, count) in enumerate(substrates.items()):
