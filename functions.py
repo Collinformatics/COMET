@@ -125,11 +125,16 @@ def getFileNames(enzyme):
         inFileNamesInitialSort = ['DEN-I_S1_L001']
         inFileNamesFinalSort = ['DEN-F_S2_L001']
         inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
-    elif enzyme.lower() == 'veev' or enzyme.lower() == 've':
+    elif enzyme.lower() == 'veevprev' or enzyme.lower() == 'veprev':
         enzyme = 'Venezuelan Equine Encephalitis Virus - nsP2'
         inFileNamesInitialSort = ['VEEV-I_S1']
         inFileNamesFinalSort = ['VEEV-R4_S2']
         inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10']
+    elif enzyme.lower() == 'veev' or enzyme.lower() == 've':
+        enzyme = 'Venezuelan Equine Encephalitis Virus - nsP2'
+        inFileNamesInitialSort = ['VEEV-I_S3']
+        inFileNamesFinalSort = ['VEEV-F_S4']
+        inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
     elif enzyme.lower() == 'wnv':
         enzyme = 'West Nile Virus - NS2B/NS3'
         inFileNamesInitialSort = ['WNV-I_S3_L001']
@@ -3706,7 +3711,7 @@ class NGS:
                               combinedMotifs=combinedMotifs)
             self.plotBarGraph(substrates=motifs, dataType='Counts',
                               combinedMotifs=combinedMotifs, plotAllSubs=True)
-            # self.plotBarGraph(substrates=motifs, dataType='Relative Frequency',
+            # self.plotBarGraph(substrates=motifs, dataType='RF',
             #                   combinedMotifs=combinedMotifs)
 
         # PCA
@@ -3899,6 +3904,7 @@ class NGS:
         # Evaluate data
         iteration = 0
         valTotal = 0
+        maxValue = max(substrates.values())
         print(f'Substrates:')
         if 'counts' in dataType.lower():
             for substrate, count in substrates.items():
@@ -3910,10 +3916,10 @@ class NGS:
             for count in substrates.values():
                 valTotal += count
             print(f'Total Counts: {red}{valTotal:,}{resetColor}')
-        else:
+        elif 'rf' in dataType.lower():
             for substrate, value in substrates.items():
                 print(f'     {blue}{substrate}{resetColor}, '
-                      f'Value: {red}{value:,}{resetColor}')
+                      f'Value: {red}{value/maxValue:.3f}{resetColor}')
                 iteration += 1
                 if iteration >= self.printNumber:
                     break
@@ -3921,6 +3927,9 @@ class NGS:
             for value in substrates.values():
                 valTotal += value
             print(f'Total Values: {red}{valTotal:,}{resetColor}')
+        else:
+            print(f'{orange}ERROR: What data type is: {cyan}{dataType}{resetColor}\n\n')
+            return
 
 
         # Collect substrates
@@ -3928,6 +3937,7 @@ class NGS:
         y = []
         iteration = 0
         if 'counts' in dataType.lower():
+            labelY = 'Counts'
             # Evaluate: Substrates
             for substrate, count in substrates.items():
                 x.append(str(substrate))
@@ -3937,12 +3947,13 @@ class NGS:
                     break
 
             # Evaluate: Y axis
-            maxValue, yMin, mag = max(y), 0, 10
+            yMin, mag = 0, 10
             magnitude = math.floor(math.log10(maxValue))
             if magnitude > 1:
                 mag = 10 ** (magnitude - 1)
             yMax = math.ceil(maxValue / mag) * mag
-        elif 'relative frequency' in dataType.lower():
+        elif 'rf' in dataType.lower():
+            labelY = 'Relative Frequency'
             # Evaluate: Substrates
             for substrate, value in substrates.items():
                 x.append(str(substrate))
@@ -3952,7 +3963,6 @@ class NGS:
                     break
 
             # Evaluate: Y axis
-            maxValue = max(y)
             magnitude = math.floor(math.log10(maxValue))
             adjustedMax = maxValue * 10**abs(magnitude)
             yMax = math.ceil(adjustedMax) * 10**magnitude
@@ -3962,6 +3972,7 @@ class NGS:
                 yMax = yMaxAdjusted
             yMin = 0
         else:
+            labelY = dataType
             # Evaluate: Substrates
             for substrate, count in substrates.items():
                 x.append(str(substrate))
@@ -3996,7 +4007,7 @@ class NGS:
         # Plot the data
         fig, ax = plt.subplots(figsize=self.figSize)
         bars = plt.bar(x, y, color=barColor, width=barWidth)
-        plt.ylabel(dataType, fontsize=self.labelSizeAxis)
+        plt.ylabel(labelY, fontsize=self.labelSizeAxis)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.axhline(y=0, color='black', linewidth=self.lineThickness)
         plt.ylim(yMin, yMax)
@@ -4075,14 +4086,14 @@ class NGS:
                 seqLength = self.motifLen
 
             # Define: Save location
-            enzName = enzName.replace(' ', '_')
+            enzName = self.enzymeName.replace(' - ', '-').replace(' ', '_')
             figLabel = (f'{enzName}-Bars-{dataType}-'
                         f'{self.datasetTag}-{seqLength}AA-'
                         f'N_{NSubs}-MinCounts_{self.minSubCount}.png')
             if combinedMotifs:
                 figLabel = figLabel.replace(self.datasetTag,
                                             f'SubstrateProfile_{self.datasetTag}')
-            if 'relative frequency' in dataType.lower():
+            if 'rf' in dataType.lower():
                 figLabel = figLabel.replace(dataType, 'RF')
             saveLocation = os.path.join(self.pathSaveFigs, figLabel)
             saveLocation = saveLocation.replace(' ', '')
@@ -4926,13 +4937,8 @@ class NGS:
 
 
 
-    def plotMatrix(self, data, figLabel, totalCounts=False, printData=True):
-        # Remove commas from string values and convert to float
-        if totalCounts:
-            data = data.applymap(
-                lambda x:float(x.replace(',', '')) if isinstance(x, str) else x
-            )
-
+    def plotMatrix(self, data, figLabel, totalCounts=False,
+                   printData=True):
         # Create heatmap
         cMapCustom = self.createCustomColorMap(colorType='Counts')
 
