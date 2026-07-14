@@ -400,11 +400,11 @@ for idx, enzyme in enumerate(data.keys()):
 
     # Add data
     edgeWidth = 1
+    ax.plot(x_fit, y_fit, color=inPlotColors[idx],
+            linestyle='-', linewidth=inLinewidth)
     ax.plot(x, y, color=inPlotColors[idx], marker=inPlotMarkers[idx],
             linestyle='none', markeredgecolor='black',
             markeredgewidth=edgeWidth, label=label)
-    ax.plot(x_fit, y_fit, color=inPlotColors[idx],
-            linestyle='-', linewidth=inLinewidth)
 ax.legend(prop=FontProperties(size=inLabelTickSize - 2, weight='bold'),
           edgecolor='black', linewidth=inLinewidth, loc='upper left', framealpha=0.9,
           handlelength=0.8,  handletextpad=0.2, borderpad=0.4, columnspacing=0.8)
