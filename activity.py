@@ -15,6 +15,7 @@ pd.set_option('display.float_format', '{:,.3f}'.format)
 
 
 
+# ========================================================================================
 # Input: Data
 inPlotBoth = False # Add the secondary enzyme to the figures
 inEnzyme = f'M{"ᵖʳᵒ"}2'
@@ -72,6 +73,7 @@ inFigSaveTag = f'yourlabel' # Add label to saved figures
 inPlotNDatasets = 3 # Max num of plotted datasets
 inPlotColors = ['#BF5700', '#101010', '#2E9418']
 inPlotMarkers = ['D', 'o', '^']
+
 
 
 # ========================================================================================
