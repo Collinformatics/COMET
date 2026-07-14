@@ -3902,89 +3902,61 @@ class NGS:
             print(f'Collecting the top {red}{limitNSubs:,}{resetColor} substrates\n')
 
         # Evaluate data
-        iteration = 0
-        valTotal = 0
-        maxValue = max(substrates.values())
+        valTotal, x, y = 0, [], []
+        totalCounts = sum(substrates.values())
         print(f'Substrates:')
         if 'counts' in dataType.lower():
-            for substrate, count in substrates.items():
+            for i, (substrate, count) in enumerate(substrates.items()):
                 print(f'     {blue}{substrate}{resetColor}, '
                       f'Counts: {red}{count:,}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
+                if i >= self.printNumber:
                     break
-            for count in substrates.values():
-                valTotal += count
             print(f'Total Counts: {red}{valTotal:,}{resetColor}')
-        elif 'rf' in dataType.lower():
-            for substrate, value in substrates.items():
-                print(f'     {blue}{substrate}{resetColor}, '
-                      f'Value: {red}{value/maxValue:.3f}{resetColor}')
-                iteration += 1
-                if iteration >= self.printNumber:
-                    break
-            valTotal = 0
-            for value in substrates.values():
-                valTotal += value
-            print(f'Total Values: {red}{valTotal:,}{resetColor}')
-        else:
-            print(f'{orange}ERROR: What data type is: {cyan}{dataType}{resetColor}\n\n')
-            return
 
-
-        # Collect substrates
-        x = []
-        y = []
-        iteration = 0
-        if 'counts' in dataType.lower():
             labelY = 'Counts'
             # Evaluate: Substrates
-            for substrate, count in substrates.items():
+            for i, (substrate, count) in enumerate(substrates.items()):
                 x.append(str(substrate))
                 y.append(count)
-                iteration += 1
-                if iteration == limitNSubs:
+                if i == limitNSubs:
                     break
 
             # Evaluate: Y axis
-            yMin, mag = 0, 10
+            maxValue, yMin, mag = max(y), 0, 10
             magnitude = math.floor(math.log10(maxValue))
             if magnitude > 1:
                 mag = 10 ** (magnitude - 1)
             yMax = math.ceil(maxValue / mag) * mag
         elif 'rf' in dataType.lower():
+            for i, (substrate, count) in enumerate(substrates.items()):
+                print(f'     {blue}{substrate}{resetColor}, '
+                      f'RF: {red}{count / totalCounts:.{self.roundVal}f}{resetColor}')
+                if i >= self.printNumber:
+                    break
+            print(f'Total Counts: {red}{totalCounts:,}{resetColor}')
+
             labelY = 'Relative Frequency'
             # Evaluate: Substrates
-            for substrate, value in substrates.items():
+            for i, (substrate, count) in enumerate(substrates.items()):
                 x.append(str(substrate))
-                y.append(value / valTotal)
-                iteration += 1
-                if iteration == limitNSubs:
+                y.append(count / totalCounts)
+                if i == limitNSubs:
                     break
 
             # Evaluate: Y axis
+            maxValue = max(y)
             magnitude = math.floor(math.log10(maxValue))
-            adjustedMax = maxValue * 10**abs(magnitude)
-            yMax = math.ceil(adjustedMax) * 10**magnitude
-            adjVal = 5 * 10**(magnitude-1)
+            adjustedMax = maxValue * 10 ** abs(magnitude)
+            yMax = math.ceil(adjustedMax) * 10 ** magnitude
+            adjVal = 5 * 10 ** (magnitude - 1)
             yMaxAdjusted = yMax - adjVal
             if yMaxAdjusted > maxValue:
                 yMax = yMaxAdjusted
             yMin = 0
         else:
-            labelY = dataType
-            # Evaluate: Substrates
-            for substrate, count in substrates.items():
-                x.append(str(substrate))
-                y.append(count)
-                iteration += 1
-                if iteration == limitNSubs:
-                    break
+            print(f'{orange}ERROR: What data type is: {cyan}{dataType}{resetColor}\n\n')
+            return
 
-            # Evaluate: Y axis
-            spacer = 0.2
-            yMax = math.ceil(max(y)) + spacer
-            yMin = math.floor(min(y))
         NSubs = len(x)
         print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n\n')
         # print(f'Y Axis:\n'
