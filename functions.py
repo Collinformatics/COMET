@@ -1271,7 +1271,8 @@ class NGS:
                 break
 
         totalSubsFinal = sum(substrates.values())
-        print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n\n')
+        print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n'
+              f'Unique Substrates: {red}{len(substrates.keys())}{resetColor}\n\n')
 
         return substrates, totalSubsFinal
 
@@ -3014,10 +3015,10 @@ class NGS:
               '=======================')
         if self.releasedCounts:
             print(f'Scale Enrichment Scores: {purple}Substrate Profile{resetColor}\n'
-                  f'     {magenta}Enrichment Scores * ΔS{resetColor}\n')
+                  f'     {magenta}Enrichment Scores * ΔS{resetColor}')
         else:
             print(f'Scale Enrichment Scores:\n'
-                  f'     {magenta}Enrichment Scores * ΔS{resetColor}\n')
+                  f'     {magenta}Enrichment Scores * ΔS{resetColor}')
 
         # if self.releasedCounts:
         #     print(f'Set Values: Fraud!!!')
@@ -3054,14 +3055,13 @@ class NGS:
         for column in heights.columns:
             if heights.loc[:, column].isna().any():
                 nValues = heights[column].notna().sum()
-                print(f'Number non NaN values in {column}: {nValues}')
+                print(f'\nNumber non NaN values in {column}: {nValues}')
                 heights.loc[heights[column].notna(), column] = yMax / nValues
                 heights.loc[:, column] = heights.loc[:, column].fillna(0)
-        print()
 
         heights = heights.replace([np.inf, -np.inf], 0)
         self.heights = heights
-        print(f'Residue Heights: {purple}{self.datasetTag}{resetColor}\n'
+        print(f'\nResidue Heights: {purple}{self.datasetTag}{resetColor}\n'
               f'{heights}\n\n')
 
 
@@ -3140,7 +3140,7 @@ class NGS:
             else:
                 print(f'Applying Filter: {magenta}{posFilter}{resetColor}')
 
-        print(f'\n\nEnrichment Scores:\n'
+        print(f'\nEnrichment Scores:\n'
               f'{scores}\n\n')
 
         # Create heatmap
@@ -3376,7 +3376,7 @@ class NGS:
                     yMin = self.heights.loc[row, col]
         print(f'Adjusting Y Min:\n'
               f'y Max: {red}{np.round(yMax, 4)}{resetColor}\n'
-              f'y Min: {red}{np.round(yMin, 4)}{resetColor}\n\n')
+              f'y Min: {red}{np.round(yMin, 4)}{resetColor}\n')
         plotLogo(limitYAxis=True) # Limited y-axis
 
 
@@ -3892,6 +3892,7 @@ class NGS:
                      plotAllSubs=False):
         print('================================ Plot: Bar Graph '
               '================================')
+        print(f'Dataset: {purple}{self.datasetTag}{resetColor}')
         print(f'Plot all: {plotAllSubs}')
         if plotAllSubs:
             barWidth = 1
@@ -3905,20 +3906,24 @@ class NGS:
         totalCounts, x, y = sum(substrates.values()), [], []
         print(f'Substrates:')
         if 'counts' in dataType.lower():
-            for i, (substrate, count) in enumerate(substrates.items()):
+            for i, (substrate, count) in enumerate(substrates.items(), start=1):
                 print(f'     {blue}{substrate}{resetColor}, '
                       f'Counts: {red}{count:,}{resetColor}')
                 if i >= self.printNumber:
                     break
-            print(f'Total Counts: {red}{totalCounts:,}{resetColor}')
-
             labelY = 'Counts'
+
             # Evaluate: Substrates
-            for i, (substrate, count) in enumerate(substrates.items()):
-                x.append(str(substrate))
-                y.append(count)
-                if i == limitNSubs:
-                    break
+            if plotAllSubs:
+                for i, (substrate, count) in enumerate(substrates.items(), start=1):
+                    x.append(str(substrate))
+                    y.append(count)
+            else:
+                for i, (substrate, count) in enumerate(substrates.items(), start=1):
+                    x.append(str(substrate))
+                    y.append(count)
+                    if i == limitNSubs:
+                        break
 
             # Evaluate: Y axis
             maxValue, yMin, mag = max(y), 0, 10
@@ -3926,22 +3931,25 @@ class NGS:
             if magnitude > 1:
                 mag = 10 ** (magnitude - 1)
             yMax = math.ceil(maxValue / mag) * mag
-            yMax = math.ceil(maxValue / mag) * mag
         elif 'rf' in dataType.lower():
             for i, (substrate, count) in enumerate(substrates.items()):
                 print(f'     {blue}{substrate}{resetColor}, '
                       f'RF: {red}{count / totalCounts:.{self.roundVal}f}{resetColor}')
                 if i >= self.printNumber:
                     break
-            print(f'Total Counts: {red}{totalCounts:,}{resetColor}')
-
             labelY = 'Relative Frequency'
+
             # Evaluate: Substrates
-            for i, (substrate, count) in enumerate(substrates.items()):
-                x.append(str(substrate))
-                y.append(count / totalCounts)
-                if i == limitNSubs:
-                    break
+            if plotAllSubs:
+                for i, (substrate, count) in enumerate(substrates.items(), start=1):
+                    x.append(str(substrate))
+                    y.append(count / totalCounts)
+            else:
+                for i, (substrate, count) in enumerate(substrates.items(), start=1):
+                    x.append(str(substrate))
+                    y.append(count / totalCounts)
+                    if i == limitNSubs:
+                        break
 
             # Evaluate: Y axis
             maxValue = max(y)
@@ -3958,6 +3966,8 @@ class NGS:
             return
 
         NSubs = len(x)
+        print(f'Total Counts: {red}{totalCounts:,}{resetColor}\n'
+              f'Unique Sequences: {red}{len(substrates.values()):,}{resetColor}\n')
         print(f'Number of plotted sequences: {red}{NSubs:,}{resetColor}\n\n')
         # print(f'Y Axis:\n'
         #       f'* Max: {yMax:,}\n'
@@ -4059,12 +4069,13 @@ class NGS:
 
             # Define: Save location
             enzName = self.enzymeName.replace(' - ', '-').replace(' ', '_')
-            figLabel = (f'{enzName}-Bars-{dataType}-'
-                        f'{self.datasetTag}-{seqLength}AA-'
-                        f'N_{NSubs}-MinCounts_{self.minSubCount}.png')
-            if combinedMotifs:
-                figLabel = figLabel.replace(self.datasetTag,
-                                            f'SubstrateProfile_{self.datasetTag}')
+            enzName = enzName.replace('/', '-')
+            datasetTag = self.datasetTagMotif.replace(' ', '_')
+            figLabel = (f'{enzName}-Bars-{dataType}-{datasetTag}-{seqLength}AA-'
+                        f'NBars_{NSubs}-N_{totalCounts}-MinCounts_{self.minSubCount}.png')
+            if self.releasedCounts or combinedMotifs:
+                figLabel = figLabel.replace(datasetTag,
+                                            f'SubstrateProfile-{datasetTag}')
             if 'rf' in dataType.lower():
                 figLabel = figLabel.replace(dataType, 'RF')
             saveLocation = os.path.join(self.pathSaveFigs, figLabel)
