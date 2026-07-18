@@ -817,6 +817,8 @@ class NGS:
         totalSubs = 0
         if countMotif:
             # Count the AAs
+            print(f'Axis: {countedData.columns}')
+
             for substrate, counts in substrates.items():
                 totalSubs += counts
                 indicesResidue = [self.letters.index(AA) for AA in substrate]
@@ -1193,14 +1195,28 @@ class NGS:
         print(f'\nTotal substrates: {purple}{fileType}\n'
               f'     {red} {substrateTotal:,}{resetColor}\n\n')
 
+        if dropColumn:
+            if isinstance(dropColumn, list) and dropColumn[0]:
+                dropAA = True
+            elif isinstance(dropColumn, str):
+                dropAA = True
+            else:
+                dropAA = False
+
+            if dropAA:
+                substrates = self.truncateSubs(substrates=substrates,
+                                               dropColumn=dropColumn)
+
         return substrates, substrateTotal
 
 
 
-    def loadUnfilteredSubs(self, loadInitial=False, loadFinal=False):
+    def loadUnfilteredSubs(self, loadInitial=False, loadFinal=False,
+                           dropColumn=False):
         def loadSubsThread(fileNames, fileType, result):
             subsLoaded, totalSubs = self.loadSubstrates(fileNames=fileNames,
-                                                        fileType=fileType)
+                                                        fileType=fileType,
+                                                        dropColumn=dropColumn)
             result[fileType] = (subsLoaded, totalSubs)
 
 
@@ -2265,17 +2281,17 @@ class NGS:
                   f'     N Initial: {pink}{type(NInitial)}{resetColor}\n'
                   f'     N Final: {pink}{type(NFinal)}{resetColor}')
         print(f'Unique Final Seqs: '
-              f'{red}{self.nSubsFinalUniqueSeqs:,}{resetColor}\n\n')
+              f'{red}{self.nSubsFinalUniqueSeqs:,}{resetColor}\n')
         if NInitial == 0 and NFinal == 0:
-            print(f'{orange}ERROR: No substrates were loaded in the '
+            print(f'\n{orange}ERROR: No substrates were loaded in the '
                   f'{cyan}Background{orange} and the {cyan}Experimental{orange} sets\n')
             sys.exit(1)
         elif NInitial == 0:
-            print(f'{orange}ERROR: No substrates were loaded in the '
+            print(f'\n{orange}ERROR: No substrates were loaded in the '
                   f'{cyan}Background{orange} set\n')
             sys.exit(1)
         elif NFinal == 0:
-            print(f'{orange}ERROR: No substrates were loaded in the '
+            print(f'\n{orange}ERROR: No substrates were loaded in the '
                   f'{cyan}Experimental{orange} set\n')
             sys.exit(1)
         print()
@@ -2439,6 +2455,7 @@ class NGS:
     def getDatasetTag(self, useCodonProb=False,
                       codon=None, combinedMotifs=False):
         if combinedMotifs:
+
             continuous, multiCombinedFrames = True, False
             if len(self.fixedPos) == 1:
                 # tags = []
@@ -2502,28 +2519,36 @@ class NGS:
 
                 # Define the tag
                 if continuous:
-                    # Define subtags
-                    fixedAA1 = self.fixedAA[0]
-                    if isinstance(fixedAA1, list):
-                        fixedAA1 = f'[{','.join(fixedAA1)}]'
-                    fixedPos1 = self.fixedPos[0]
-                    if isinstance(fixedPos1, list):
-                        fixedPos1 = f'[{','.join(map(str, fixedPos1))}]'
-                    fixedAA2 = self.fixedAA[-1]
-                    if isinstance(fixedAA2, list):
-                        fixedAA2 = f'[{','.join(fixedAA2)}]'
-                    fixedPos2 = self.fixedPos[-1]
-                    if isinstance(fixedPos2, list):
-                        fixedPos2 = f'[{','.join(map(str, fixedPos2))}]'
-                    # print(f'Fix: {fixedAA1}@R{fixedPos1}')
-                    # print(f'Fix: {fixedAA2}@R{fixedPos2}\n')
-
                     if multiCombinedFrames:
+                        # Define subtags
+                        fixedAA1 = self.fixedAA[0]
+                        if isinstance(fixedAA1, list):
+                            fixedAA1 = f'[{','.join(fixedAA1)}]'
+                        fixedPos1 = self.fixedPos[0]
+                        if isinstance(fixedPos1, list):
+                            fixedPos1 = f'[{','.join(map(str, fixedPos1))}]'
+                        fixedAA2 = self.fixedAA[-1]
+                        if isinstance(fixedAA2, list):
+                            fixedAA2 = f'[{','.join(fixedAA2)}]'
+                        fixedPos2 = self.fixedPos[-1]
+                        if isinstance(fixedPos2, list):
+                            fixedPos2 = f'[{','.join(map(str, fixedPos2))}]'
+                        # print(f'Fix: {fixedAA1}@R{fixedPos1}')
+                        # print(f'Fix: {fixedAA2}@R{fixedPos2}\n')
                         self.datasetTag = (f'{fixedAA1}@R{fixedPos1}-'
                                            f'{fixedAA2}@R{fixedPos2}')
                     else:
-                        self.datasetTag = (f'{fixedAA1}@R'
-                                           f'{fixedPos1}-R{fixedPos2}')
+                        tag = ''
+                        for i in range(len(self.fixedAA)):
+                            fixAA = self.fixedAA[i]
+                            if isinstance(fixAA, list):
+                                fixAA = f'[{','.join(fixAA)}]'
+                            fixPos = self.fixedPos[i]
+                            if tag:
+                                tag += f' {fixAA}@R{fixPos}'
+                            else:
+                                tag = f'{fixAA}@R{fixPos}'
+                        self.datasetTag = tag
                 else:
                     tags = []
                     for idx, pos in enumerate(fixedPos):
@@ -3893,7 +3918,6 @@ class NGS:
         print('================================ Plot: Bar Graph '
               '================================')
         print(f'Dataset: {purple}{self.datasetTag}{resetColor}')
-        print(f'Plot all: {plotAllSubs}')
         if plotAllSubs:
             barWidth = 1
             limitNSubs = len(substrates.keys())
@@ -5163,7 +5187,7 @@ class NGS:
 
 
     def plotLibraryAADist(self, rfInitial, rfFinal, codonType, datasetTag,
-                            skipInitial=False):
+                          skipInitial=False):
         # Inspect data
         if rfInitial is None and rfFinal is None:
             print(f'{orange}ERROR: both of the inputs for rfInitial and '
@@ -5183,13 +5207,13 @@ class NGS:
             numPos = rfInitial.shape[1]
             numAA = rfInitial.shape[0]
             maxInitial = rfInitial.values.max()
-            maxInitialAdj = np.floor(maxInitial * 10) / 10
+            maxInitialAdj = np.ceil(maxInitial * 10) / 10
         if rfFinal is not None:
             plotFinal = True
             numPos = rfFinal.shape[1]
             numAA = rfFinal.shape[0]
             maxFinal = rfFinal.values.max()
-            maxFinalAdj= np.floor(maxFinal * 10) / 10
+            maxFinalAdj= np.ceil(maxFinal * 10) / 10
         if maxFinalAdj > maxInitialAdj:
             yMax = maxFinalAdj
             maxY = maxFinal
