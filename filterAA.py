@@ -11,18 +11,18 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'VEEV'
+inEnzymeName = 'WNV'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = True
-inFixedResidue = ['A','G'] # ['R',['A','G']] # [['L', 'M'], 'L'] # ['L', 'L'] #
-inFixedPosition = [4,5]
-inExcludeResidues = True
-inExcludedResidue = ['A','A']
-inExcludedPosition = [9,10]
+inFixedResidue = ['R','K'] #[['K','R'],'G']
+inFixedPosition = [3,4]
+inExcludeResidues = False
+inExcludedResidue = ['A']
+inExcludedPosition = [6]
 inMinimumSubstrateCount = 1
 inShowSampleSize = True
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
@@ -40,7 +40,7 @@ inPlotLogo = True
 inPlotWeblogo = True
 inPlotMotifEnrichment = True
 inPlotWordCloud = True
-inPlotBarGraphs = False
+inPlotBarGraphs = True
 inPlotPCA = False
 inPlotCounts = False
 inPlotPositionalProbDist = False # For understanding shannon entropy
@@ -52,9 +52,9 @@ if inBlockFigures:
     inPlotLogo = False
     inPlotWeblogo = False
     inPlotMotifEnrichment = False
-    # inPlotWordCloud = False # Word cloud
+    inPlotWordCloud = False # Word cloud
     inPlotMotifEnrichment = False
-    inPlotBarGraphs = False
+    # inPlotBarGraphs = False
     inPlotPCA = False
     inPlotCounts = False
 
@@ -89,6 +89,7 @@ inTotalWords = 50
 
 # Input 9: Bar Graphs
 inNSequences = 50
+inPlotAllSequences = False
 
 # Input 10: PCA
 inPCAMotif = False
@@ -99,9 +100,9 @@ inExtractPopulations = False
 inPlotEntropyPCAPopulations = False
 inAdjustZeroCounts = False # Prevent counts of 0 in PCA EM & Motif
 
-# Input 14: Evaluate Positional Preferences
-inPlotPosProb = False # Plot RF distributions of a given AA
-inCompairAA = 'L' # Select AA of interest (different A than inFixedResidue)
+# Input 11: Delete Datapoint
+inDeleteSubstrates = [''] # Delete individual substrates
+inMaxSubstrateCounts = False #3*10**5 # Set a maximum substrate count
 
 
 
@@ -160,7 +161,8 @@ countsInitial, countsInitialTotal = ngs.loadCounts(
 
 # Load: Substrates
 if inFindSequences or inUseBgSubs:
-    substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True)
+    substratesInitial, totalSubsInitial = ngs.loadUnfilteredSubs(loadInitial=True,
+                                                                 dropColumn=inDropResidue)
 
 # Calculate: Initial sort probabilities
 rfInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
@@ -197,13 +199,40 @@ if inFixResidues or inExcludeResidues:
         loadUnfilteredSubs = True
 
         # Load: Substrates
-        substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
+        substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True,
+                                                                dropColumn=inDropResidue)
 else:
-    substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
+    substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True,
+                                                             dropColumn=inDropResidue)
 
     # Load: Counts
     countsFinal, countsFinalTotal = ngs.loadCounts(fileType='Final Sort', filter=False,
                                                    dropColumn=inDropResidue)
+
+
+def limCounts(substrates, maxCounts=5*10**5):
+    print('================================= Limit Counts '
+          '==================================')
+    print(f'Max Counts: {red}{maxCounts:,}{resetColor}')
+    subs = {}
+    for substrate, counts in substrates.items():
+        if counts <= maxCounts:
+            subs[substrate] = counts
+
+    print('Substrates:')
+    for i, (substrate, counts) in enumerate(subs.items()):
+        print(f'    {pink}{substrate}{resetColor}, Counts: {red}{counts:,}{resetColor}')
+        if i == inPrintNumber:
+            break
+    totalCounts = sum(subs.values())
+    print(f'\nTotal Substrates: {red}{totalCounts:,}{resetColor}\n'
+          f'Unique Sequences: {red}{len(subs.values()):,}{resetColor}\n\n')
+
+    return subs, totalCounts
+
+if inMaxSubstrateCounts:
+    substratesFinal, countsFinalTotal = limCounts(substrates=substratesFinal,
+                                                  maxCounts=inMaxSubstrateCounts)
 
 
 
@@ -220,18 +249,32 @@ elif inExcludeResidues and loadUnfilteredSubs:
         substrates=substratesFinal, fixedString=ngs.datasetTag,
         printRankedSubs=True, sortType='Final Sort')
 
-if saveSubs:
-    # Save the data
-    if inDropResidue:
-        substratesFinal = ngs.truncateSubs(substrates=substratesFinal,
-                                           dropColumn=inDropResidue)
 
-    if countsFinal is None:
-        # Count fixed substrates
-        countsFinal, countsFinalTotal = ngs.countResidues(substrates=substratesFinal,
-                                                          datasetType='Final Sort')
+# Delete datapoint
+if inDeleteSubstrates:
+    print('=============================== Delete Substrates '
+          '===============================')
+    print(f'Delete Substrates:')
+    for substrate in inDeleteSubstrates:
+        print(f'    {greenLight}{substrate}{resetColor}')
+        substratesFinal.pop(substrate, None)
+
+    print('\nSubs:')
+    for i, (substrate, count) in enumerate(substratesFinal.items()):
+        print(f'    {pink}{substrate}{resetColor}, Counts: {red}{count:,}{resetColor}')
+        if i > 5:
+            break
+    print('\n')
+
+
+if countsFinal is None:
+    # Count fixed substrates
+    countsFinal, countsFinalTotal = ngs.countResidues(substrates=substratesFinal,
+                                                      datasetType='Final Sort')
+
+# Save the data
+if saveSubs and not inMaxSubstrateCounts:
     ngs.saveData(substrates=substratesFinal, counts=countsFinal)
-
 
 # # Filter counts matrix
 # if inDropResidue:
@@ -330,8 +373,12 @@ if inPlotWordCloud:
 
 # Plot: Bar graphs
 if inPlotBarGraphs:
-    ngs.plotBarGraph(substrates=substratesFinal, dataType='Counts')
-    ngs.plotBarGraph(substrates=substratesFinal, dataType='Relative Frequency')
+    ngs.plotBarGraph(substrates=substratesFinal, dataType='Counts', plotAllSubs=False)
+    if inPlotAllSequences:
+        ngs.plotBarGraph(substrates=substratesFinal, dataType='Counts', plotAllSubs=True)
+    ngs.plotBarGraph(substrates=substratesFinal, dataType='RF', plotAllSubs=False)
+    if inPlotAllSequences:
+        ngs.plotBarGraph(substrates=substratesFinal, dataType='RF', plotAllSubs=True)
 
 # Find sequences
 if inFindSequences:

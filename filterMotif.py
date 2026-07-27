@@ -8,26 +8,26 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'Mpro2'
+inEnzymeName = 'WNV'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveData = True
 inSaveFigures = True
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 0.65
-inRefixMotif = True
-inFixedResidue = 'Q' # ['R',['A','G']]
-inFixedPosition = 6
+inMinDeltaS = 2.5
+inRefilter = True
+inFixedResidue = [['K','R'],'G']
+inFixedPosition = [6,7]
 inExcludeResidues = False
-inExcludedResidue = ['A','A']
-inExcludedPosition = [9,10]
+inExcludedResidue = [['K','R']]
+inExcludedPosition = [5]
 inManualEntropy = False
-inManualFrame = ['R6','R8','R5','R7']
+inManualFrame = ['R3','R4','R5','R1']
 inFixFullMotifSeq = False
 inMinimumSubstrateCount = 1
-inSetMinimumESFixAA = 0
-inSetMinimumESReleaseAA = -0.5
+inSetMinimumESFixAA = 0.5
+inSetMinimumESReleaseAA = 0
 inPrintFixedSubs = True
 inCombineFixedMotifs = False
 inPredictSubstrateEnrichmentScores = False
@@ -43,8 +43,8 @@ inPlotEnrichmentMapScaled = True
 inPlotLogo = True
 inPlotWordCloud = True
 if inPlotOnlyWords:
-    #inPlotEntropy = False
-    #inPlotEnrichmentMap = False
+    # inPlotEntropy = False
+    # inPlotEnrichmentMap = False
     inPlotEnrichmentMapScaled = False
     # inPlotLogo = False
     inPlotWeblogo = False
@@ -70,6 +70,10 @@ inBinSubstrates = False
 inSaveEnrichedSubs = False
 inPredictionDatapointColor = '#BF5700'
 inSetAxisLimits = False
+
+# Input 9: Delete Datapoint
+inDeleteSubstrates = [''] # Delete individual substrates
+inMaxSubstrateCounts = False #3*10**5 # Set a maximum substrate count
 
 
 
@@ -112,8 +116,6 @@ ngs = NGS(
     motifFilter=True, saveFigures=inSaveFigures, setFigureTimer=inSetFigureTimer
 )
 
-x = 'fixedMotifSubs-Dengue_Virus-NS2B_NS3-Exclude A@R9 Fixed R@R3 [A,G,S]@R4-FinalSort-MinCounts_1.pkl'
-y = 'fixedMotifSubs-Dengue_Virus-NS2B_NS3-Exclude_A@R9-Fixed_R@R4_[A,G,S]@R5-MinCounts_1.pkl'
 
 
 # ====================================== Load Data =======================================
@@ -124,13 +126,32 @@ countsInitial, countsInitialTotal = ngs.loadCounts(filter=False, fileType='Initi
 
 
 # =================================== Define Functions ===================================
-def fixSubstrate(subs, fixedAA, fixedPosition, exclude,
-                 excludeAA, excludePosition, sortType, posFilter=False):
-    print('==================================== Fix Substrates '
-          '=====================================')
+def fixSubstrate(subs, fixedAA, fixedPosition,
+                 exclude, excludeAA, excludePosition, sortType,
+                 posFilter=False, releaseFilter=False):
+    print('================================ Fix Substrates '
+          '=================================')
     print(f'Substrate Dataset:'
           f'{purple} {inEnzymeName} - {sortType}{resetColor}\n')
+    print(f'Release Filter: {releaseFilter}\n'
+          f'Position Filter: {posFilter}\n')
     print(f'Selecting substrates with:{magenta}')
+    datasetTag = ngs.datasetTag
+    permitLoad = True
+    if releaseFilter and exclude:
+        print(f'\n{resetColor}Pos: {posFilter.replace("R", "")}, {excludePosition}')
+        if int(posFilter.replace('R','')) in excludePosition:
+            print(f'Dont Exclude')
+            permitLoad = False
+            exclude = False
+            print('Tag:', ngs.datasetTag)
+            datasetTag = ngs.datasetTag.replace(
+                ngs.datasetTag[
+                    ngs.datasetTag.find('Exclude'):ngs.datasetTag.find('Fixed')
+                ], ''
+            )
+            print(f'\nDataset Tag: {purple}{datasetTag}{magenta}\n')
+            # sys.exit()
     for index in range(len(fixedAA)):
         AA = ','.join(fixedAA[index])
         print(f'     {AA}{resetColor}@{magenta}R{fixedPosition[index]}')
@@ -152,12 +173,13 @@ def fixSubstrate(subs, fixedAA, fixedPosition, exclude,
     # Define: File path
     filePathFixedSubs, filePathFixedCounts = (
         ngs.getFilePath(datasetTag=ngs.datasetTag, sortType='FinalSort'))
-    print('================================ Filtering Motif '
+    print('=============================== Filtering Motif  '
           '================================')
 
 
     # Determine if the fixed substrate file exists
-    if os.path.exists(filePathFixedSubs) and os.path.exists(filePathFixedCounts):
+    if permitLoad and (os.path.exists(filePathFixedSubs) and
+                       os.path.exists(filePathFixedCounts)):
         print(f'Loading Substrates at path:\n'
               f'     {greenDark}{filePathFixedSubs}\n'
               f'     {filePathFixedCounts}{resetColor}\n\n')
@@ -337,7 +359,7 @@ def fixSubstrate(subs, fixedAA, fixedPosition, exclude,
 
 
         # Save the fixed substrate dataset
-        if inSaveData and not inRefixMotif:
+        if inSaveData and not inRefilter:
             print('================================= Save The Data '
                   '=================================')
             print(f'Fixed substrate data saved at:\n'
@@ -367,12 +389,31 @@ def verifyList(data):
 
 
 
-def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
-             datasetTag, exclude=False):
+def fixFrame(substrates, fixRes, fixPos, exclude, exclRes, exclPos, sortType,
+             datasetTag):
     fixRes = verifyList(fixRes)
     fixPos = verifyList(fixPos)
+    fixPos = [fixPos[i] for i in range(len(fixRes))]
     exclRes = verifyList(exclRes)
     exclPos = verifyList(exclPos)
+    exclPos = [exclPos[i] for i in range(len(exclRes))]
+
+    # Delete datapoint
+    if inDeleteSubstrates:
+        print('=============================== Delete Substrates '
+              '===============================')
+        print(f'Delete Substrates:')
+        for substrate in inDeleteSubstrates:
+            print(f'    {greenLight}{substrate}{resetColor}')
+            substratesFinal.pop(substrate, None)
+
+        print('\nSubs:')
+        for i, (substrate, count) in enumerate(substratesFinal.items()):
+            print(
+                f'    {pink}{substrate}{resetColor}, Counts: {red}{count:,}{resetColor}')
+            if i > 5:
+                break
+        print('\n')
 
     print('============================ Filter Substrate Motif '
           '=============================')
@@ -409,7 +450,6 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
         subs=substrates, fixedAA=fixRes, fixedPosition=fixPos, exclude=exclude,
         excludeAA=exclRes, excludePosition=exclPos, sortType=sortType
     )
-
     initialFixedPos = [labelAAPos[pos - 1] for pos in fixPos]
 
     # Display current sample size
@@ -429,6 +469,7 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
     # Calculate enrichment scores
     ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfFinalFixed)
 
+
     # Save the data
     if inSaveData:
         ngs.saveData(substrates=substratesFinalFixed, counts=countsFinalFixed)
@@ -438,8 +479,8 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
 
     # # Determine: Other Important Residues
     # Initialize variables used for determining the preferred residues
-    preferredResidues = verifyList(inFixedResidue)
-    preferredPositions = verifyList(inFixedPosition)
+    preferredResidues = verifyList(fixRes)
+    preferredPositions = verifyList(fixPos)
 
     print(f'Fixing:\n'
           f'     {preferredResidues}\n'
@@ -456,7 +497,6 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
         if position in initialFixedPos:
             # Skip the position that was already fixed
             continue
-
 
         # Update: Figure label
         ngs.saveFigureIteration += 1
@@ -548,6 +588,7 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
 
         # Determine which residues will be released
         indexDrop = None
+        print(f'Preferred: {preferredPositions}')
         for indexDrop, indexPos in enumerate(preferredPositions):
             if str(indexPos) in position:
                 # Drop the element at indexDrop
@@ -601,13 +642,15 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
         print('================================ Inspect Filter '
               '=================================')
         dispPreferredAA()
-        for index, indexPosition in enumerate(keepPositions):
+        for index in range(len(keepResidues)):
+            indexPosition = keepPositions[index]
             positionSub = f'R' + str(indexPosition)
             for AA in ngs.eMap.index:
                 ES = ngs.eMap.loc[AA, positionSub]
                 if ES < inSetMinimumESFixAA and ES != float('-inf'):
                     if AA in keepResidues[index]:
                         keepResidues[index].remove(AA)
+
         dispPreferredAA(tag=f'{greenLight}Filtered{resetColor}')
 
 
@@ -659,10 +702,7 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
             datasetTag = f'{datasetTag} - Final'
 
     
-    # Extract motif
-    ngs.getMotif(substrates=substratesFinalFixed)
-
-    # Release the filter
+    # # Release the filter
     countsReleased, releasedRF = releaseCounts(substrates=substrates,
                                                countsFiltered=countsFinalFixed,
                                                sortType=sortType,
@@ -673,14 +713,10 @@ def fixFrame(substrates, fixRes, fixPos, exclRes, exclPos, sortType,
                                                exclPositions=exclPos
                                                )
 
-
     # Save the data
     if inSaveData:
         ngs.saveData(substrates=substratesFinalFixed, counts=countsFinalFixed,
                      countsReleased=countsReleased)
-
-    # Extract motif (reprint)
-    motifs = ngs.getMotif(substrates=substratesFinalFixed)
 
 
 
@@ -786,7 +822,7 @@ def releaseCounts(substrates, countsFiltered, sortType, keepResidues,
         substratesFinalFixed, countsFinalFixed, countsFinalFixedTotal = fixSubstrate(
             subs=substrates, fixedAA=ngs.fixedAA, fixedPosition=ngs.fixedPos,
             exclude=exclude, excludeAA=exclResidues, excludePosition=exclPositions,
-            sortType=sortType, posFilter=position
+            sortType=sortType, posFilter=position, releaseFilter=True
         )
 
         # Save the data
@@ -797,7 +833,7 @@ def releaseCounts(substrates, countsFiltered, sortType, keepResidues,
         populateMatrix(counts=countsFinalFixed, popPosition=position, idxRel=indexRel)
 
     # Populate remaining columns
-    # ngs.setFigureTimer = False ##
+    ngs.setFigureTimer = False ##
     fillPos = []
     for position in countsReleased.columns:
         if position not in populatedPositions:
@@ -808,6 +844,27 @@ def releaseCounts(substrates, countsFiltered, sortType, keepResidues,
 
     return countsReleased, releasedRF
 
+
+
+def limCounts(substrates, maxCounts=5*10**5):
+    print('================================= Limit Counts '
+          '==================================')
+    print(f'Max Counts: {red}{maxCounts:,}{resetColor}')
+    subs = {}
+    for substrate, counts in substrates.items():
+        if counts <= maxCounts:
+            subs[substrate] = counts
+
+    print('Substrates:')
+    for i, (substrate, counts) in enumerate(subs.items()):
+        print(f'    {pink}{substrate}{resetColor}, Counts: {red}{counts:,}{resetColor}')
+        if i == inPrintNumber:
+            break
+    totalCounts = sum(subs.values())
+    print(f'\nTotal Substrates: {red}{totalCounts:,}{resetColor}\n'
+          f'Unique Sequences: {red}{len(subs.values()):,}{resetColor}\n\n')
+
+    return subs, totalCounts
 
 
 
@@ -830,7 +887,7 @@ rfInitial = ngs.calculateRF(counts=countsInitial, N=countsInitialTotal,
 
 # Load the fixed frame if the file can be found
 if (os.path.exists(filePathFixedMotifSubs) and
-        os.path.exists(filePathFixedMotifCounts) and not inRefixMotif):
+        os.path.exists(filePathFixedMotifCounts) and not inRefilter):
     print('============================== Load: Fixed Substrate Frame '
           '==============================')
     print(f'File found:{purple} {inDatasetTag}\n'
@@ -883,16 +940,18 @@ if (os.path.exists(filePathFixedMotifSubs) and
 
     # Calculate enrichment scores
     ngs.calculateEnrichment(rfInitial=rfInitial, rfFinal=rfFinalFixed)
-
-    # Extract motif
-    finalSubsMotif = ngs.getMotif(substrates=substratesFinalFixed)
 else:
     # Load: Unfiltered substates
-    substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True)
+    substratesFinal, totalSubsFinal = ngs.loadUnfilteredSubs(loadFinal=True,
+                                                             dropColumn=inDropResidue)
+
+    if inMaxSubstrateCounts:
+        substratesFinal, countsFinalTotal = limCounts(substrates=substratesFinal,
+                                                      maxCounts=inMaxSubstrateCounts)
 
     # Fix the substrate frame
     fixFrame(
         substrates=substratesFinal, fixRes=inFixedResidue, fixPos=inFixedPosition,
-        exclRes=inExcludedResidue, exclPos=inExcludedPosition,
+        exclude=inExcludeResidues, exclRes=inExcludedResidue, exclPos=inExcludedPosition,
         sortType='Final Sort', datasetTag=inDatasetTag
     )
