@@ -6,6 +6,7 @@ import csv
 import esm
 import gzip
 from itertools import combinations, product
+import json
 import logomaker
 import math
 import matplotlib
@@ -21,7 +22,6 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 import os
 import pandas as pd
-import pickle as pk
 import random
 import seaborn as sns
 import sys
@@ -886,7 +886,7 @@ class NGS:
                         f'{sortType}-MinCounts_{self.minSubCount}').replace(
                     '/', '_').replace(' ', '_')
                 pathSubs = os.path.join(self.pathData,
-                                        f'fixedMotifSubs-{file}.pkl')
+                                        f'fixedMotifSubs-{file}.json')
                 pathCounts = os.path.join(self.pathData,
                                           f'fixedMotifCounts-{file}.csv')
                 pathCountsReleased = os.path.join(self.pathData,
@@ -899,7 +899,7 @@ class NGS:
                     f'{enzName}-{customTag}-{sortType}-MinCounts_{self.minSubCount}'
                 ).replace('/', '_').replace(' ', '_')
                 print(f'File: {file}')
-                pathSubs = os.path.join(self.pathData, f'fixedMotifSubs-{file}.pkl')
+                pathSubs = os.path.join(self.pathData, f'fixedMotifSubs-{file}.json')
                 pathCounts = os.path.join(self.pathData, f'fixedMotifCounts-{file}.csv')
                 pathCountsReleased = os.path.join(self.pathData,
                                                   f'fixedMotifCountsRel-{file}.csv')
@@ -909,7 +909,7 @@ class NGS:
                 f'{enzName}-{datasetTag}-{sortType}-MinCounts_{self.minSubCount}'
             ).replace('/', '_')
             pathSubs = os.path.join(
-                self.pathData, f'fixedSubs-{file}.pkl')
+                self.pathData, f'fixedSubs-{file}.json')
             pathCounts = os.path.join(
                 self.pathData, f'counts-{file}.csv')
             self.pathFilteredSubs = pathSubs
@@ -1017,7 +1017,7 @@ class NGS:
                 )
             )
         if loadSubs :
-            paths = [f'{p}.pkl' for p in paths]
+            paths = [f'{p}.json' for p in paths]
         else:
             paths = [f'{p}.csv' for p in paths]
 
@@ -1149,10 +1149,10 @@ class NGS:
 
         # Function to load each file
         def loadFile(fileName):
-            fileLocation = os.path.join(self.pathData, f'substrates_{fileName}.pkl')
+            fileLocation = os.path.join(self.pathData, f'substrates_{fileName}.json')
             print(f'File path:\n     {greenDark}{fileLocation}{resetColor}\n')
             with open(fileLocation, 'rb') as openedFile:  # Open file
-                data = pk.load(openedFile) # Access the data
+                data = json.load(openedFile) # Access the data
                 dataTotalSubs = sum(data.values())
                 print(f'     Total substrates in {greenLightB}{fileName}{resetColor}: '
                       f'{red}{dataTotalSubs:,}{resetColor}\n')
@@ -1274,7 +1274,7 @@ class NGS:
         print(f'Loading substrates: {purple}{self.enzymeName} Fixed {self.datasetTag}\n'
               f'     {greenDark}{self.pathFilteredSubs}{resetColor}\n\n')
         with open(self.pathFilteredSubs, 'rb') as file:
-            substrates = pk.load(file)
+            substrates = json.load(file)
 
         iteration = 0
         print(f'Substrates:')
@@ -1438,7 +1438,7 @@ class NGS:
 
                 # Load file
                 with open(pathFixedMotifSubs, 'rb') as file:
-                    loadedSubs = pk.load(file)
+                    loadedSubs = json.load(file)
                     if substrates == {}:
                         substrates = loadedSubs
                     else:
@@ -2174,7 +2174,7 @@ class NGS:
 
             self.pathSaveFigs = os.path.join(self.pathFolder, 'Figures')
 
-            filePathSubs = os.path.join(folder, f'substrates_{saveTag}.pkl')
+            filePathSubs = os.path.join(folder, f'substrates_{saveTag}.json')
             filePathCounts = os.path.join(folder, f'counts_{saveTag}.csv')
         else:
             if self.datasetTag == 'Unfiltered':
@@ -2201,7 +2201,7 @@ class NGS:
 
                 # Save the substrates
                 with open(filePathSubs, 'wb') as file:
-                    pk.dump(substrates, file)
+                    json.dump(substrates, file)
 
                 # Save the counts
                 counts.to_csv(filePathCounts)
@@ -2213,7 +2213,7 @@ class NGS:
 
                 # Save the substrates
                 with open(filePathSubs, 'wb') as file:
-                    pk.dump(substrates, file)
+                    json.dump(substrates, file)
 
                 # Save the counts
                 counts.to_csv(filePathCounts)
