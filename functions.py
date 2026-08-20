@@ -3429,7 +3429,7 @@ class NGS:
 
     def plotWeblogo(self, combinedMotifs=False,
                     relIteration=False, relCounts=False):
-        print('================================= Plot: Weblogo '
+        print('================================= Plot: WebLogo '
               '=================================')
         if self.motifFilter:
             print(f'Figure Number: '
