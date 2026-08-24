@@ -54,6 +54,12 @@ inExpActivityNat = [1.000, 0.440, 0.040, 0.350,
 inPredActivityNat = [1.000, 0.258, 0.005, 0.151,
                      0.053, 0.342, 0.149, 0.073,
                      0.708, 0.124, 0.051]
+# inSubstratesNat = ['AVLQSG', 'VTFQSA', 'ATVQSK', 'ATLQAI',
+#                    'VKLQNN', 'VRLQAG', 'PMLQSA', 'TVLQAV',
+#                    'ATLQAE', 'TRLQSL', 'PKLQSS']
+# inPredActivityNat = [0.769, 0.124, 0.004, 0.598,
+#                      0.042, 1.0, 0.299, 0.364,
+#                      0.705, 0.209, 0.2]
 inStDevNat = [0 for _ in range(len(inSubstratesNat))]
 inDatasets = [ # Enzyme name, Substrates, Exp Activity, Exp StDev, Predicted Activity
     (f'M{"ᵖʳᵒ"}2', inSubstrates, inExpActivity, inStDev, inPredActivity),
@@ -69,7 +75,7 @@ inFigTitle = f'\nEnzyme Activity'
 inColor1 = '#BF5700'
 inColor2 = '#F8971F'
 inFigResolution = 600
-inFigSaveTag = f'yourlabel' # Add label to saved figures
+inFigSaveTag = f'' # Add label to saved figures
 inPlotNDatasets = 3 # Max num of plotted datasets
 inPlotColors = ['#BF5700', '#101010', '#2E9418']
 inPlotMarkers = ['D', 'o', '^']

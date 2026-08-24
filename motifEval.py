@@ -13,26 +13,23 @@ inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Experimental Parameters
-inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'']
+inMotifPositions = ['P3','P2','P1','P1\'','P2\'','P3\'']
+inMotifPositions = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\'']
 # inMotifPositions = ['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4']
 # inMotifPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 inIndexNTerminus = 0 # Define the index if the first AA in the motif
 
 # Input 3: Computational Parameters
-inFixedResidue = [['L','M'],'L']
-inFixedPosition = [[4,5], [6,7]]
-# inFixedResidue = ['R',['A','G','S']] # ['R',['A','G']]
-# inFixedPosition = [[3,4,5,6],[4,5,6,7]]
-inFixedResidue = 'Q'
-inFixedPosition = [4,5,6]
+inFixedResidue = ['Q']
+inFixedPosition = [4]
 inExcludeResidues = False
 inExcludedResidue = ['A']
-inExcludedPosition = [9,10]
+inExcludedPosition = [5]
 inMinimumSubstrateCount = 1
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
 inUseCodonProb = False # Use AA prob from inCodonSequence to calculate enrichment
 inAvgInitialProb = True
-inDropResidue = [''] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
+inDropResidue = ['R9'] # To drop: inDropResidue = ['R9'], For nothing: inDropResidue = []
 
 # Input 4: Figures
 # inPlotPCA = False # PCA plot of an individual fixed frame
@@ -44,9 +41,9 @@ inPlotLogo = True
 inPlotWeblogo = True
 inPlotMotifEnrichment = True
 inPlotWordCloud = True
-inPlotStats = True
 inPlotBarGraphs = True
 inPlotPCA = False # PCA plot of the combined set of motifs
+inPlotStats = True
 inPlotCounts = False
 inShowSampleSize = True # Include the sample size in your figures
 if inBlockFigures:
@@ -57,10 +54,10 @@ if inBlockFigures:
     inPlotWeblogo = False
     inPlotMotifEnrichment = False
     # inPlotWordCloud = False
-    inPlotStats = False
     # inPlotBarGraphs = False
     inPlotPCA = False
     inPlotSuffixTree = False
+    inPlotStats = False
     inPlotCounts = False
 
 # Input 5: CSV
@@ -82,18 +79,22 @@ inAAPos = 4
 
 # Input 7: Predict Activity
 inPredictActivity = True
-inRotateXLabel = 0
+inRotateXLabel = 90
 inPredictSubstrates = []
 inUseNaturalSubs = False
 if inUseNaturalSubs:
     inPredictionLabel = 'pp1a/b Substrates'
+    inActivityMpro2 = [61,29,5,28,13,37,22,22,22,28,33]
     inPredictSubstrates = ['AVLQSGFR', 'VTFQSAVK', 'ATVQSKMS', 'ATLQAIAS',
                            'VKLQNNEL', 'VRLQAGNA', 'PMLQSADA', 'TVLQAVGA',
                            'ATLQAENV', 'TRLQSLEN', 'PKLQSSQA']
+    inExpActivityNat = [1.000, 0.440, 0.040, 0.350,
+                        0.060, 0.770, 0.330, 0.300,
+                        0.180, 0.210, 0.400]
     inSubstrateActivity = {}
-    for substrate in inPredictSubstrates:
+    for idx, substrate in enumerate(inPredictSubstrates):
         sub = substrate[inIndexNTerminus:inIndexNTerminus+len(inMotifPositions)]
-        inSubstrateActivity[sub] = 50.0
+        inSubstrateActivity[sub] = inActivityMpro2[idx]
     inErrorBars = [] # Avg st. dev.
 elif 'mpro1' in inEnzymeName.lower() or 'mpro' == inEnzymeName.lower():
     inPredictionLabel = ''
@@ -113,14 +114,14 @@ elif 'mpro2' in inEnzymeName.lower():
     inPredictionLabel = ''
     inActivityMpro2 = [46.1, 49.5, 14.5, 0.0, 13.1, 37.0, 0.0, 16.1]
     inSubstrateActivity = {
-        'AVLQSG': inActivityMpro2[0],
-        'VILQSG': inActivityMpro2[1],
-        'VILQTG': inActivityMpro2[2],
-        'VILQSP': inActivityMpro2[3],
-        'VILHSG': inActivityMpro2[4],
-        'VIMQSG': inActivityMpro2[5],
-        'VPLQSG': inActivityMpro2[6],
-        'NILQSG': inActivityMpro2[7],
+        'AVLQSGFR': inActivityMpro2[0],
+        'VILQSGFR': inActivityMpro2[1],
+        'VILQTGFR': inActivityMpro2[2],
+        'VILQSPFR': inActivityMpro2[3],
+        'VILHSGFR': inActivityMpro2[4],
+        'VIMQSGFR': inActivityMpro2[5],
+        'VPLQSGFR': inActivityMpro2[6],
+        'NILQSGFR': inActivityMpro2[7],
     }
     inErrorBars = [0.01, 0.058, 0.025, 0.0, 0.027, 0.044, 0.0, 0.033] # Avg st. dev.
     inErrorBars = []
