@@ -2200,7 +2200,7 @@ class NGS:
                       f'     {filePathCounts}{resetColor}\n\n')
 
                 # Save the substrates
-                with open(filePathSubs, 'wb') as file:
+                with open(filePathSubs, 'w') as file:
                     json.dump(substrates, file)
 
                 # Save the counts
@@ -2212,7 +2212,7 @@ class NGS:
                       f'     {filePathCountsReleased}{resetColor}\n\n')
 
                 # Save the substrates
-                with open(filePathSubs, 'wb') as file:
+                with open(filePathSubs, 'w') as file:
                     json.dump(substrates, file)
 
                 # Save the counts
