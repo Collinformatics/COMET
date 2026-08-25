@@ -1,6 +1,6 @@
 # Python Modules
 
-You will need to install the required modules, there are two options:
+You will need to install the required modules by running a command in the terminal, there are two options:
 
 1: Install with miniconda:
 
