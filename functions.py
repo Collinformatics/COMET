@@ -1151,7 +1151,7 @@ class NGS:
         def loadFile(fileName):
             fileLocation = os.path.join(self.pathData, f'substrates_{fileName}.json')
             print(f'File path:\n     {greenDark}{fileLocation}{resetColor}\n')
-            with open(fileLocation, 'rb') as openedFile:  # Open file
+            with open(fileLocation, 'r') as openedFile:  # Open file
                 data = json.load(openedFile) # Access the data
                 dataTotalSubs = sum(data.values())
                 print(f'     Total substrates in {greenLightB}{fileName}{resetColor}: '
@@ -1273,7 +1273,7 @@ class NGS:
               '============================')
         print(f'Loading substrates: {purple}{self.enzymeName} Fixed {self.datasetTag}\n'
               f'     {greenDark}{self.pathFilteredSubs}{resetColor}\n\n')
-        with open(self.pathFilteredSubs, 'rb') as file:
+        with open(self.pathFilteredSubs, 'r') as file:
             substrates = json.load(file)
 
         iteration = 0
@@ -1437,7 +1437,7 @@ class NGS:
                       f'     {pathFixedMotifSubs}{resetColor}\n')
 
                 # Load file
-                with open(pathFixedMotifSubs, 'rb') as file:
+                with open(pathFixedMotifSubs, 'r') as file:
                     loadedSubs = json.load(file)
                     if substrates == {}:
                         substrates = loadedSubs
