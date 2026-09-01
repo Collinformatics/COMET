@@ -11,18 +11,18 @@ import sys
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'WNV'
+inEnzymeName = 'IDE'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveFigures = True
 inSetFigureTimer = False
 
 # Input 2: Computational Parameters
 inFixResidues = True
-inFixedResidue = ['R','K'] #[['K','R'],'G']
-inFixedPosition = [3,4]
+inFixedResidue = [['R','H']] #[['K','R'],'G']
+inFixedPosition = [5]
 inExcludeResidues = False
-inExcludedResidue = ['A']
-inExcludedPosition = [6]
+inExcludedResidue = [['F','Y']]
+inExcludedPosition = [5]
 inMinimumSubstrateCount = 1
 inShowSampleSize = True
 inCodonSequence = 'NNS' # Baseline probs of degenerate codons (can be N, S, or K)
@@ -251,7 +251,9 @@ elif inExcludeResidues and loadUnfilteredSubs:
 
 
 # Delete datapoint
-if inDeleteSubstrates:
+if not isinstance(inDeleteSubstrates, list):
+    inDeleteSubstrates = [inDeleteSubstrates]
+if len(inDeleteSubstrates) > 0:
     print('=============================== Delete Substrates '
           '===============================')
     print(f'Delete Substrates:')

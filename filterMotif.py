@@ -1,26 +1,26 @@
 from functions import getFileNames, NGS
+import json
 import os
 import pandas as pd
-import pickle as pk
 import sys
 
 
 
 # ===================================== User Inputs ======================================
 # Input 1: Select Dataset
-inEnzymeName = 'WNV'
+inEnzymeName = 'Mpro2'
 inPathFolder = os.path.join('Enzymes', inEnzymeName)
 inSaveData = True
 inSaveFigures = True
 inSetFigureTimer = True
 
 # Input 2: Computational Parameters
-inMinDeltaS = 2.5
+inMinDeltaS = 0.6
 inRefilter = True
-inFixedResidue = [['K','R'],'G']
-inFixedPosition = [6,7]
+inFixedResidue = ['Q']
+inFixedPosition = [4]
 inExcludeResidues = False
-inExcludedResidue = [['K','R']]
+inExcludedResidue = [['F','Y']]
 inExcludedPosition = [5]
 inManualEntropy = False
 inManualFrame = ['R3','R4','R5','R1']
@@ -75,6 +75,8 @@ inSetAxisLimits = False
 inDeleteSubstrates = [''] # Delete individual substrates
 inMaxSubstrateCounts = False #3*10**5 # Set a maximum substrate count
 
+x = 'substrates_IDE-F_S5_L001.json'
+y = 'substrates_IDE-IDE-F_S5_L001.json'
 
 
 # =================================== Setup Parameters ===================================
@@ -185,8 +187,8 @@ def fixSubstrate(subs, fixedAA, fixedPosition,
               f'     {filePathFixedCounts}{resetColor}\n\n')
 
         # Load Data: Fixed substrates
-        with open(filePathFixedSubs, 'rb') as file:
-            fixedSubs = pk.load(file)
+        with open(filePathFixedSubs, 'r') as file:
+            fixedSubs = json.load(file)
 
         # Load Data: Fixed counts
         fixedCounts = pd.read_csv(filePathFixedCounts, index_col=0)
@@ -366,8 +368,8 @@ def fixSubstrate(subs, fixedAA, fixedPosition,
                   f'     {filePathFixedSubs}\n'
                   f'     {filePathFixedCounts}\n\n')
 
-            with open(filePathFixedSubs, 'wb') as file:
-                pk.dump(fixedSubs, file)
+            with open(filePathFixedSubs, 'w') as file:
+                json.dump(fixedSubs, file)
 
             # Save the counted substrate data
             fixedCounts.to_csv(filePathFixedCounts, index=True, float_format='%.0f')
@@ -390,7 +392,7 @@ def verifyList(data):
 
 
 def fixFrame(substrates, fixRes, fixPos, exclude, exclRes, exclPos, sortType,
-             datasetTag):
+             datasetTag, deleteSubs):
     fixRes = verifyList(fixRes)
     fixPos = verifyList(fixPos)
     fixPos = [fixPos[i] for i in range(len(fixRes))]
@@ -399,11 +401,13 @@ def fixFrame(substrates, fixRes, fixPos, exclude, exclRes, exclPos, sortType,
     exclPos = [exclPos[i] for i in range(len(exclRes))]
 
     # Delete datapoint
-    if inDeleteSubstrates:
+    if not isinstance(deleteSubs, list):
+        deleteSubs = [deleteSubs]
+    if deleteSubs and len(deleteSubs) > 0:
         print('=============================== Delete Substrates '
               '===============================')
         print(f'Delete Substrates:')
-        for substrate in inDeleteSubstrates:
+        for substrate in deleteSubs:
             print(f'    {greenLight}{substrate}{resetColor}')
             substratesFinal.pop(substrate, None)
 
@@ -901,8 +905,8 @@ if (os.path.exists(filePathFixedMotifSubs) and
               f'turned off{resetColor}\n\n')
 
     # Load Data: Fixed substrates
-    with open(filePathFixedMotifSubs, 'rb') as file:
-        substratesFinalFixed = pk.load(file)
+    with open(filePathFixedMotifSubs, 'r') as file:
+        substratesFinalFixed = json.load(file)
 
     # Load Data: Fixed counts
     countsFinalFixed = pd.read_csv(filePathFixedMotifCounts, index_col=0)
@@ -953,5 +957,5 @@ else:
     fixFrame(
         substrates=substratesFinal, fixRes=inFixedResidue, fixPos=inFixedPosition,
         exclude=inExcludeResidues, exclRes=inExcludedResidue, exclPos=inExcludedPosition,
-        sortType='Final Sort', datasetTag=inDatasetTag
+        sortType='Final Sort', datasetTag=inDatasetTag, deleteSubs=inDeleteSubstrates
     )

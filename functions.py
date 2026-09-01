@@ -74,8 +74,8 @@ def getFileNames(enzyme):
         inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
     elif enzyme.lower() == 'ide':
         enzyme = 'IDE'
-        inFileNamesInitialSort = ['IDE-I_S3_L001', 'IDE-I_S3_L002']
-        inFileNamesFinalSort = ['IDE-F_S5_L001', 'IDE-F_S5_L002']
+        inFileNamesInitialSort = ['IDE-I_S3_L001']
+        inFileNamesFinalSort = ['IDE-F_S5_L001']
         inAAPositions = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
     elif enzyme.lower() == 'ide prev':
         enzyme = 'IDE Prev'
@@ -1288,7 +1288,7 @@ class NGS:
 
         totalSubsFinal = sum(substrates.values())
         print(f'Total substrates: {red}{totalSubsFinal:,}{resetColor}\n'
-              f'Unique Substrates: {red}{len(substrates.keys())}{resetColor}\n\n')
+              f'Unique Substrates: {red}{len(substrates.keys()):,}{resetColor}\n\n')
 
         return substrates, totalSubsFinal
 
@@ -3077,12 +3077,19 @@ class NGS:
         yMax = max(columnTotals)
 
         # Adjust values
-        for column in heights.columns:
-            if heights.loc[:, column].isna().any():
-                nValues = heights[column].notna().sum()
-                print(f'\nNumber non NaN values in {column}: {nValues}')
-                heights.loc[heights[column].notna(), column] = yMax / nValues
-                heights.loc[:, column] = heights.loc[:, column].fillna(0)
+        for pos in heights.columns:
+            if heights.loc[:, pos].isna().any():
+                nValues = heights[pos].notna().sum()
+                print(f'\nNumber non NaN values in {purple}{pos}{resetColor}:\n'
+                      f'{red}{heights.loc[heights[pos].notna(), pos]}'
+                      f'{resetColor}\n')
+                for aa in heights.index:
+                    val = heights.loc[aa, pos]
+                    if val == np.inf or val == -np.inf:
+                        print(f'{aa}@{pos}: {val} -> 0')
+                        heights.loc[aa, pos] = 0
+                # heights.loc[heights[pos].notna(), pos] = yMax / nValues
+                heights.loc[:, pos] = heights.loc[:, pos].fillna(0)
 
         heights = heights.replace([np.inf, -np.inf], 0)
         self.heights = heights
@@ -5880,7 +5887,7 @@ class NGS:
         matrix = self.normalizeProbRatios(finalRF=finalRF,
                                           initialRF=initialRF,
                                           pHeader=False)
-        # self.plotMatrix(data=matrix, figLabel='Prediction Matrix', printData=False)
+        self.plotMatrix(data=matrix, figLabel='Prediction Matrix', printData=False)
 
         entropy = pd.DataFrame(0.0, index=matrix.columns, columns=['ΔS'])
         entropyMax = np.log2(len(matrix.index))
