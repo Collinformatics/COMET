@@ -403,18 +403,18 @@ def fixFrame(substrates, fixRes, fixPos, exclude, exclRes, exclPos, sortType,
     # Delete datapoint
     if not isinstance(deleteSubs, list):
         deleteSubs = [deleteSubs]
-    if deleteSubs and len(deleteSubs) > 0:
+    if len(deleteSubs) > 0:
         print('=============================== Delete Substrates '
               '===============================')
         print(f'Delete Substrates:')
-        for substrate in deleteSubs:
-            print(f'    {greenLight}{substrate}{resetColor}')
-            substratesFinal.pop(substrate, None)
+        for seq in deleteSubs:
+            print(f'    {greenLight}{seq}{resetColor}')
+            substrates.pop(seq, None)
 
         print('\nSubs:')
-        for i, (substrate, count) in enumerate(substratesFinal.items()):
+        for i, (seq, count) in enumerate(substrates.items()):
             print(
-                f'    {pink}{substrate}{resetColor}, Counts: {red}{count:,}{resetColor}')
+                f'    {pink}{seq}{resetColor}, Counts: {red}{count:,}{resetColor}')
             if i > 5:
                 break
         print('\n')
