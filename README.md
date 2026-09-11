@@ -28,6 +28,7 @@ You can start up the website with:
     python app.py
 
 - This will generate a URL with an ip address and port, it should be http://127.0.0.1:9090
+
   - Click on the link to go to the website, or enter the address in a browser.
 
 
@@ -35,13 +36,13 @@ You can start up the website with:
 
 To test the program a trial dataset is available in the "TemplateData" folder, this includes:
 
-- FASTQ files
+- Fastq files
 
 - Translated protein substrates, and AA counts
 
 - Substrates filtered for Q@R5
 
-- Figures from 
+- Figures from Process DNA, and Filter AA 
 
 
 # Troubleshooting:
