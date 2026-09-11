@@ -33,12 +33,15 @@ You can start up the website with:
 
 # Testing The Program:
 
-Processing DNA:
+To test the program a trial dataset is available in the "TemplateData" folder, this includes:
 
-- To test the program a trial dataset is available in the folder:
+- FASTQ files
 
-      data/validation/
+- Translated protein substrates, and AA counts
 
+- Substrates filtered for Q@R5
+
+- Figures from 
 
 
 # Troubleshooting:
