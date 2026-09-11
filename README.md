@@ -44,6 +44,7 @@ To test the program a trial dataset is available in the "TemplateData" folder, t
 
 - Figures from Process DNA, and Filter AA 
 
+Additional instructions can be found on the website's home page.
 
 # Troubleshooting:
 
