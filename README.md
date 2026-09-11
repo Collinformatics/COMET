@@ -2,6 +2,7 @@
 
 COMET (COmprehensive Motif Evaluation Toolkit) was developed to process high-throughput datasets for the evaluation of enzymatic specificity.
 
+
 # Installation:
 
 Clone the GitHub with the terminal command:
@@ -46,6 +47,7 @@ To test the program a trial dataset is available in the "TemplateData" folder, t
 
 Additional instructions can be found on the website's home page.
 
+
 # Troubleshooting:
 
 Unterminated processes can result in the website not starting correctly.
@@ -71,4 +73,3 @@ Two possible solutions are:
     Kill these processes:
 
         kill <process ID>
-
