@@ -1,0 +1,16 @@
+name: comet-web
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.14.6
+  - biopython
+  - flask
+  - flask-wtf
+  - logomaker
+  - matplotlib
+  - numpy
+  - pandas
+  - scipy
+  - seaborn
+  - wordcloud
