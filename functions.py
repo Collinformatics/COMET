@@ -278,6 +278,57 @@ class WebApp:
         return val
 
 
+    def checkExtension(self, fName, whitelist, acceptLen=(1,)):
+        validFile = True
+        # Remove unaccepted characters
+        for c in ['!', '@', '#', '$', '%', '^', '&', '*',
+                  '(', ')', '[', ']', '{', '}', '|', '?']:
+            fName = fName.replace(c, '')
+
+        # Get file extension
+        ext = f'.{".".join(fName.split(".")[1:])}'
+        extLen = len(fName.split(".")) - 1
+        # print(f'Inspect file extensions:\n'
+        #       f'File: {"\033[38;2;255;0;242m"}{fName}{"\033[0m"}')
+        # print(f'* Ext: {ext}\n'
+        #       f'* Acc: {", ".join(whitelist)}')
+
+        # Whitelist file extension
+        if not ext in whitelist or not extLen in acceptLen:
+            validFile = False
+            self.jobParams['Invalid File'] = True
+            self.jobDone = True
+            # print(f'{"\033[91m"}Failed whitelist{"\033[0m"}')
+        # else:
+        #     print('Passed whitelist')
+
+
+        # Blacklist file extension
+        if validFile:
+            blacklist = [
+                '.htaccess', '.user.ini', 'uwsgi.ini', 'web.config',         # config
+                '.html', '.htm', '.shtml', '.mhtml', '.mht', '.xhtml',       # html
+                '.hta', '.js', '.jse', '.wsf',                               # javascript
+                '.py', '.pyc', '.pyi', '.pyo', '.pyw', '.pyz', '.pyzw',      # python
+                '.bash', '.command', '.csh', '.ksh', '.sh', '.tcsh', '.zsh', # shell
+                '.pickle', '.pkl', '.p', '../', '/', '\\',                   # misc
+            ]
+            if any(x == fName.lower() for x in blacklist) or '.' not in fName:
+                validFile = False
+                self.jobParams['Invalid File'] = True
+                self.jobDone = True
+            #     print(f'{"\033[38;2;255;0;242m"}Failed blacklist{"\033[0m"}')
+            # else:
+            #     print('Passed blacklist')
+
+        if not validFile:
+            self.logError(f'ERROR: checkExtension()\n'
+                          f'* Invalid file extension: {fName}\n'
+                          f'* Must be: {" ".join(whitelist)}')
+        # print()
+        return validFile
+
+
     def encodeFig(self, fig):
         # Save figure to a memory buffer instead of disk
         buffer = io.BytesIO()
@@ -696,26 +747,29 @@ class WebApp:
 
 
     def loadSubstrates(self, data, queueData, queueLog):
-        try:
-            data.seek(0)  # Ensure at start
-            substrates = json.load(data)
-            queueData.put(substrates)
-            queueLog.put(f'     {data.filename}')
-        except Exception as e:
-            self.logError(f'ERROR: loadSubstrates()\n'
-                          f'* Loading file: {data.filename}\n\n{e}')
+        whitelist = ('.json',)
+        if self.checkExtension(fName=data.filename, whitelist=whitelist):
+            try:
+                data.seek(0)  # Ensure at start
+                substrates = json.load(data)
+                queueData.put(substrates)
+                queueLog.put(f'     {data.filename}')
+            except Exception as e:
+                self.logError(f'ERROR: loadSubstrates()\n'
+                              f'* Loading file: {data.filename}\n\n{e}')
 
 
     def loadCounts(self, data, queueData, queueLog):
-        try:
-            # Load file
-            df = pd.read_csv(data, index_col=0)
-            df = df.astype(int)
-            queueData.put(df)
-            queueLog.put(f'     {data.filename}\n')
-        except Exception as e:
-            self.logError(f'ERROR: loadCounts()\n'
-                          f'* File name: {data.filename}\n\n{e}')
+        if self.checkExtension(fName=data.filename, whitelist=('.csv',)):
+            try:
+                # Load file
+                df = pd.read_csv(data, index_col=0)
+                df = df.astype(int)
+                queueData.put(df)
+                queueLog.put(f'     {data.filename}\n')
+            except Exception as e:
+                self.logError(f'ERROR: loadCounts()\n'
+                              f'* File name: {data.filename}\n\n{e}')
 
 
     def countAA(self, substrates, countMatrix, datasetType, subProfile=False):
@@ -760,27 +814,30 @@ class WebApp:
     def loadDNA(self, path, datasetType, queueLog, reverseRead):
         translate = True
         fileName = path.filename if hasattr(path, 'filename') else path.name
-        try:
-            # Open the file
-            if fileName.endswith('.gz'):
-                fileHandle = gzip.open(path, 'rt')
-            else:
-                path.seek(0)  # Ensure at start
-                fileHandle = io.StringIO(path.read().decode('utf-8'))
-            data = None
-            if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
-                data = SeqIO.parse(fileHandle, 'fastq')
-            elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
-                data = SeqIO.parse(fileHandle, 'fasta')
+        if self.checkExtension(fName=fileName, acceptLen=(1, 2),
+                               whitelist=('.fastq', '.fq', '.fasta', '.fa',
+                                          '.fastq.gz', '.fq.gz', '.fasta.gz', '.fa.gz')):
+            try:
+                # Open the file
+                if fileName.endswith('.gz'):
+                    fileHandle = gzip.open(path, 'rt')
+                else:
+                    path.seek(0)  # Ensure at start
+                    fileHandle = io.StringIO(path.read().decode('utf-8'))
+                data = None
+                if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
+                    data = SeqIO.parse(fileHandle, 'fastq')
+                elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
+                    data = SeqIO.parse(fileHandle, 'fasta')
 
-            # Translate the dna
-            if translate:
-                self.translate(
-                    data, fileName, datasetType, queueLog, reverseRead
-                )
-        except Exception as e:
-            self.logError(f'ERROR: loadDNA()\n'
-                          f'* File name: {path.filename}\n\n{e}')
+                # Translate the dna
+                if translate:
+                    self.translate(
+                        data, fileName, datasetType, queueLog, reverseRead
+                    )
+            except Exception as e:
+                self.logError(f'ERROR: loadDNA()\n'
+                              f'* File name: {path.filename}\n\n{e}')
 
 
     def translate(self, data, fileName, datasetType, queueLog, revRead):
