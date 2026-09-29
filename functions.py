@@ -697,7 +697,6 @@ class WebApp:
 
 
     def loadSubstrates(self, data, queueData, queueLog):
-        whitelist = ('.json',)
         try:
             data.seek(0)  # Ensure at start
             substrates = json.load(data)
