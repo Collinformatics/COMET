@@ -215,12 +215,20 @@ function createProfileContainer(subs=true) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => createProfileContainer());
+document.addEventListener('DOMContentLoaded', () => {
+    const page = document.body.getAttribute('data-page');
+    console.log('Page: ' + page);
+    if (page === 'combine') {
+        createProfileContainer(true);  // Show Substrates
+    } else if (page === 'predict') {
+        createProfileContainer(false); // Hide Substrates
+    }
+});
+
 function updateNumProfiles() {
-    createProfileContainer();
+    createProfileContainer(true);
 }
 
-document.addEventListener('DOMContentLoaded', () => createProfileContainer(false));
 function updateNumProfilesPred() {
     createProfileContainer(false);
 }
