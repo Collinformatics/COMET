@@ -145,7 +145,7 @@ function createProfileContainer(subs=true) {
                         - Acceptable file extension: .csv<br><br>
                         Substrates:<br>
                         - Optional input used for a wordcloud.<br>
-                        - Acceptable file extension: .pkl<br><br>
+                        - Acceptable file extension: .json<br><br>
                         Motif Index:<br>
                         - Index of the first AA in the motif within the full substrate sequence.
                     </span>
@@ -197,7 +197,7 @@ function createProfileContainer(subs=true) {
             wrapper2.className = 'form-wrapper';
             wrapper2.innerHTML = `
                 <label class="label-w" style="width: ${l};" for="fileExp${i}">* Substrates:</label>
-                <input type="file" "id="fileExpSubs${i}" name="fileExp${i}" accept=".pkl">
+                <input type="file" "id="fileExpSubs${i}" name="fileExp${i}" accept=".json">
             `;
             container.appendChild(wrapper2);
         }
