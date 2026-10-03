@@ -27,7 +27,6 @@ import time
 from wordcloud import WordCloud
 
 
-
 defaultResidues = (
     ('Alanine','Ala','A'), ('Arginine','Arg','R'), ('Asparagine','Asn','N'),
     ('Aspartic Acid','Asp','D'), ('Cysteine','Cys','C'), ('Glutamic Acid','Glu','E'),
@@ -276,7 +275,6 @@ class WebApp:
             val = np.floor(vDiv) * 5
         val /= 10
         return val
-    
 
 
     def encodeFig(self, fig):
@@ -324,6 +322,8 @@ class WebApp:
             self.datasetTag = tagFix
         elif tagExcl != 'Exclude ':
             self.datasetTag = tagExcl
+        elif self.combineProfiles:
+            self.datasetTag = 'Combined'
         else:
             self.datasetTag = 'Unfiltered'
         if self.motifFilter and not self.datasetTagMotif:
@@ -367,7 +367,6 @@ class WebApp:
         elif self.motifFilter:
             tag = f'SubProfile-{self.datasetTagMotif.replace(' ', '_')}'
         else:
-            print(f'Dataset: {self.datasetTag}')
             tag = self.datasetTag
             if 'Fix' in tag and 'Exclude' in tag:
                 tag = tag.replace('Fix ', '-Fix')
@@ -384,7 +383,7 @@ class WebApp:
             figName = figName.replace(tag, f'{tag}-{self.iteration}')
         if tag2:
             figName = figName.replace('.png', f'{tag2}.png')
-        if self.dropPos: # ===============================================================
+        if self.dropPos:
             figName = figName.replace('.png', f'-Drop_{"_".join(self.dropPos)}.png')
         figName = figName.replace('--', '-')
         return figName
@@ -408,6 +407,12 @@ class WebApp:
 
 
     def logError(self, msg):
+        # # ================================================================================
+        # import traceback ## Delete me
+        # t = traceback.format_exc() ## Delete me
+        # msg = f'{msg}\n\n{t}' ## Delete me
+        # # ================================================================================
+
         self.jobDone = True
         print(f'\n{msg}')
         d = os.path.join(self.errorLog, f'jobID-{self.jobParams['Job ID']}')
@@ -470,10 +475,11 @@ class WebApp:
         self.figures = {}
         self.figTag = ''
         self.motifFilter = False
-        self.combineProfiles = False
+
 
 
     def jobInit(self, form, job):
+        self.combineProfiles = False
         self.jobDone = False
         self.jobParams['Job ID'] = form['jobID']
         self.jobParams['Job'] = job
@@ -691,26 +697,18 @@ class WebApp:
 
 
     def loadSubstrates(self, data, queueData, queueLog):
-        try:
-            data.seek(0)  # Ensure at start
-            substrates = json.load(data)
-            queueData.put(substrates)
-            queueLog.put(f'     {data.filename}')
-        except Exception as e:
-            self.logError(f'ERROR: loadSubstrates()\n'
-                          f'* Loading file: {data.filename}\n\n{e}')
+        data.seek(0)  # Ensure at start
+        substrates = json.load(data)
+        queueData.put(substrates)
+        queueLog.put(f'     {data.filename}')
 
 
     def loadCounts(self, data, queueData, queueLog):
-        try:
-            # Load file
-            df = pd.read_csv(data, index_col=0)
-            df = df.astype(int)
-            queueData.put(df)
-            queueLog.put(f'     {data.filename}\n')
-        except Exception as e:
-            self.logError(f'ERROR: loadCounts()\n'
-                          f'* File name: {data.filename}\n\n{e}')
+        # Load file
+        df = pd.read_csv(data, index_col=0)
+        df = df.astype(int)
+        queueData.put(df)
+        queueLog.put(f'     {data.filename}\n')
 
 
     def countAA(self, substrates, countMatrix, datasetType, subProfile=False):
@@ -755,27 +753,23 @@ class WebApp:
     def loadDNA(self, path, datasetType, queueLog, reverseRead):
         translate = True
         fileName = path.filename if hasattr(path, 'filename') else path.name
-        try:
-            # Open the file
-            if fileName.endswith('.gz'):
-                fileHandle = gzip.open(path, 'rt')
-            else:
-                path.seek(0)  # Ensure at start
-                fileHandle = io.StringIO(path.read().decode('utf-8'))
-            data = None
-            if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
-                data = SeqIO.parse(fileHandle, 'fastq')
-            elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
-                data = SeqIO.parse(fileHandle, 'fasta')
+        # Open the file
+        if fileName.endswith('.gz'):
+            fileHandle = gzip.open(path, 'rt')
+        else:
+            path.seek(0)  # Ensure at start
+            fileHandle = io.StringIO(path.read().decode('utf-8'))
+        data = None
+        if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
+            data = SeqIO.parse(fileHandle, 'fastq')
+        elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
+            data = SeqIO.parse(fileHandle, 'fasta')
 
-            # Translate the dna
-            if translate:
-                self.translate(
-                    data, fileName, datasetType, queueLog, reverseRead
-                )
-        except Exception as e:
-            self.logError(f'ERROR: loadDNA()\n'
-                          f'* File name: {path.filename}\n\n{e}')
+        # Translate the dna
+        if translate:
+            self.translate(
+                data, fileName, datasetType, queueLog, reverseRead
+            )
 
 
     def translate(self, data, fileName, datasetType, queueLog, revRead):
@@ -1286,7 +1280,7 @@ class WebApp:
                     self.log(f'Counts: {idx}\n{counts}')
                 else:
                     self.log(f'Counts:\n{counts}')
-                if (c.columns != counts.columns).any():
+                if len(c.columns) == len(counts.columns) and (c.columns != counts.columns).any():
                     self.log(f'Extracted Motif Counts:\n{c}')
                 c.columns = self.xAxisLabel
                 self.countsExp += c
@@ -1334,7 +1328,6 @@ class WebApp:
                 self.predictActivity()
             elif self.combineProfiles:
                 self.evalProfiles()
-                print(f'Dataset Tag: {self.datasetTag}')
             else:
                 self.filterSubs()
                 self.evalEnrichment()
@@ -1342,9 +1335,9 @@ class WebApp:
                 self.figures['barCounts'] = self.plotBars(
                     self.subsExp, dataType='Counts'
                 )
-                self.figures['barCountsAll'] = self.plotBars(
-                    self.subsExp, dataType='Counts', plotAll=True
-                )
+                # self.figures['barCountsAll'] = self.plotBars(
+                #     self.subsExp, dataType='Counts', plotAll=True
+                # )
                 self.figures['barRF'] = self.plotBars(
                     self.subsExp, dataType='RF'
                 )
@@ -2106,15 +2099,6 @@ class WebApp:
         self.eMap = matrix.copy()
         self.log(f'Enrichment Score: {self.datasetTag}\n'
               f'{matrix.round(self.roundVal)}\n')
-        # print('============================= Eval Enrichment '
-        #       '==============================')
-        # print(f'RF Experimental:\n{self.rfExp}\n')
-        # print(f'Substrate Profile:\n{self.substrateProfile}\n')
-        # print(f'E Map:\n{self.eMap}\n')
-        # print(f'Matrix:\n{matrix}\n')
-        # for posFix, fixAA in self.fixAA.items():
-        #     print(f'Fix {posFix}: {fixAA}')
-
 
         # Evaluate stack heights
         evalMatrix(matrix.replace([np.inf, -np.inf], 0))
@@ -2530,6 +2514,8 @@ class WebApp:
 
 
     def plotBars(self, data, dataType, plotAll=False, barColor='#BF5700', barWidth=0.75):
+        if not data:
+            return
         x, y, totalCounts, limitNSubs = [], [], sum(data.values()), self.numSamples
         if plotAll:
             barWidth = 1.5
@@ -2664,20 +2650,35 @@ class WebApp:
             return a * np.exp(b * x) + c
 
         def fitData(x, y):
-            # Fit the curve
-            popt, pcov = curve_fit(fnExp, x, y, p0=[1, 1, 0], maxfev=10000)
-            # a, b, c = popt # y = a · e^(b·x) + c
+            x, y = np.array(x, dtype=float), np.array(y, dtype=float)
 
-            # Generate smooth curve for plotting
-            xFit = np.linspace(min(x), max(x), 300)
-            yFit = fnExp(xFit, *popt)
+            # a and c are linear given b, so profile b on a grid to get a real p0
+            def sse(b):
+                A = np.column_stack([np.exp(b * x), np.ones_like(x)])
+                coef, *_ = np.linalg.lstsq(A, y, rcond=None)
+                return np.sum((y - A @ coef) ** 2)
 
-            # R² for the exponential fit
+            grid = np.linspace(0.05, 5.0, 200)
+            b0 = grid[int(np.argmin([sse(b) for b in grid]))]
+            A = np.column_stack([np.exp(b0 * x), np.ones_like(x)])
+            (a0, c0), *_ = np.linalg.lstsq(A, y, rcond=None)
+
+            # bound b away from 0 so the linear ramp is unreachable
+            popt, pcov = curve_fit(fnExp, x, y, p0=[a0, b0, c0],
+                                   bounds=([-np.inf, 1e-3, -np.inf],
+                                           [np.inf, 10.0, np.inf]),
+                                   maxfev=10000)
+
+            if np.any(np.sqrt(np.diag(pcov)) > 100 * np.abs(popt)):
+                print(f'WARNING: unidentified fit, popt={popt}')
+
             yPred = fnExp(x, *popt)
             ss_res = np.sum((y - yPred) ** 2)
             ss_tot = np.sum((y - np.mean(y)) ** 2)
             r2 = 1 - (ss_res / ss_tot)
-            return xFit, yFit, r2, popt
+
+            xFit = np.linspace(x.min(), x.max(), 300)
+            return xFit, fnExp(xFit, *popt), r2, popt
 
         def fnLinear(x, m, b):
             """Linear function: y = mx + b"""
