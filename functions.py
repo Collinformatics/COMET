@@ -407,12 +407,6 @@ class WebApp:
 
 
     def logError(self, msg):
-        # # ================================================================================
-        # import traceback ## Delete me
-        # t = traceback.format_exc() ## Delete me
-        # msg = f'{msg}\n\n{t}' ## Delete me
-        # # ================================================================================
-
         self.jobDone = True
         print(f'\n{msg}')
         d = os.path.join(self.errorLog, f'jobID-{self.jobParams['Job ID']}')
