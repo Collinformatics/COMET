@@ -1274,7 +1274,8 @@ class WebApp:
                     self.log(f'Counts: {idx}\n{counts}\n')
                 else:
                     self.log(f'Counts:\n{counts}\n')
-                if len(c.columns) == len(counts.columns) and (c.columns != counts.columns).any():
+                if (len(c.columns) == len(counts.columns) and
+                        (c.columns != counts.columns).any()):             
                     self.log(f'Extracted Motif Counts:\n{c}')
                 c.columns = self.xAxisLabel
                 self.countsExp += c
