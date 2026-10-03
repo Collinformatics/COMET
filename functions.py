@@ -1277,16 +1277,16 @@ class WebApp:
                 idxC = idxN + self.seqLength
                 c = counts.iloc[:, idxN:idxC]
                 if len(queuesExpCounts) > 1:
-                    self.log(f'Counts: {idx}\n{counts}')
+                    self.log(f'Counts: {idx}\n{counts}\n')
                 else:
-                    self.log(f'Counts:\n{counts}')
+                    self.log(f'Counts:\n{counts}\n')
                 if len(c.columns) == len(counts.columns) and (c.columns != counts.columns).any():
                     self.log(f'Extracted Motif Counts:\n{c}')
                 c.columns = self.xAxisLabel
                 self.countsExp += c
 
             if len(queuesExpCounts) > 1:
-                self.log(f'\nCombined Registers:\n{self.countsExp}')
+                self.log(f'\nCombined Registers:\n{self.countsExp}\n')
             self.countExpTotal = self.countsExp.sum()
             for pos in self.xAxisLabel:
                 if self.countExpTotal[pos] == 0:
@@ -1302,21 +1302,21 @@ class WebApp:
                 counts = q.get()
                 self.countsBg += counts
                 if len(queuesBg) > 1:
-                    self.log(f'Counts: {idx}\n{counts}')
+                    self.log(f'Counts: {idx}\n{counts}\n')
                 else:
-                    self.log(f'Counts:\n{counts}')
+                    self.log(f'Counts:\n{counts}\n')
             self.countBgTotal = sum(self.countsBg.iloc[:, 0])
             if self.countBgTotal == 0:
                 self.logError(f'ERROR: loadCounts()\n'
                               f'* No background counts were loaded.')
             if len(queuesBg) > 1:
-                self.log(f'\nCombined Background Counts:\n{self.countsBg}')
+                self.log(f'\nCombined Background Counts:\n{self.countsBg}\n')
 
         if self.dropPos:
             self.removePos()
             self.countsExp.drop(self.dropPos, axis=1, inplace=True)
             self.countsBg.drop(self.dropPos, axis=1, inplace=True)
-            self.log(f'\n\nBackground Counts:\n{self.countsBg}')
+            self.log(f'\nBackground Counts:\n{self.countsBg}\n')
 
         # Use data
         try:
