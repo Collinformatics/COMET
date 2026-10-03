@@ -1084,7 +1084,7 @@ class WebApp:
                     self.subsExp, dataType='Counts'
                 )
                 self.figures['barRF'] = self.plotBars(
-                    self.subsExp, dataType='RF'
+                    self.subsExp, dataType='Relative Frequency'
                 )
             if self.subsBg:
                 self.subsBg = dict(
@@ -1339,7 +1339,7 @@ class WebApp:
                 #     self.subsExp, dataType='Counts', plotAll=True
                 # )
                 self.figures['barRF'] = self.plotBars(
-                    self.subsExp, dataType='RF'
+                    self.subsExp, dataType='Relative Frequency'
                 )
         except Exception as e:
             self.logError(f'ERROR: evalData()\n* Job: {self.jobParams['Job']}\n\n{e}')
@@ -2537,7 +2537,7 @@ class WebApp:
             if magnitude > 1:
                 mag = 10 ** (magnitude - 1)
             yMax = math.ceil(maxValue / mag) * mag
-        elif 'rf' in dataType.lower():
+        elif 'relative' in dataType.lower():
             y = [v / totalCounts for v in y]
 
             # Evaluate: Y axis
