@@ -509,7 +509,6 @@ class WebApp:
         self.log() # Clear the log
         self.log('================================ Job Summary '
                  '=================================')
-        self.log(f'Job ID: {self.jobParams['Job ID']}')
         self.log(f'Job: {job}')
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
