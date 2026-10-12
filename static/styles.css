@@ -17,6 +17,7 @@
     --colorForm: var(--grey);
     --colorInput: var(--colorBody);
     --colorOutline: var(--greylight);
+    --colorPlaceholder: #999999;
 
     --textColor: var(--white);
     --textColorLabel: var(--orange);
@@ -164,7 +165,7 @@ p {
     background-color: var(--white);
     border: 1px solid var(--pink);
 }.help-tooltip {
-    color: white;
+    color: var(--white);
     background-color: var(--colorBody);
     border: 1px solid var(--pink);
     font-size: var(--textSizeInputs);
@@ -382,7 +383,7 @@ input[type="file"]::file-selector-button:hover {
     margin: 0 var(--marginFormHorizontal) 0 0;
     padding: var(--padInput) var(--padInput); /* Pad input text */
 }.textbox::placeholder {
-    color: var(--grey);  /* or whatever color for hint text */
+    color: var(--colorPlaceholder);  /* or whatever color for hint text */
     opacity: 1;
 }
 
