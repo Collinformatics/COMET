@@ -479,13 +479,11 @@ class WebApp:
         self.jobParams['Job'] = job
 
         # Initialize directories
-        self.pathDir = os.path.join('datasets', f"{form['enzymeName']}")
-        # self.pathDir = os.path.join('datasets', f"{form['enzymeName']}-"
-        #                                     f"{time.strftime("%Y_%m_%d-%H:%M:%S")}-"
-        #                                     f"{form['jobID']}")
+        date, labelJob = time.strftime("%Y_%m_%d-%H:%M:%S"), job.replace(' ', '_')
+        self.pathDir = os.path.join('datasets', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
-        self.pathFigs = os.path.join(self.pathDir, 'figures')
-        self.pathLog = os.path.join(self.pathDir, 'log.txt')
+        self.pathFigs = os.path.join(self.pathDir, f'figures-{labelJob}-{date}')
+        self.pathLog = os.path.join(self.pathFigs, 'log.txt')
         if self.pathDir is not None:
             if not os.path.exists(self.pathDir):
                 os.makedirs(self.pathDir, exist_ok=True)
