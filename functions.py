@@ -468,10 +468,12 @@ class WebApp:
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.figures = {}
         self.figTag = ''
+        self.subProfile = False
         self.motifFilter = False
 
 
     def jobInit(self, form, job):
+        self.figures = {}
         self.combineProfiles = False
         self.jobDone = False
         self.jobParams['Job ID'] = form['jobID']
@@ -493,18 +495,7 @@ class WebApp:
         if self.pathFigs is not None:
             if not os.path.exists(self.pathFigs):
                 os.makedirs(self.pathFigs, exist_ok=True)
-            # else:
-            #     # Clear figs
-            #     import shutil
-            #     # Remove everything inside the directory
-            #     for filename in os.listdir(self.pathFigs):
-            #         path = os.path.join(self.pathFigs, filename)
-            #         if os.path.isfile(path) or os.path.islink(path):
-            #             os.unlink(path)  # delete file or link
-            #         elif os.path.isdir(path):
-            #             shutil.rmtree(path)  # delete subdirectory
-            #     # time.sleep(5)
-            #     os.makedirs(self.pathFigs, exist_ok=True)
+
 
         self.log() # Clear the log
         self.log('================================ Job Summary '
