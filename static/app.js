@@ -726,7 +726,7 @@ function getEntropyFigure(pollFigs=true) {
 
     if (pollFigs) {
         const interval = setInterval(() => {
-           // new Flask route returning JSON with filenames
+           // New Flask route returning JSON with filenames
             fetch('/checkFigures', {
                 method: 'GET',
                 headers: { 'X-CSRFToken': csrfToken },
@@ -734,52 +734,55 @@ function getEntropyFigure(pollFigs=true) {
             })
             .then(res => res.json())
             // Verify if one figure is ready
-            .then(data => {
-                if (data.entropy) {
-                    addFigure(container, 'Entropy', data.entropy);
-                    const csrfToken = document.querySelector('meta[name="csrf_token"]').getAttribute('content');
-                    // updateMotifPosDisplay(data);
+                .then(data => {
+                    if (data.entropy && data.eMap) {
+                        const csrfToken = document.querySelector(
+                            'meta[name="csrf_token"]'
+                        ).getAttribute('content');
+                        addFigure(container, 'Entropy', data.entropy);
+                        addFigure(container, "Enrichment Map", data.eMap);
 
-                    // Call updateMinS with current minS value
-                    const minSInput = document.getElementById('minS');
-                    const minS = parseFloat(minSInput.value);
+                        // Only call updateMinS once entropy is ready
+                        const minSInput = document.getElementById('minS');
+                        const minS = parseFloat(minSInput.value);
 
-                    fetch('/updateMinS', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({ minS: minS })
-                    })
-                    .then(res => res.json())
-                    .then(updatedData => {
-                        // Update UI with new motif positions and entropy
-                        updateMotifPosDisplay(updatedData);
-                    })
-                    .catch(err => console.error('Error updating minS:', err));
-                }
-            });
+                        fetch('/updateMinS', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({minS: minS})
+                        })
+                            .then(res => res.json())
+                            .then(updatedData => {
+                                updateMotifPosDisplay(updatedData);
+                            })
+                            .catch(err => console.error('Error updating minS:', err));
 
-            // Only stop polling when job is done
-            fetch('/jobStatus')
-                .then(r => r.json())
-                .then(status => {
-                    if (status.jobStatus) {
                         clearInterval(interval);
-                        // Append download button to the box
-                        const buttonContainer = document.getElementById("button-container");
-                        const buttonWrapper = document.createElement('div');
-                        buttonWrapper.className = 'button-wrapper';
-                        const button = document.createElement('button');
-                        button.className = 'button button-filter';
-                        button.textContent = 'Filter';
-                        button.onclick = () => buttonFilterSubs('comet');
-                        buttonWrapper.appendChild(button);
-                        buttonContainer.appendChild(buttonWrapper);
 
+
+                        // Only stop polling when job is done
+                        fetch('/jobStatus')
+                            .then(r => r.json())
+                            .then(status => {
+                                if (status.jobStatus) {
+                                    // clearInterval(interval);
+                                    // Append download button to the box
+                                    const buttonContainer = document.getElementById("button-container");
+                                    const buttonWrapper = document.createElement('div');
+                                    buttonWrapper.className = 'button-wrapper';
+                                    const button = document.createElement('button');
+                                    button.className = 'button button-filter';
+                                    button.textContent = 'Filter';
+                                    button.onclick = () => buttonFilterSubs('comet');
+                                    buttonWrapper.appendChild(button);
+                                    buttonContainer.appendChild(buttonWrapper);
+                                }
+                            });
                     }
-                });
+        });
         }, 1000); // poll: 1000 = 1 second
     }
 }
