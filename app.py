@@ -25,9 +25,6 @@ app.config['MAX_FORM_PARTS'] = 10000  # Max number of fields in a multipart/form
 webapp: WebApp = WebApp()
 webapp.getKey(app)
 
-# Figure storage
-figures = {}
-
 
 def parseForm():
     data = {}
