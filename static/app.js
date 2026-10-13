@@ -230,6 +230,7 @@ function updateNumProfiles() {
 }
 
 function updateNumProfilesPred() {
+    checkSubs()
     createProfileContainer(false);
 }
 
@@ -725,6 +726,8 @@ function getEntropyFigure(pollFigs=true) {
     if (!container) return;
 
     if (pollFigs) {
+        let finishA = false
+        let finishB = false
         const interval = setInterval(() => {
            // New Flask route returning JSON with filenames
             fetch('/checkFigures', {
@@ -733,14 +736,21 @@ function getEntropyFigure(pollFigs=true) {
                 credentials: 'same-origin'
             })
             .then(res => res.json())
-            // Verify if one figure is ready
                 .then(data => {
-                    if (data.entropy && data.eMap) {
+                    if (data.entropy && !finishA) {
+                        addFigure(container, 'Entropy', data.entropy);
+                        finishA = true
+                    }
+                    if (data.eMap && !finishB) {
+                        addFigure(container, "Enrichment Map", data.eMap);
+                        finishB = true
+                    }
+                    if (finishA && finishB) {
                         const csrfToken = document.querySelector(
                             'meta[name="csrf_token"]'
                         ).getAttribute('content');
-                        addFigure(container, 'Entropy', data.entropy);
-                        addFigure(container, "Enrichment Map", data.eMap);
+                        // addFigure(container, 'Entropy', data.entropy);
+                        // addFigure(container, "Enrichment Map", data.eMap);
 
                         // Only call updateMinS once entropy is ready
                         const minSInput = document.getElementById('minS');
@@ -782,8 +792,8 @@ function getEntropyFigure(pollFigs=true) {
                                 }
                             });
                     }
-        });
-        }, 1000); // poll: 1000 = 1 second
+                });
+            }, 1000); // poll: 1000 = 1 second
     }
 }
 
@@ -836,7 +846,7 @@ function pollMotifPos() {
 
 
 function checkSubs() {
-    const seqLength = parseInt(document.getElementById('seqLength').value);
+    const seqLength = parseInt(document.getElementById('motifLength').value);
     const rawSubs = document.getElementById(
         'predSubs').value.split(',')
         .map(s => s.trim())
