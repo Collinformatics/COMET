@@ -93,7 +93,7 @@ class WebApp:
         self.iteration = 0
         self.minS = 0.6
         self.minES = 0
-        self.minESRel = -0.5
+        self.minESRel = -1.0
         self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
         self.substrateProfileScl = pd.DataFrame()
@@ -532,7 +532,7 @@ class WebApp:
             self.iteration = 0
             self.minS = 0.6
             self.minES = 0
-            self.minESRel = -0.5
+            self.minESRel = -1.0
             self.motifPos = {}
         elif job == 'Combine Motifs' or job == 'Predict Substrate Activity':
             if not job == 'Predict Substrate Activity':
