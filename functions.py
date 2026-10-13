@@ -471,7 +471,6 @@ class WebApp:
         self.motifFilter = False
 
 
-
     def jobInit(self, form, job):
         self.combineProfiles = False
         self.jobDone = False
