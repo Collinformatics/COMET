@@ -561,6 +561,8 @@ class WebApp:
 
         # Initialize params
         self.initParams()
+        if job == 'Filter Motif':
+            self.motifFilter = True
 
         if 'dropPos' in form.keys():
             self.dropPos = form['dropPos']
@@ -1169,7 +1171,6 @@ class WebApp:
         if filterMotifs:
             self.jobInit(form, job='Filter Motif')
             self.initCOMET = True
-            self.motifFilter = True
             self.saveData = False
             self.setS = True
         elif combineProfiles:
