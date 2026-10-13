@@ -480,7 +480,7 @@ class WebApp:
         self.jobParams['Job'] = job
 
         # Initialize directories
-        date = time.strftime("%Y_%m_%d-%H:%M:%S")
+        date = time.strftime("%Y_%m_%d-%H:%M:%S").replace(':','_')
         self.pathDir = os.path.join('datasets', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir, 
