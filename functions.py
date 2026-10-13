@@ -975,7 +975,7 @@ class WebApp:
 
     def evalDNA(self, form):
         try:
-            if form is None: # Blacklist filename
+            if form is None:
                 self.jobParams['Invalid File'] = True
                 return
             self.jobInit(form, job='Process DNA')
@@ -1162,7 +1162,7 @@ class WebApp:
 
 
     def evalData(self, form, filterMotifs=False, combineProfiles=False, predActivity=False):
-        if form is None: # Blacklist filename
+        if form is None:
             self.jobParams['Invalid File'] = True
             return
         self.jobDone = False
@@ -1434,7 +1434,7 @@ class WebApp:
 
 
     def comet(self, form):
-        if form is None: # Blacklist filename
+        if form is None:
             self.jobParams['Invalid File'] = True
             return
 
