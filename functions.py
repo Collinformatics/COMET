@@ -567,6 +567,7 @@ class WebApp:
 
         # Conditional params
         if not job == 'Predict Substrate Activity':
+            self.avgBgRF = True
             self.minCounts = int((round(float(form['minCounts']))))
             self.jobParams['Minimum Count'] = self.minCounts
             self.log(f'Minimum Count: {self.minCounts}')
