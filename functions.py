@@ -720,7 +720,7 @@ class WebApp:
         end = time.time()
         runtime = (end - start) / 60
         runtime = round(runtime, 3)
-        print(f'Counted {self.countExpUnique:,} unique substrates in: {runtime} min')
+        print(f'Counted {len(substrates.items()):,} unique substrates in: {runtime} min')
         self.log(f'\nCounts:\n{countMatrix}')
 
         for pos in countMatrix.columns:
