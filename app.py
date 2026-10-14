@@ -64,14 +64,7 @@ def getValue(json, key, default):
 @app.route('/')
 def home():
     webapp.jobDone = True
-    # return render_template('home.html')
-    w = 'home.html'
-    x = 'processDNA.html'
-    y = 'combineProfiles.html'
-    z = 'prediction.html'
-    return render_template(
-        w, csrf_token=generate_csrf()
-    )
+    return render_template('home.html')
 
 
 @app.route('/processDNA')
@@ -333,7 +326,6 @@ def downloadFiles():
                     # print(f'* arcName: {arcName}\n')
                     zf.write(filePath, arcName)
         memoryFile.seek(0)
-        # zip_bytes = memoryFile.getvalue()  # Extract raw bytes
 
         return send_file(
             memoryFile,
