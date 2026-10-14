@@ -737,16 +737,13 @@ class WebApp:
 
     def loadDNA(self, path, seqs, datasetType, queueLog, reverseRead):
         fileName = path.filename if hasattr(path, 'filename') else path.name
-        if self.checkExtension(fName=fileName, acceptLen=(1, 2),
-                               whitelist=('.fastq', '.fq', '.fasta', '.fa',
-                                          '.fastq.gz', '.fq.gz', '.fasta.gz', '.fa.gz')):
-            try:
-                # Translate the dna
-                self.translate(path, seqs, fileName, datasetType,
-                               queueLog, reverseRead)
-            except Exception as e:
-                self.logError(f'ERROR: loadDNA()\n'
-                              f'* File name: {path.filename}\n\n{e}')
+        try:
+            # Translate the dna
+            self.translate(path, seqs, fileName, datasetType,
+                           queueLog, reverseRead)
+        except Exception as e:
+            self.logError(f'ERROR: loadDNA()\n'
+                          f'* File name: {path.filename}\n\n{e}')
 
 
     def translate(self, path, substrates, fileName, datasetType, queueLog, revRead):
