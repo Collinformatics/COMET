@@ -735,20 +735,21 @@ class WebApp:
         return countMatrix
 
 
-    def loadDNA(self, path, datasetType, queueLog, reverseRead):
+    def loadDNA(self, path, seqs, datasetType, queueLog, reverseRead):
         fileName = path.filename if hasattr(path, 'filename') else path.name
         if self.checkExtension(fName=fileName, acceptLen=(1, 2),
                                whitelist=('.fastq', '.fq', '.fasta', '.fa',
                                           '.fastq.gz', '.fq.gz', '.fasta.gz', '.fa.gz')):
             try:
                 # Translate the dna
-                self.translate(path, fileName, datasetType, queueLog, reverseRead)
+                self.translate(path, seqs, fileName, datasetType,
+                               queueLog, reverseRead)
             except Exception as e:
                 self.logError(f'ERROR: loadDNA()\n'
                               f'* File name: {path.filename}\n\n{e}')
 
 
-    def translate(self, path, fileName, datasetType, queueLog, revRead):
+    def translate(self, path, substrates, fileName, datasetType, queueLog, revRead):
         queueLog.put('\n\n================================ Translate DNA '
                      '===============================')
         queueLog.put(f'File Name: {fileName}')
@@ -790,7 +791,7 @@ class WebApp:
 
 
         # Open the file
-        if path.endswith('.gz'):
+        if path.filename.endswith('.gz'):
             fileHandle = gzip.open(path, 'rt')
         else:
             path.seek(0) # Ensure at start
@@ -804,16 +805,10 @@ class WebApp:
         elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
             data = SeqIO.parse(fileHandle, 'fasta')
 
-        # Determine dataset type
-        if datasetType == self.datasetTypes['Exp']:
-            substrates = self.subsExp
-        else:
-            substrates = self.subsBg
-        
         # Process file
         totalSeqs, totalSubsExtracted, logData = 0, 0, True
         for datapoint in data:
-            if totalSubsExtracted >= self.printN:
+            if logData and totalSubsExtracted >= self.printN:
                 extractionEfficiency(totalSeqs, totalSubsExtracted)
                 logData = False
             totalSeqs += 1
@@ -889,8 +884,6 @@ class WebApp:
                             totalSubsExtracted += 1
             if logData:
                 queueLog.put('')
-        
-        # Translate DNA
         extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
         print(f'Finished Translating: {fileName}')
 
@@ -904,56 +897,71 @@ class WebApp:
 
             # Load the data
             threads = []
-            queuesExpLog = []
-            queuesExpRevLog = []
-            queuesBgLog = []
-            queuesBgRevLog = []
+            subsExp, queuesExpLog, queuesExpRevLog = [], [], []
+            subsBg, queuesBgLog, queuesBgRevLog= [], [], []
             if self.fileExp:
                 for file in self.fileExp:
+                    subsLocal = {}
                     queueLog = queue.Queue() # maxsize=100)
                     queuesExpLog.append(queueLog)
                     thread = threading.Thread(
                         target=self.loadDNA,
-                        args=(file, self.datasetTypes['Exp'],
+                        args=(file, subsLocal, self.datasetTypes['Exp'],
                               queueLog, False,)
                     )
+                    subsExp.append(subsLocal)
                     threads.append(thread)
                     thread.start()
             if self.fileExpRev:
                 for file in self.fileExpRev:
+                    subsLocal = {}
                     queueExpRevLog = queue.Queue() # maxsize=100)
                     queuesExpRevLog.append(queueExpRevLog)
                     thread = threading.Thread(
                         target=self.loadDNA,
-                        args=(file, self.datasetTypes['Exp'],
+                        args=(file, subsLocal, self.datasetTypes['Exp'],
                               queueExpRevLog, True,)
                     )
+                    subsExp.append(subsLocal)
                     threads.append(thread)
                     thread.start()
             if self.fileBg:
                 for file in self.fileBg:
+                    subsLocal = {}
                     queueLog = queue.Queue() # maxsize=100)
                     queuesBgLog.append(queueLog)
                     thread = threading.Thread(
                         target=self.loadDNA,
-                        args=(file, self.datasetTypes['Bg'],
+                        args=(file, subsLocal, self.datasetTypes['Bg'],
                               queueLog, False,)
                     )
+                    subsBg.append(subsLocal)
                     threads.append(thread)
                     thread.start()
             if self.fileBgRev:
                 for file in self.fileBgRev:
+                    subsLocal = {}
                     queueBgRevLog = queue.Queue() # maxsize=100)
                     queuesBgRevLog.append(queueBgRevLog)
                     thread = threading.Thread(
                         target=self.loadDNA,
-                        args=(file, self.datasetTypes['Bg'], queueBgRevLog, True,)
+                        args=(file, subsLocal, self.datasetTypes['Bg'],
+                              queueBgRevLog, True,)
                     )
+                    subsBg.append(subsLocal)
                     threads.append(thread)
                     thread.start()
             # Wait for all threads to finish
             for thread in threads:
                 thread.join()
+
+            # Combine dictionaries
+            for subs in subsExp:
+                for sub, count in subs.items():
+                    self.subsExp[sub] = self.subsExp.get(sub, 0) + count
+            for subs in subsBg:
+                for sub, count in subs.items():
+                    self.subsBg[sub] = self.subsBg.get(sub, 0) + count
 
             # Log the output
             if queuesExpLog:
