@@ -736,28 +736,19 @@ class WebApp:
 
 
     def loadDNA(self, path, datasetType, queueLog, reverseRead):
-        translate = True
         fileName = path.filename if hasattr(path, 'filename') else path.name
-        # Open the file
-        if fileName.endswith('.gz'):
-            fileHandle = gzip.open(path, 'rt')
-        else:
-            path.seek(0)  # Ensure at start
-            fileHandle = io.StringIO(path.read().decode('utf-8'))
-        data = None
-        if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
-            data = SeqIO.parse(fileHandle, 'fastq')
-        elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
-            data = SeqIO.parse(fileHandle, 'fasta')
-
-        # Translate the dna
-        if translate:
-            self.translate(
-                data, fileName, datasetType, queueLog, reverseRead
-            )
+        if self.checkExtension(fName=fileName, acceptLen=(1, 2),
+                               whitelist=('.fastq', '.fq', '.fasta', '.fa',
+                                          '.fastq.gz', '.fq.gz', '.fasta.gz', '.fa.gz')):
+            try:
+                # Translate the dna
+                self.translate(path, fileName, datasetType, queueLog, reverseRead)
+            except Exception as e:
+                self.logError(f'ERROR: loadDNA()\n'
+                              f'* File name: {path.filename}\n\n{e}')
 
 
-    def translate(self, data, fileName, datasetType, queueLog, revRead):
+    def translate(self, path, fileName, datasetType, queueLog, revRead):
         queueLog.put('\n\n================================ Translate DNA '
                      '===============================')
         queueLog.put(f'File Name: {fileName}')
@@ -766,14 +757,8 @@ class WebApp:
         else:
             queueLog.put('Read Type: Forward Read')
         queueLog.put(f'  Dataset: {datasetType}')
-        useQS = False
-        for datapoint in data:
-            if 'phred_quality' in datapoint.letter_annotations:
-                useQS = True
-            break
-        queueLog.put(f'  Eval QS: {useQS}')
-        if useQS:
-            queueLog.put(f'Min Phred: {self.minPhred}')
+
+        # Log tag
         if self.fixAA or self.exclAA:
             queueLog.put(f'   Filter: {self.datasetTag}')
         queueLog.put('\n')
@@ -791,178 +776,121 @@ class WebApp:
             return ''.join(complement[base] for base in reversed(seq))
 
 
-        def extractionEfficiency(totalSeqsDNA, totalSubsExtracted, fullSet=False):
-            if totalSeqsDNA == 0:
-                totalSeqsDNA = 1
-            perExtracted = (totalSubsExtracted / totalSeqsDNA) * 100
+        def extractionEfficiency(nDataset, nExtracted, fullSet=False):
+            if nDataset == 0:
+                nDataset = 1
+            perExtracted = (nExtracted / nDataset) * 100
             if fullSet:
                 queueLog.put(f'\nExtraction Efficiency: - All Sequences')
             else:
                 queueLog.put(f'\nExtraction Efficiency: {self.printN} Substrates')
-            queueLog.put(f'     Evaluated DNA Sequences: {totalSeqsDNA:,}\n'
-                         f'        Extracted Substrates: {totalSubsExtracted:,}\n'
+            queueLog.put(f'     Evaluated DNA Sequences: {nDataset:,}\n'
+                         f'        Extracted Substrates: {nExtracted:,}\n'
                          f'       Extraction Efficiency: {round(perExtracted, 3)} %')
 
 
-        def logDNA(data, useQS):
-            """
-                Scan dataset and log datapoints
-            """
-            totalSeqs, totalSubsExtracted = 0, 0
-            for datapoint in data:
-                if totalSubsExtracted >= self.printN:
-                    break
-                totalSeqs += 1
-                dna = datapoint.seq
-                if revRead:
-                    dna = reverseComplement(dna)
-                queueLog.put(f'DNA Seq: {dna}')
+        # Open the file
+        if path.endswith('.gz'):
+            fileHandle = gzip.open(path, 'rt')
+        else:
+            path.seek(0) # Ensure at start
+            fileHandle = io.StringIO(path.read().decode('utf-8'))
+        data, useQS = None, False
+        if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
+            data = SeqIO.parse(fileHandle, 'fastq')
+            useQS = True
+            queueLog.put(f'  Eval QS: {useQS}')
+            queueLog.put(f'Min Phred: {self.minPhred}')
+        elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
+            data = SeqIO.parse(fileHandle, 'fasta')
 
-                # Inspect full dna seq
+        # Determine dataset type
+        if datasetType == self.datasetTypes['Exp']:
+            substrates = self.subsExp
+        else:
+            substrates = self.subsBg
+        
+        # Process file
+        totalSeqs, totalSubsExtracted, logData = 0, 0, True
+        for datapoint in data:
+            if totalSubsExtracted >= self.printN:
+                extractionEfficiency(totalSeqs, totalSubsExtracted)
+                logData = False
+            totalSeqs += 1
+            dna = datapoint.seq
+            if revRead:
+                dna = reverseComplement(dna)
+            if logData:
+                queueLog.put(f'DNA Seq: {dna}')
                 queueLog.put(f'* 5\' Found: {'Yes' if self.seq5Prime in dna else 'No'}\n'
                              f'* 3\' Found: {'Yes' if self.seq3Prime in dna else 'No'}')
-                if self.seq5Prime in dna or self.seq3Prime in dna:
-                    # Find: Substrate indices
-                    start = dna.find(self.seq5Prime) + len(self.seq5Prime)
-                    end = dna.find(self.seq3Prime)
-                    if end == -1:
-                        end = False
+            if self.seq5Prime in dna or self.seq3Prime in dna:
+                # Find: Substrate indices
+                start = dna.find(self.seq5Prime) + len(self.seq5Prime)
+                end = dna.find(self.seq3Prime)
+                if end == -1:
+                    end = False
 
-                    # Extract substrate dna seq
-                    if end:
-                        substrateDNA = dna[start:end].strip()
-                    else:
-                        substrateDNA = dna[start:].strip()
+                # Extract substrate dna seq
+                if end:
+                    substrateDNA = dna[start:end].strip()
+                else:
+                    substrateDNA = dna[start:].strip()
+                if logData:
                     queueLog.put(f'* Sub DNA: {substrateDNA}')
-                    if len(substrateDNA) == self.seqLength * 3:
-                        substrate = str(Seq.translate(substrateDNA))
+                if len(substrateDNA) == self.seqLength * 3:
+                    substrate = str(Seq.translate(substrateDNA))
+                    if logData:
                         queueLog.put(f'* Sub Seq: {substrate}')
 
-                        # Inspect substrate seq: log only
-                        if 'X' not in substrate and '*' not in substrate:
-                            keepSub = True
-                            if useQS:
-                                qs = datapoint.letter_annotations['phred_quality']
-                                if revRead:
-                                    qs = qs[::-1]  # Reverse QS
-                                if end:
-                                    qs = qs[start:end]
-                                else:
-                                    qs = qs[start:]
+                    # Inspect substrate seq: log only
+                    if 'X' not in substrate and '*' not in substrate:
+                        keepSub = True
+                        if useQS:
+                            qs = datapoint.letter_annotations['phred_quality']
+                            if revRead:
+                                qs = qs[::-1]  # Reverse QS
+                            if end:
+                                qs = qs[start:end]
+                            else:
+                                qs = qs[start:]
+                            if logData:
                                 queueLog.put(f'* QS: {qs}')
-                                if not all(score >= self.minPhred for score in qs):
-                                    keepSub = False
+                            if not all(score >= self.minPhred for score in qs):
+                                keepSub = False
 
-                            # Filter substrate
-                            if self.fixAA or self.exclAA:
-                                for posExcl, exclAA in self.exclAA.items():
-                                    if exclAA:
-                                        if not isinstance(exclAA, list):
-                                            exclAA = list(exclAA)
-                                        idx = int(posExcl.replace('R', '')) - 1
-                                        if substrate[idx] in exclAA:
-                                            keepSub = False
-                                            break
-                                if not keepSub:
-                                    continue
+                        # Filter substrate
+                        if self.fixAA or self.exclAA:
+                            for posExcl, exclAA in self.exclAA.items():
+                                if exclAA:
+                                    if not isinstance(exclAA, list):
+                                        exclAA = list(exclAA)
+                                    idx = int(posExcl.replace('R', '')) - 1
+                                    if substrate[idx] in exclAA:
+                                        keepSub = False
+                                        break
+                            if not keepSub:
+                                continue
 
-                                for posFix, fixAA in self.fixAA.items():
-                                    if fixAA:
-                                        if not isinstance(fixAA, list):
-                                            fixAA = list(fixAA)
-                                        idx = int(posFix.replace('R', '')) - 1
-                                        if substrate[idx] not in fixAA:
-                                            keepSub = False
-                                            break
-                            if keepSub:
+                            for posFix, fixAA in self.fixAA.items():
+                                if fixAA:
+                                    if not isinstance(fixAA, list):
+                                        fixAA = list(fixAA)
+                                    idx = int(posFix.replace('R', '')) - 1
+                                    if substrate[idx] not in fixAA:
+                                        keepSub = False
+                                        break
+                        if keepSub:
+                            if logData:
                                 queueLog.put(f'Keep Substrate')
-                                totalSubsExtracted += 1
+                            substrates[substrate] = (
+                                    substrates.get(substrate, 0) + 1
+                            )
+                            totalSubsExtracted += 1
+            if logData:
                 queueLog.put('')
-
-            return totalSeqs, totalSubsExtracted
-
-        # Translate and log DNA
-        totalSeqs, totalSubsExtracted = logDNA(data, useQS)
-        extractionEfficiency(totalSeqs, totalSubsExtracted)
-
-
-        def processDNA(data, substrates, useQS):
-            totalSeqs = 0
-            totalSubsExtracted = 0
-
-            # Process the data
-            for datapoint in data:
-                totalSeqs += 1
-                dna = datapoint.seq
-                if revRead:
-                    dna = reverseComplement(dna)
-
-                # Inspect full dna seq
-                if (self.seq5Prime in dna and self.seq3Prime in dna or
-                        not self.seq5Prime and self.seq3Prime in dna or
-                        self.seq5Prime in dna and not self.seq3Prime):
-
-                    # Find: Substrate indices
-                    start = dna.find(self.seq5Prime) + len(self.seq5Prime)
-                    end = dna.find(self.seq3Prime)
-                    if end == -1:
-                        end = False
-
-                    # Extract substrate dna seq
-                    if end:
-                        substrateDNA = dna[start:end].strip()
-                    else:
-                        substrateDNA = dna[start:].strip()
-                    if len(substrateDNA) == self.seqLength * 3:
-                        substrate = str(Seq.translate(substrateDNA))
-
-                        # Inspect substrate seq
-                        if 'X' not in substrate and '*' not in substrate:
-                            keepSub = True
-                            if useQS:
-                                qs = datapoint.letter_annotations['phred_quality']
-                                if revRead:
-                                    qs = qs[::-1] # Reverse QS
-                                if end:
-                                    qs = qs[start:end]
-                                else:
-                                    qs = qs[start:]
-                                if not all(score >= self.minPhred for score in qs):
-                                    keepSub = False
-
-                            # Filter substrate
-                            if self.fixAA or self.exclAA:
-                                for posExcl, exclAA in self.exclAA.items():
-                                    if exclAA:
-                                        if not isinstance(exclAA, list):
-                                            exclAA = list(exclAA)
-                                        idx = int(posExcl.replace('R', '')) - 1
-                                        if substrate[idx] in exclAA:
-                                            keepSub = False
-                                            break
-                                if not keepSub:
-                                    continue
-
-                                for posFix, fixAA in self.fixAA.items():
-                                    if fixAA:
-                                        if not isinstance(fixAA, list):
-                                            fixAA = list(fixAA)
-                                        idx = int(posFix.replace('R', '')) - 1
-                                        if substrate[idx] not in fixAA:
-                                            keepSub = False
-                                            break
-                            if keepSub:
-                                substrates[substrate] = (
-                                        substrates.get(substrate, 0) + 1
-                                )
-                                totalSubsExtracted += 1
-            return totalSeqs, totalSubsExtracted
-
+        
         # Translate DNA
-        if datasetType == self.datasetTypes['Exp']:
-            totalSeqs, totalSubsExtracted = processDNA(data, self.subsExp, useQS)
-        else:
-            totalSeqs, totalSubsExtracted = processDNA(data, self.subsBg, useQS)
         extractionEfficiency(totalSeqs, totalSubsExtracted, fullSet=True)
         print(f'Finished Translating: {fileName}')
 
