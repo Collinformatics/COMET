@@ -1724,7 +1724,9 @@ class WebApp:
             figLabel = figLabel.replace(' ', '')
         if '/' in figLabel:
             figLabel = figLabel.replace('/', '_')
-        figName = f'{figLabel}-{self.enzymeName}-{datasetType}.png'
+        figName = f'{figLabel}-{self.enzymeName}.png'
+        if datasetType:
+            figName = figName.replace('.png', f'-{datasetType}.png')
         figName = figName.replace(' ', '_').replace('/', '_')
         if totalCounts:
             figName = figName.replace('.png', f'-N_{totalCounts}.png')
