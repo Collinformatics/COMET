@@ -1364,7 +1364,6 @@ class WebApp:
         if form is None:
             self.jobParams['Invalid File'] = True
             return
-
         try:
             self.jobDone = False
             self.evalEnrichment(skipFigs=True)
@@ -1385,11 +1384,6 @@ class WebApp:
                 pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S'])
             )
 
-            # Average Bg data
-            self.rfBg = np.sum(self.rfBg, axis=1) / len(self.rfBg.columns)
-            self.rfBg = pd.DataFrame(self.rfBg, index=self.rfBg.index,
-                                     columns=['Average RF'])
-
             def evalAAs(position, minES):
                 self.fixAA[position] = []
                 for aa in self.eMap.index:
@@ -1399,14 +1393,16 @@ class WebApp:
 
             # Apply Filter
             for pos in self.motifPos.keys():
+                self.jobDone = False
                 if pos not in self.fixAA.keys():
                     evalAAs(pos, self.minES)
-                    self.filterSubs(filterPos=pos)
+                    self.filterSubs(plotEntropy=False, filterPos=pos)
                     self.evalEnrichment(skipFigs=True)
 
 
             # Refine Filter
             for posRel in self.motifPos.keys():
+                self.jobDone = False
                 self.fixAA = {}
                 filter = []
                 for pos in self.motifPos.keys():
@@ -1414,12 +1410,12 @@ class WebApp:
                         filter.append(pos)
                 for posFix in filter: # Release
                     evalAAs(posFix, self.minESRel)
-                self.filterSubs(allSubs=True, relPos=posRel)
+                self.filterSubs(allSubs=True, plotEntropy=False, relPos=posRel)
                 self.evalEnrichment(skipFigs=True)
 
                 # Refilter
                 evalAAs(posRel, self.minESRel)
-                self.filterSubs(allSubs=True, filterPos=posRel)
+                self.filterSubs(allSubs=True, plotEntropy=False, filterPos=posRel)
                 self.evalEnrichment(skipFigs=True)
 
 
@@ -1444,7 +1440,7 @@ class WebApp:
                 if idx == idxEnd:
                     self.exclAA = {}
                     self.saveData = True
-                    self.filterSubs(plotEntropy=False, allSubs=True,
+                    self.filterSubs(allSubs=True, plotEntropy=False,
                                     subProfile=True, relPos=posRel)
                     self.substrateProfile.loc[:, posRel] = self.countsExp.loc[:, posRel]
                     self.countsExp = self.substrateProfile.copy()
@@ -1455,7 +1451,7 @@ class WebApp:
                     # Drop exclusions
                     if exclAA:
                         evalAAs(posRel, self.minESRel)
-                        self.filterSubs(plotEntropy=False, allSubs=True,
+                        self.filterSubs(allSubs=True, plotEntropy=False,
                                         subProfile=True, filterPos=posRel)
                         newFig = False
                         for pos, aa in exclAA.items():
@@ -1469,7 +1465,7 @@ class WebApp:
                             self.calculateEntropy(plotFig=False)
                             self.evalEnrichment(releasedCounts=True, skipFigs=True)
                 else:
-                    self.filterSubs(plotEntropy=False, allSubs=True, relPos=posRel)
+                    self.filterSubs(allSubs=True, plotEntropy=False, relPos=posRel)
                     self.substrateProfile.loc[:, posRel] = self.countsExp.loc[:, posRel]
                     self.countsExp = self.substrateProfile.copy()
                     self.calculateRF()
@@ -1501,7 +1497,7 @@ class WebApp:
         except Exception as e:
             self.logError(f'ERROR: comet()\n\n{e}')
         self.jobDone = True
-        time.sleep(5)
+        time.sleep(2)
         print(f'Job Done: {self.jobDone}')
 
 
