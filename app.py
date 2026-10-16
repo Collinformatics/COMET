@@ -289,10 +289,10 @@ def motifPos():
 
 @app.route('/comet', methods=['POST'])
 def comet():
-    thread = threading.Thread(target=webapp.comet,
-                              args=(parseForm(),))
+    thread = threading.Thread(target=webapp.comet, args=(parseForm(),))
     thread.start()
     time.sleep(1)
+    webapp.jobDone = False
     return render_template(
         'results.html', parameters=webapp.jobParams,
         motifPos=list(webapp.motifPos.items())
