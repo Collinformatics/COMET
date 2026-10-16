@@ -1498,7 +1498,7 @@ class WebApp:
             self.logError(f'ERROR: comet()\n\n{e}')
         self.jobDone = True
         time.sleep(2)
-        print(f'Job Done: {self.jobDone}')
+        print(f'Job Done: COMET')
 
 
     def getMotifSeq(self):
