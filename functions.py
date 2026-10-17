@@ -468,6 +468,9 @@ class WebApp:
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.figures = {}
         self.figTag = ''
+        self.minS = 0.6
+        self.minES = 0
+        self.minESRel = -0.5
         self.subProfile = False
         self.motifFilter = False
 
@@ -527,9 +530,6 @@ class WebApp:
             self.saveData = False
             self.setS = True
             self.iteration = 0
-            self.minS = 0.6
-            self.minES = 0
-            self.minESRel = -0.5
             self.motifPos = {}
             try:
                 self.maxCounts = int(form['maxCounts'])
@@ -1377,11 +1377,11 @@ class WebApp:
             self.log('\n\n================================ Filter Motif '
                      '================================')
             self.minS = float(form['minS'])
-            self.log(f'Minimum ∆S: {self.minS}')
             self.minES = float(form['minES'])
-            self.log(f'Minimum ES: {self.minES}')
             self.minESRel = float(form['minESRel'])
-            self.log(f'Minimum ES Release: {self.minESRel}')
+            self.log(f'Minimum ∆S: {self.minS}\n'
+                     f'Minimum ES Filter: {self.minES}\n'
+                     f'Minimum ES Rel: {self.minESRel}\n')
             self.jobParams['Minimum ∆S'] = self.minS
             self.jobParams['Minimum ES Filter'] = self.minES
             self.jobParams['Minimum ES Release'] = self.minESRel
@@ -1633,6 +1633,15 @@ class WebApp:
             pd.Series(zPred).rank(ascending=False, method='min').astype(int)
         )
         self.log(data)
+        
+        # Log activities
+        self.log(f'\nPredicted Activity:\n'
+                 f'* Normalized: {list(data.loc[:, 'Pred Activity'])}\n'
+                 f'* Z-Scores:   {list(data.loc[:, 'Z-Score Pred'])}\n')
+        self.log(f'Experimental Activity:\n'
+                 f'* Experimental: {list(activityExp.values())}\n'
+                 f'* Normalized:   {list(data.loc[:, 'Exp Activity'])}\n'
+                 f'* Z-Scores:     {list(data.loc[:, 'Z-Score Exp'])}\n')
 
         # Plot activity scores
         rho = False
