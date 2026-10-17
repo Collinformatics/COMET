@@ -536,12 +536,8 @@ class WebApp:
                 self.maxCounts = int(form['maxCounts'])
             except ValueError:
                 self.maxCounts = False
-        elif job == 'Combine Motifs' or job == 'Predict Substrate Activity':
-            if job == 'Predict Substrate Activity':
-                self.avgBgRF = True
-                self.subsPred = [sub.strip() for sub in form['predSubs'].split(',')]
-            else:
-                self.combineProfiles = True
+        elif job == 'Predict Substrate Activity':
+            self.combineProfiles = True
             self.seqLength = int(form['motifLength'])
             for key in form.keys():
                 if 'idxStart' in key:
@@ -560,6 +556,9 @@ class WebApp:
         if job == 'Filter Motif':
             self.motifFilter = True
             self.initCOMET = True
+        elif job == 'Predict Substrate Activity':
+            self.avgBgRF = True
+            self.subsPred = [sub.strip() for sub in form['predSubs'].split(',')]
 
         if 'dropPos' in form.keys():
             self.dropPos = form['dropPos']
@@ -1269,6 +1268,8 @@ class WebApp:
         except Exception as e:
             self.logError(f'ERROR: evalData()\n* Job: {self.jobParams['Job']}\n\n{e}')
         self.jobDone = True
+        if filterMotifs:
+            self.jobDone = False
 
 
     def filterSubs(self, allSubs=False, plotEntropy=True, subProfile=False,
