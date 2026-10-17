@@ -483,7 +483,6 @@ class WebApp:
         self.jobParams['Job'] = job
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
-        self.log(f'Enzyme: {self.enzymeName}')
         if self.enzymeName == 'Mpro2':
             self.enzymeName = f'SARS-CoV-2 M{'ᵖʳᵒ'}'
         elif self.enzymeName == 'Mpro':
@@ -511,6 +510,7 @@ class WebApp:
                  '=================================')
         self.log(f'Job ID: {self.jobParams['Job ID']}')
         self.log(f'Job: {job}')
+        self.log(f'Enzyme: {self.enzymeName}')
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
         self.seqLength = int(form['seqLength'])
@@ -601,6 +601,8 @@ class WebApp:
 
         # Get the filter and initialize the data structures
         self.getFilter(form)
+        if job == 'Filter Motif':
+            self.figTag = f'{self.datasetTagMotif}\nAssign Register'
 
 
     def log(self, txt=None):
@@ -1250,7 +1252,7 @@ class WebApp:
                 self.filterSubs()
                 self.initFixedPos = list(self.fixAA.keys())
                 self.selectMotifPos()
-                self.evalEnrichment()
+                self.evalEnrichment(skipFigs=True)
             elif predActivity:
                 self.predictActivity()
                 try:
@@ -1407,6 +1409,7 @@ class WebApp:
                 # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
             # Apply Filter
+            self.figTag = f'{self.datasetTagMotif}\nMotif ID'
             for idx, pos in enumerate(self.motifPos.keys()):
                 self.jobDone = False
                 if pos in self.initFixedPos:
@@ -1418,6 +1421,7 @@ class WebApp:
                     self.evalEnrichment(skipFigs=True)
 
             # Refine Filter
+            self.figTag = f'{self.datasetTagMotif}\nRefine Filter'
             for posRel in self.motifPos.keys():
                 self.jobDone = False
                 self.fixAA, filter = {}, []
@@ -1437,9 +1441,9 @@ class WebApp:
                 self.evalEnrichment(skipFigs=True)
 
             # Release filter
+            self.figTag = f'{self.datasetTagMotif}\nRelease Filter'
             self.fixAA = {}
             exclAA = self.exclAA.copy()
-            self.figTag = 'Substrate Profile'
             idxEnd = len(self.motifPos.keys()) - 1
             counts = self.countsExp.copy()
             self.substrateProfile = pd.DataFrame(0, index=self.eMap.index,
@@ -1498,6 +1502,7 @@ class WebApp:
                     self.countsExp.loc[:, pos] = counts.loc[:, pos]
             self.subProfile = True
             self.iteration += 1
+            self.figTag = f'{self.datasetTagMotif}\nSubstrate Profile'
             self.calculateRF()
             self.calculateEntropy()
             self.evalEnrichment(releasedCounts=True, noFigs=True)
@@ -1836,14 +1841,10 @@ class WebApp:
 
     def plotEntropy(self):
         # Set figure title
-        if self.datasetTagMotif:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
-        elif self.figTag:
+        if self.figTag:
             title = f'{self.enzymeName}\n{self.figTag}'
         else:
             title = self.enzymeName
-        if self.figTag:
-            title = f'{self.enzymeName}\n{self.figTag}'
         if 'Fix' in title and 'Exclude' in title:
             title = title.replace('Fix', '\nFix')
 
@@ -2091,12 +2092,10 @@ class WebApp:
             scores = self.eMap
 
         # Set figure title
-        if self.datasetTagMotif:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
-        else:
-            title = self.enzymeName
         if self.figTag:
             title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
         if 'Fix' in title and 'Exclude' in title:
             title = title.replace('Fix', '\nFix')
 
@@ -2201,12 +2200,10 @@ class WebApp:
 
     def plotEnrichmentLogo(self):
         # Set figure title
-        if self.datasetTagMotif:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
-        else:
-            title = self.enzymeName
         if self.figTag:
             title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
         if 'Fix' in title and 'Exclude' in title:
             title = title.replace('Fix', '\nFix')
 
@@ -2333,12 +2330,10 @@ class WebApp:
         totalWords = len(substrates)
 
         # Set figure title
-        if self.datasetTagMotif:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
-        else:
-            title = self.enzymeName
         if self.figTag:
             title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
         if 'Fix' in title and 'Exclude' in title:
             title = title.replace('Fix', '\nFix')
 
@@ -2381,8 +2376,8 @@ class WebApp:
 
     def plotWebLogo(self):
         # Set figure title
-        if self.datasetTagMotif:
-            title = f'{self.enzymeName}\n{self.datasetTagMotif}'
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
         else:
             title = self.enzymeName
         if 'Fix' in title and 'Exclude' in title:
@@ -2504,8 +2499,13 @@ class WebApp:
             return None
         NSubs = len(x)
 
-        # Define: Figure title
-        title = f'{self.enzymeName}'
+        # Set figure title
+        if self.figTag:
+            title = f'{self.enzymeName}\n{self.figTag}'
+        else:
+            title = self.enzymeName
+        if 'Fix' in title and 'Exclude' in title:
+            title = title.replace('Fix', '\nFix')
 
         # Plot the data
         fig, ax = plt.subplots(figsize=self.figSize)
