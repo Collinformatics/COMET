@@ -1503,7 +1503,6 @@ class WebApp:
             self.logError(f'ERROR: comet()\n\n{e}')
         time.sleep(5)
         self.jobDone = True
-        print(f'Job Done: COMET')
 
 
     def getMotifSeq(self):
