@@ -525,17 +525,22 @@ class WebApp:
                      f'3\' Sequence: {self.seq3Prime}\n'
                      f'Min Phred Score: {self.minPhred}')
         elif job == 'Filter Motif':
-            try:
-                self.maxCounts = int(form['maxCounts'])
-            except ValueError:
-                self.maxCounts = False
+            self.saveData = False
+            self.setS = True
             self.iteration = 0
             self.minS = 0.6
             self.minES = 0
             self.minESRel = -0.5
             self.motifPos = {}
+            try:
+                self.maxCounts = int(form['maxCounts'])
+            except ValueError:
+                self.maxCounts = False
         elif job == 'Combine Motifs' or job == 'Predict Substrate Activity':
-            if not job == 'Predict Substrate Activity':
+            if job == 'Predict Substrate Activity':
+                self.avgBgRF = True
+                self.subsPred = [sub.strip() for sub in form['predSubs'].split(',')]
+            else:
                 self.combineProfiles = True
             self.seqLength = int(form['motifLength'])
             for key in form.keys():
@@ -567,9 +572,7 @@ class WebApp:
         self.log(f'Substrate Length: {self.seqLength}')
 
         # Conditional params
-        if job == 'Predict Substrate Activity':
-            self.avgBgRF = True
-        else:
+        if not job == 'Predict Substrate Activity':
             self.minCounts = int((round(float(form['minCounts']))))
             self.jobParams['Minimum Count'] = self.minCounts
             self.log(f'Minimum Count: {self.minCounts}')
@@ -1097,13 +1100,10 @@ class WebApp:
         self.jobDone = False
         if filterMotifs:
             self.jobInit(form, job='Filter Motif')
-            self.saveData = False
-            self.setS = True
         elif combineProfiles:
             self.jobInit(form, job='Combine Motifs')
         elif predActivity:
             self.jobInit(form, job='Predict Substrate Activity')
-            self.subsPred = [sub.strip() for sub in form['predSubs'].split(',')]
         else:
             self.jobInit(form, job='Filter AA')
         self.log('\n\n================================== Load Data '
@@ -2053,9 +2053,6 @@ class WebApp:
             # Plot: WordCloud
             if self.subsExp:
                 self.figures['words'] = self.plotWordCloud(self.subsExp)
-
-        if self.motifFilter:
-            self.iteration += 1
 
 
     def plotEnrichmentScores(self, dataType):

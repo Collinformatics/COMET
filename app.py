@@ -47,7 +47,7 @@ def parseForm():
             if value:
                 buf = io.BytesIO(value.read())
                 buf.filename = value.filename # type: ignore[attr-defined]
-                print(f'Filename: {buf.filename}')
+                print(f'Loading: {buf.filename}')
                 buffer.append(buf)
         data[key] = buffer if len(buffer) > 1 else buffer[0]
 
