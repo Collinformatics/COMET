@@ -93,7 +93,7 @@ class WebApp:
         self.iteration = 0
         self.minS = 0.6
         self.minES = 0
-        self.minESRel = -1.0
+        self.minESRel = -0.5
         self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
         self.substrateProfileScl = pd.DataFrame()
@@ -483,7 +483,7 @@ class WebApp:
         date = time.strftime("%Y_%m_%d-%H:%M:%S").replace(':','_')
         self.pathDir = os.path.join('datasets', form['enzymeName'])
         self.pathData = os.path.join(self.pathDir, 'data')
-        self.pathFigs = os.path.join(self.pathDir, 
+        self.pathFigs = os.path.join(self.pathDir,
                                      f'figures-{job.replace(' ', '_')}-{date}')
         self.pathLog = os.path.join(self.pathFigs, 'log.txt')
         if self.pathDir is not None:
@@ -496,10 +496,10 @@ class WebApp:
             if not os.path.exists(self.pathFigs):
                 os.makedirs(self.pathFigs, exist_ok=True)
 
-
         self.log() # Clear the log
         self.log('================================ Job Summary '
                  '=================================')
+        self.log(f'Job ID: {self.jobParams['Job ID']}')
         self.log(f'Job: {job}')
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
@@ -532,7 +532,7 @@ class WebApp:
             self.iteration = 0
             self.minS = 0.6
             self.minES = 0
-            self.minESRel = -1.0
+            self.minESRel = -0.5
             self.motifPos = {}
         elif job == 'Combine Motifs' or job == 'Predict Substrate Activity':
             if not job == 'Predict Substrate Activity':
@@ -554,6 +554,7 @@ class WebApp:
         self.initParams()
         if job == 'Filter Motif':
             self.motifFilter = True
+            self.initCOMET = True
 
         if 'dropPos' in form.keys():
             self.dropPos = form['dropPos']
@@ -1096,7 +1097,6 @@ class WebApp:
         self.jobDone = False
         if filterMotifs:
             self.jobInit(form, job='Filter Motif')
-            self.initCOMET = True
             self.saveData = False
             self.setS = True
         elif combineProfiles:
@@ -1199,7 +1199,7 @@ class WebApp:
                 else:
                     self.log(f'Counts:\n{counts}\n')
                 if (len(c.columns) == len(counts.columns) and
-                        (c.columns != counts.columns).any()):             
+                        (c.columns != counts.columns).any()):
                     self.log(f'Extracted Motif Counts:\n{c}')
                 c.columns = self.xAxisLabel
                 self.countsExp += c
@@ -1242,9 +1242,15 @@ class WebApp:
             if filterMotifs:
                 self.subsExpAll = self.subsExp.copy()
                 self.filterSubs()
+                self.initFixedPos = list(self.fixAA.keys())
                 self.selectMotifPos()
+                self.evalEnrichment()
             elif predActivity:
                 self.predictActivity()
+                try:
+                    os.rmdir(self.pathData) # delete empty dir
+                except OSError:
+                    pass
             elif self.combineProfiles:
                 self.evalProfiles()
             else:
