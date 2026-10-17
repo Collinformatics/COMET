@@ -63,6 +63,7 @@ class WebApp:
         self.printN = 10
         self.roundVal = 3
         self.xAxisLabel = []
+        self.xAxisSet = []
         self.dropPos = []
         self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
         self.entropyMax = None
@@ -449,6 +450,15 @@ class WebApp:
 
 
     def initParams(self):
+        ## Manually set the axis
+        self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
+        if self.xAxisSet:
+            self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
+        else:
+            self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        
         self.datasetTag = ''
         self.datasetTagMotif = ''
         self.maxCounts = False
@@ -463,10 +473,7 @@ class WebApp:
         self.subsBg = {}
         self.subsPred = {}
         self.fileOrder = []
-        self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         self.dropPos = []
-        self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
-        self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.figures = {}
         self.figTag = ''
         self.minS = 0.6
@@ -483,9 +490,9 @@ class WebApp:
         self.jobParams['Job'] = job
         self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
-        if self.enzymeName == 'Mpro2':
+        if self.enzymeName.lower() == 'mpro2':
             self.enzymeName = f'SARS-CoV-2 M{'ᵖʳᵒ'}'
-        elif self.enzymeName == 'Mpro':
+        elif self.enzymeName.lower() == 'mpro':
             self.enzymeName = f'SARS-CoV M{'ᵖʳᵒ'}'
 
         # Initialize directories
@@ -510,8 +517,6 @@ class WebApp:
                  '=================================')
         self.log(f'Job ID: {self.jobParams['Job ID']}')
         self.log(f'Job: {job}')
-        self.log(f'Enzyme: {self.enzymeName}')
-        self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
         self.seqLength = int(form['seqLength'])
 
@@ -1195,6 +1200,11 @@ class WebApp:
         if queuesExpCountsLog:
             self.log('Loading Dataset: Experimental')
         if queuesExpCounts:
+            # Define columns
+            columnLabels = self.xAxisLabel
+            if self.xAxisSet:
+                columnLabels = self.xAxisSet
+            
             # Extract motif counts
             for idx, q in enumerate(queuesExpCounts):
                 counts = q.get()
@@ -1209,13 +1219,14 @@ class WebApp:
                 if (len(c.columns) == len(counts.columns) and
                         (c.columns != counts.columns).any()):
                     self.log(f'Extracted Motif Counts:\n{c}')
-                c.columns = self.xAxisLabel
+                c.columns = columnLabels
                 self.countsExp += c
 
             if len(queuesExpCounts) > 1:
                 self.log(f'\nCombined Registers:\n{self.countsExp}\n')
+            print(f'Counts:\n{self.countExpTotal}')
             self.countExpTotal = self.countsExp.sum()
-            for pos in self.xAxisLabel:
+            for pos in columnLabels:
                 if self.countExpTotal[pos] == 0:
                     self.logError(f'ERROR: loadCounts()\n'
                                   f'* Experimental count matrix contains an empty '
@@ -1268,9 +1279,6 @@ class WebApp:
                 self.figures['barCounts'] = self.plotBars(
                     self.subsExp, dataType='Counts'
                 )
-                # self.figures['barCountsAll'] = self.plotBars(
-                #     self.subsExp, dataType='Counts', plotAll=True
-                # )
                 self.figures['barRF'] = self.plotBars(
                     self.subsExp, dataType='Relative Frequency'
                 )

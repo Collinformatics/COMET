@@ -49,8 +49,8 @@ def parseForm():
                 buf.filename = value.filename # type: ignore[attr-defined]
                 print(f'Loading: {buf.filename}')
                 buffer.append(buf)
-        data[key] = buffer if len(buffer) > 1 else buffer[0]
-
+        if buffer:
+            data[key] = buffer if len(buffer) > 1 else buffer[0]
     return data
 
 
