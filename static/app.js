@@ -606,81 +606,81 @@ function getFigures(pollFigs=true, pollInterval) {
 
     if (pollFigs) {
         const interval = setInterval(() => {
-           // new Flask route returning JSON with filenames
+            // new Flask route returning JSON with filenames
             fetch('/checkFigures', {
                 method: 'GET',
                 headers: { 'X-CSRFToken': csrfToken },
                 credentials: 'same-origin'
             })
-            .then(res => res.json())
-            // Verify if one figure is ready
-            .then(data => {
-                container.innerHTML = ''; // Clear figures
-                if (data.entropyProfile) {
-                    // Figures: Substrate profile
-                    if (data.entropyProfile) addFigure(container, "Substrate Profile: Entropy", data.entropyProfile);
-                    if (data.eMapProfile) addFigure(container, "Substrate Profile: Enrichment Map", data.eMapProfile);
-                    if (data.eMapScProfile) addFigure(container, "Substrate Profile: Scaled Enrichment Map", data.eMapScProfile);
-                    if (data.eLogoProfile && data.eLogoMinProfile) {
-                        addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoProfile, data.eLogoMinProfile);
-                    } else {
-                        if (data.eLogoProfile) {
-                            addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoProfile);
+                .then(res => res.json())
+                // Verify if one figure is ready
+                .then(data => {
+                    container.innerHTML = ''; // Clear figures
+                    if (data.entropyProfile) {
+                        // Figures: Substrate profile
+                        if (data.entropyProfile) addFigure(container, "Substrate Profile: Entropy", data.entropyProfile);
+                        if (data.eMapProfile) addFigure(container, "Substrate Profile: Enrichment Map", data.eMapProfile);
+                        if (data.eMapScProfile) addFigure(container, "Substrate Profile: Scaled Enrichment Map", data.eMapScProfile);
+                        if (data.eLogoProfile && data.eLogoMinProfile) {
+                            addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoProfile, data.eLogoMinProfile);
+                        } else {
+                            if (data.eLogoProfile) {
+                                addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoProfile);
+                            }
+                            if (data.eLogoMinProfile) {
+                                addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoMinProfile);
+                            }
                         }
-                        if (data.eLogoMinProfile) {
-                            addFigure(container, "Substrate Profile: Enrichment Logo", data.eLogoMinProfile);
+                        if (data.wLogoProfile) addFigure(container, "Substrate Profile: WebLogo", data.wLogoProfile);
+                        if (data.wordsProfile) addFigure(container, "Substrate Profile: Word Cloud", data.wordsProfile);
+                    } else if (data.predMatrix) {
+                        if (data.predMatrix) addFigure(container, 'Prediction Matrix', data.predMatrix);
+                        if (data.scatterActivity && data.barPred) {
+                            addFigure(container, "Substrate Activity", data.scatterActivity, data.barPred);
+                        } else {
+                            if (data.scatterActivity) {
+                                addFigure(container, "Substrate Activity", data.scatterActivity);
+                            }
+                            if (data.barPred) {
+                                addFigure(container, "Substrate Activity", data.barPred);
+                            }
                         }
+                        if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
+                        if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
+                    } else if (data.entropy || data.eMap || data.eMapSc ||
+                        data.eLogo || data.eLogoMin ||  data.wLogo || data.words ||
+                        data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
+                        // Figures
+                        if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
+                        if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
+                        if (data.entropy) addFigure(container, 'Entropy', data.entropy);
+                        if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
+                        if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
+                        if (data.eLogo && data.eLogoMin) {
+                            addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
+                        } else {
+                            if (data.eLogo) {
+                                addFigure(container, "Enrichment Logo", data.eLogo);
+                            }
+                            if (data.eLogoMin) {
+                                addFigure(container, "Enrichment Logo", data.eLogoMin);
+                            }
+                        }
+                        if (data.wLogo) addFigure(container, "WebLogo", data.wLogo);
+                        if (data.words) addFigure(container, "Word Cloud", data.words);
+                        if (data.barCounts && data.barCountsAll) {
+                            addFigure(container, "Substrate Counts", data.barCounts, data.barCountsAll);
+                        } else {
+                            if (data.barCounts) {
+                                addFigure(container, "Substrate Counts", data.barCounts);
+                            }
+                            if (data.barCountsAll) {
+                                addFigure(container, "Substrate Counts", data.barCountsAll);
+                            }
+                        }
+                        if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
                     }
-                    if (data.wLogoProfile) addFigure(container, "Substrate Profile: WebLogo", data.wLogoProfile);
-                    if (data.wordsProfile) addFigure(container, "Substrate Profile: Word Cloud", data.wordsProfile);
-                } else if (data.predMatrix) {
-                    if (data.predMatrix) addFigure(container, 'Prediction Matrix', data.predMatrix);
-                    if (data.scatterActivity && data.barPred) {
-                        addFigure(container, "Substrate Activity", data.scatterActivity, data.barPred);
-                    } else {
-                        if (data.scatterActivity) {
-                            addFigure(container, "Substrate Activity", data.scatterActivity);
-                        }
-                        if (data.barPred) {
-                            addFigure(container, "Substrate Activity", data.barPred);
-                        }
-                    }
-                    if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
-                    if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
-                } else if (data.entropy || data.eMap || data.eMapSc ||
-                    data.eLogo || data.eLogoMin ||  data.wLogo || data.words ||
-                    data.barCounts || data.barRF || data.exp_counts || data.bg_counts) {
-                    // Figures
-                    if (data.exp_counts) addFigure(container, "Experimental Counts", data.exp_counts);
-                    if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
-                    if (data.entropy) addFigure(container, 'Entropy', data.entropy);
-                    if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
-                    if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
-                    if (data.eLogo && data.eLogoMin) {
-                        addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
-                    } else {
-                        if (data.eLogo) {
-                            addFigure(container, "Enrichment Logo", data.eLogo);
-                        }
-                        if (data.eLogoMin) {
-                            addFigure(container, "Enrichment Logo", data.eLogoMin);
-                        }
-                    }
-                    if (data.wLogo) addFigure(container, "WebLogo", data.wLogo);
-                    if (data.words) addFigure(container, "Word Cloud", data.words);
-                    if (data.barCounts && data.barCountsAll) {
-                        addFigure(container, "Substrate Counts", data.barCounts, data.barCountsAll);
-                    } else {
-                        if (data.barCounts) {
-                            addFigure(container, "Substrate Counts", data.barCounts);
-                        }
-                        if (data.barCountsAll) {
-                            addFigure(container, "Substrate Counts", data.barCountsAll);
-                        }
-                    }
-                    if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
-                }
-            });
+                });
 
             // Only stop polling when job is done
             fetch('/jobStatus')
@@ -720,39 +720,35 @@ function getFigures(pollFigs=true, pollInterval) {
 }
 
 
-function getEntropyFigure(pollFigs=true) {
+function getFiguresEntropy(pollFigs=true) {
     const csrfToken = document.querySelector('meta[name="csrf_token"]').getAttribute('content');
     const container = document.getElementById("figures-container");
     if (!container) return;
 
     if (pollFigs) {
-        let finishA = false
-        let finishB = false
+        let finishA = false;
+        let finishB = false;
+
         const interval = setInterval(() => {
-           // New Flask route returning JSON with filenames
             fetch('/checkFigures', {
                 method: 'GET',
                 headers: { 'X-CSRFToken': csrfToken },
                 credentials: 'same-origin'
             })
-            .then(res => res.json())
+                .then(res => res.json())
                 .then(data => {
                     if (data.entropy && !finishA) {
                         addFigure(container, 'Entropy', data.entropy);
-                        finishA = true
+                        finishA = true;
                     }
                     if (data.eMap && !finishB) {
                         addFigure(container, "Enrichment Map", data.eMap);
-                        finishB = true
+                        finishB = true;
                     }
-                    if (finishA && finishB) {
-                        const csrfToken = document.querySelector(
-                            'meta[name="csrf_token"]'
-                        ).getAttribute('content');
-                        // addFigure(container, 'Entropy', data.entropy);
-                        // addFigure(container, "Enrichment Map", data.eMap);
 
-                        // Only call updateMinS once entropy is ready
+                    // Only proceed when BOTH are ready
+                    if (finishA && finishB) {
+                        clearInterval(interval);
                         const minSInput = document.getElementById('minS');
                         const minS = parseFloat(minSInput.value);
 
@@ -762,38 +758,36 @@ function getEntropyFigure(pollFigs=true) {
                                 'Content-Type': 'application/json',
                                 'X-CSRFToken': csrfToken
                             },
-                            body: JSON.stringify({minS: minS})
+                            body: JSON.stringify({ minS: minS })
                         })
                             .then(res => res.json())
                             .then(updatedData => {
                                 updateMotifPosDisplay(updatedData);
+
+                                // Check job status AFTER updateMinS completes
+                                return fetch('/jobStatus')
+                                    .then(r => r.json());
                             })
-                            .catch(err => console.error('Error updating minS:', err));
-
-                        clearInterval(interval);
-
-
-                        // Only stop polling when job is done
-                        fetch('/jobStatus')
-                            .then(r => r.json())
                             .then(status => {
                                 if (status.jobStatus) {
-                                    // clearInterval(interval);
-                                    // Append download button to the box
-                                    const buttonContainer = document.getElementById("button-container");
-                                    const buttonWrapper = document.createElement('div');
-                                    buttonWrapper.className = 'button-wrapper';
-                                    const button = document.createElement('button');
-                                    button.className = 'button button-filter';
-                                    button.textContent = 'Filter';
-                                    button.onclick = () => buttonFilterSubs('comet');
-                                    buttonWrapper.appendChild(button);
-                                    buttonContainer.appendChild(buttonWrapper);
+                                const buttonContainer = document.getElementById("button-container");
+                                if (buttonContainer) {
+                                        const buttonWrapper = document.createElement('div');
+                                        buttonWrapper.className = 'button-wrapper';
+                                        const button = document.createElement('button');
+                                        button.className = 'button button-filter';
+                                        button.textContent = 'Filter';
+                                        button.onclick = () => buttonFilterSubs('comet');
+                                        buttonWrapper.appendChild(button);
+                                        buttonContainer.appendChild(buttonWrapper);
+                                    }
                                 }
-                            });
+                            })
+                            .catch(err => console.error('Error in minS update chain:', err));
                     }
-                });
-            }, 1000); // poll: 1000 = 1 second
+                })
+                .catch(err => console.error('Error fetching figures:', err));
+        }, 1000);
     }
 }
 
