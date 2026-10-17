@@ -473,9 +473,8 @@ class WebApp:
 
 
     def jobInit(self, form, job):
-        self.figures = {}
-        self.combineProfiles = False
-        self.jobDone = False
+        self.figures, self.jobParams = {}, {}
+        self.combineProfiles, self.jobDone = False, False
         self.jobParams['Job ID'] = form['jobID']
         self.jobParams['Job'] = job
 
@@ -536,13 +535,14 @@ class WebApp:
                 self.maxCounts = int(form['maxCounts'])
             except ValueError:
                 self.maxCounts = False
-        elif job == 'Predict Substrate Activity':
-            self.combineProfiles = True
+        elif job == 'Combine Motifs' or job == 'Predict Substrate Activity':
+            if job == 'Combine Motifs':
+                self.combineProfiles = True
             self.seqLength = int(form['motifLength'])
             for key in form.keys():
                 if 'idxStart' in key:
                     self.idxMotif[key] = int(form[key]) - 1
-        elif job != 'Filter AA':
+        elif job not in ['Filter AA']:
             print('ERROR: What Script Is Running')
             sys.exit()
         if job == 'Filter AA' or job == 'Filter Motif' or job == 'Combine Motifs':
@@ -1733,6 +1733,8 @@ class WebApp:
         if '/' in figLabel:
             figLabel = figLabel.replace('/', '_')
         figName = f'{figLabel}-{self.enzymeName}.png'
+        if 'PredictionMatrix' in figName:
+            figName = figName.replace('PredictionMatrix', 'PredMatrix')
         if datasetType:
             figName = figName.replace('.png', f'-{datasetType}.png')
         figName = figName.replace(' ', '_').replace('/', '_')
@@ -2689,7 +2691,7 @@ class WebApp:
         )
 
         # File path
-        figName = self.getFileNameFig('predActivity')
+        figName = self.getFileNameFig(f'PredActivity-Scatter-NSubs_{len(data.index)}')
         path = os.path.join(self.pathFigs, figName)
         print(f'Saving activity prediction scatterplot:\n     {path}')
 
@@ -2799,7 +2801,7 @@ class WebApp:
             )
 
         # File path
-        figName = self.getFileNameFig(f'Bars-PredictedActivity-NBars_{len(xTicks)}')
+        figName = self.getFileNameFig(f'PredActivity-Bars-NSubs_{len(xTicks)}')
         path = os.path.join(self.pathFigs, figName)
         print(f'Saving activity prediction bar graph:\n     {path}')
 

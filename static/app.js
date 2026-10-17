@@ -770,17 +770,17 @@ function getFiguresEntropy(pollFigs=true) {
                             })
                             .then(status => {
                                 if (status.jobStatus) {
-                                const buttonContainer = document.getElementById("button-container");
-                                if (buttonContainer) {
-                                        const buttonWrapper = document.createElement('div');
-                                        buttonWrapper.className = 'button-wrapper';
-                                        const button = document.createElement('button');
-                                        button.className = 'button button-filter';
-                                        button.textContent = 'Filter';
-                                        button.onclick = () => buttonFilterSubs('comet');
-                                        buttonWrapper.appendChild(button);
-                                        buttonContainer.appendChild(buttonWrapper);
-                                    }
+                                    const buttonContainer = document.getElementById("button-container");
+                                    if (buttonContainer) {
+                                            const buttonWrapper = document.createElement('div');
+                                            buttonWrapper.className = 'button-wrapper';
+                                            const button = document.createElement('button');
+                                            button.className = 'button button-filter';
+                                            button.textContent = 'Filter';
+                                            button.onclick = () => buttonFilterSubs('comet');
+                                            buttonWrapper.appendChild(button);
+                                            buttonContainer.appendChild(buttonWrapper);
+                                        }
                                 }
                             })
                             .catch(err => console.error('Error in minS update chain:', err));
