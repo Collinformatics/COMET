@@ -208,7 +208,7 @@ function createProfileContainer(subs=true) {
         wrapper3.innerHTML = `
             <label class="label-w" style="width: ${l}" for="fileExp${i}">* Motif Index:</label>
             <input type="number" id="idxStart${i}" name="idxStart${i}" value="${i}"
-                   min="1" max="${maxIdx}" style="width: 60px; height: 22px;"
+                   min="1" max="${maxIdx}" style="width: 60px; height: 25px;"
                    required>
         `;
         container.appendChild(wrapper3);

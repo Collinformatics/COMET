@@ -44,9 +44,11 @@
     --gap: 5px;
     --padSize: 2px;
     --padBox: 20px;
+    --padButtonHeader: 10px;
     --padForm: 5px; /*##*/
     --padInput: 3px;
     --margin: 30px;
+    --marginInfo: 10px;
     --marginVert: 3px;
     --marginFormHorizontal: 10px;
     --marginFormVertical: 15px;
@@ -76,14 +78,14 @@ h1 {
     font-size: var(--textSizeHeader);
     text-align: center;
     margin: 0;
-    padding: 15px;
+    padding: 20px;
 }
 
 h2 {
     color: var(--orange);
     /*text-shadow: 0 0 5px var(--orangeburnt);/**/
     font-size: var(--textSizeHeader);
-    margin: 20px;
+    margin: 25px;
     padding: calc(var(--padSize) * 2) var(--padSize) 0 var(--padSize);
 }
 
@@ -92,7 +94,7 @@ h2 {
     font-size: var(--textSize);
     width: fit-content;
     align-self: flex-start;
-    margin: 0 var(--margin) 5px var(--margin);
+    margin: var(--marginInfo) var(--margin) var(--marginInfo) var(--margin);
     padding: var(--padSize);
 }
 
@@ -159,7 +161,7 @@ p {
     height: 16px;
     border-radius: 50%;
     cursor: pointer;
-    padding-top: 1px;
+    margin-bottom: 6px;
 }.help-icon:hover {
     color: var(--pink);
     background-color: var(--white);
@@ -229,7 +231,7 @@ p {
     border: none;
     margin: 0;
     white-space: nowrap; /* prevents label from wrapping */
-    padding: 10px;
+    padding: var(--padButtonHeader);
     border-radius: 0;
 }.buttonHeader:hover {
     color: var(--buttonHover);
@@ -268,7 +270,7 @@ p {
     background-color: var(--colorBody);
     width: 100%;
     margin: 0 var(--marginFormHorizontal) var(--marginFormVertical) var(--marginFormHorizontal);
-    padding: calc(var(--marginFormVertical)*2) 0 var(--marginFormVertical) 0;
+    padding: calc(var(--marginFormVertical)) 0 var(--marginFormVertical) 0;
 }.form-group {
     font-size: var(--textSize);
     display: flex;
