@@ -451,14 +451,14 @@ class WebApp:
 
     def initParams(self):
         ## Manually set the axis
-        self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        # self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         if self.xAxisSet:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
         else:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
-        
+
         self.datasetTag = ''
         self.datasetTagMotif = ''
         self.maxCounts = False
@@ -569,7 +569,7 @@ class WebApp:
             self.motifFilter = True
             self.initCOMET = True
         elif job == 'Predict Substrate Activity':
-            self.avgBgRF = True
+            # self.avgBgRF = True
             self.subsPred = [sub.strip() for sub in form['predSubs'].split(',')]
 
         if 'dropPos' in form.keys():
@@ -1224,7 +1224,6 @@ class WebApp:
 
             if len(queuesExpCounts) > 1:
                 self.log(f'\nCombined Registers:\n{self.countsExp}\n')
-            print(f'Counts:\n{self.countExpTotal}')
             self.countExpTotal = self.countsExp.sum()
             for pos in columnLabels:
                 if self.countExpTotal[pos] == 0:
@@ -1535,7 +1534,7 @@ class WebApp:
             )
         except Exception as e:
             self.logError(f'ERROR: comet()\n\n{e}')
-        time.sleep(5)
+        time.sleep(3)
         self.jobDone = True
 
 
@@ -1602,16 +1601,21 @@ class WebApp:
             else:
                 break
 
+        # Define columns
+        columnLabels = self.xAxisLabel
+        if self.xAxisSet:
+            columnLabels = self.xAxisSet
+
         # Evaluate prediction matrix
-        predMatrix = pd.DataFrame(0.0, index=self.AA, columns=self.xAxisLabel)
-        for pos in self.rfExp.columns:
+        predMatrix = pd.DataFrame(0.0, index=self.AA, columns=columnLabels)
+        for idx in range(len(self.rfExp.columns)):
             if len(self.rfBg.columns) == 1:
                 bgRF = self.rfBg['Average RF']
             else:
-                bgRF = self.rfBg[pos]
-            predMatrix.loc[:, pos] = self.rfExp[pos] / bgRF
-            predMatrix.loc[:, pos] = (predMatrix.loc[:, pos] /
-                                      sum(predMatrix.loc[:, pos]))
+                bgRF = self.rfBg.iloc[:, idx]
+            predMatrix.iloc[:, idx] = self.rfExp.iloc[:, idx] / bgRF
+            predMatrix.iloc[:, idx] = (predMatrix.iloc[:, idx] /
+                                       sum(predMatrix.iloc[:, idx]))
         self.log(f'Prediction Matrix:\n{predMatrix}\n')
         self.figures['predMatrix'] = (
             self.plotMatrix(
