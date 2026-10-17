@@ -165,7 +165,7 @@ p {
 }.help-icon:hover {
     color: var(--pink);
     background-color: var(--white);
-    border: 1px solid var(--pink);
+    border-color: var(--pink);
 }.help-tooltip {
     color: var(--white);
     background-color: var(--colorBody);
