@@ -61,6 +61,31 @@ def getValue(json, key, default):
     return float(val)
 
 
+def updateParams(jobParams, isJSON=True):
+    try:
+        if isJSON:
+            webapp.minS = getValue(jobParams, 'minS', webapp.minS)
+            webapp.minS = float(jobParams.get('minS'))
+            webapp.jobParams['Minimum ∆S'] = webapp.minS
+            webapp.jobParams['Minimum ES Filter'] = getValue(jobParams, 'minES',
+                                                             webapp.minES)
+            webapp.jobParams['Minimum ES Release'] = getValue(jobParams, 'minESRel',
+                                                              webapp.minESRel)
+        else:
+            # updateParams from form data
+            if 'minS' in jobParams:
+                webapp.minS = float(jobParams['minS'])
+                webapp.jobParams['Minimum ∆S'] = webapp.minS
+            if 'minES' in jobParams:
+                webapp.minES = float(jobParams['minES'])
+                webapp.jobParams['Minimum ES Filter'] = webapp.minES
+            if 'minESRel' in jobParams:
+                webapp.minESRel = float(jobParams['minESRel'])
+                webapp.jobParams['Minimum ES Release'] = webapp.minESRel
+    except Exception as e:
+        webapp.logError(f'ERROR: updateParams()\n\n{e}')
+
+
 @app.route('/')
 def home():
     webapp.jobDone = True
@@ -253,6 +278,11 @@ def updateFig():
     return jsonify(data)
 
 
+@app.route('/motifPos')
+def motifPos():
+    return jsonify(list(webapp.motifPos.items()))
+
+
 @app.route('/setEntropy', methods=['GET'])
 def setEntropy():
     return render_template(
@@ -264,17 +294,7 @@ def setEntropy():
 
 @app.route('/updateMinS', methods=['POST'])
 def updateMinS():
-    json = request.get_json()
-    if not json:
-        return jsonify({'error': 'No data'}), 400
-
-    webapp.minS = getValue(json, 'minS', webapp.minS)
-    webapp.minS = float(json.get('minS'))
-    webapp.jobParams['Minimum ∆S'] = webapp.minS
-    webapp.jobParams['Minimum ES Filter'] = getValue(json, 'minES',
-                                                     webapp.minES)
-    webapp.jobParams['Minimum ES Release'] = getValue(json, 'minESRel',
-                                                      webapp.minESRel)
+    updateParams(request.get_json())
     webapp.selectMotifPos()
     return jsonify({
         'motifPos': list(webapp.motifPos.items()),
@@ -282,21 +302,22 @@ def updateMinS():
     })
 
 
-@app.route('/motifPos')
-def motifPos():
-    return jsonify(list(webapp.motifPos.items()))
-
-
 @app.route('/comet', methods=['POST'])
 def comet():
-    thread = threading.Thread(target=webapp.comet, args=(parseForm(),))
-    thread.start()
-    time.sleep(1)
-    webapp.jobDone = False
-    return render_template(
-        'results.html', parameters=webapp.jobParams,
-        motifPos=list(webapp.motifPos.items())
-    )
+    try:
+        updateParams(request.form, isJSON=False)
+        thread = threading.Thread(target=webapp.comet, args=(parseForm(),))
+        thread.start()
+        time.sleep(1)
+        webapp.jobDone = False
+        return render_template(
+            'results.html', parameters=webapp.jobParams,
+            motifPos=list(webapp.motifPos.items())
+        )
+    except Exception as e:
+        webapp.logError(f'ERROR: /comet\n'
+                      f'* Server error: {str(e)}\n\n{e}')
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
 @app.route('/jobStatus')
