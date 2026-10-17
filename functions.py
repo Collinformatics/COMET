@@ -491,10 +491,10 @@ class WebApp:
 
         # Initialize directories
         date = time.strftime("%Y_%m_%d-%H:%M:%S").replace(':','_')
-        self.pathDir = os.path.join('datasets', self.enzymeName)
+        self.pathDir = os.path.join('datasets', self.enzymeName).replace(' ', '_')
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir,
-                                     f'figures-{job.replace(' ', '_')}-{date}')
+                                     f'figures-{job}-{date}').replace(' ', '_')
         self.pathLog = os.path.join(self.pathFigs, 'log.txt')
         if self.pathDir is not None:
             if not os.path.exists(self.pathDir):
