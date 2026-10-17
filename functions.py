@@ -1392,32 +1392,34 @@ class WebApp:
                 # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
             # Apply Filter
-            for pos in self.motifPos.keys():
+            for idx, pos in enumerate(self.motifPos.keys()):
                 self.jobDone = False
+                if pos in self.initFixedPos:
+                    continue # Skip already fix pos
                 if pos not in self.fixAA.keys():
                     evalAAs(pos, self.minES)
                     self.filterSubs(plotEntropy=False, filterPos=pos)
+                    self.iteration += 1
                     self.evalEnrichment(skipFigs=True)
-
 
             # Refine Filter
             for posRel in self.motifPos.keys():
                 self.jobDone = False
-                self.fixAA = {}
-                filter = []
+                self.fixAA, filter = {}, []
                 for pos in self.motifPos.keys():
                     if pos != posRel:
                         filter.append(pos)
                 for posFix in filter: # Release
                     evalAAs(posFix, self.minESRel)
+                self.iteration += 1
                 self.filterSubs(allSubs=True, plotEntropy=False, relPos=posRel)
                 self.evalEnrichment(skipFigs=True)
 
                 # Refilter
+                self.iteration += 1
                 evalAAs(posRel, self.minESRel)
                 self.filterSubs(allSubs=True, plotEntropy=False, filterPos=posRel)
                 self.evalEnrichment(skipFigs=True)
-
 
             # Release filter
             self.fixAA = {}
@@ -1428,6 +1430,7 @@ class WebApp:
             self.substrateProfile = pd.DataFrame(0, index=self.eMap.index,
                                                  columns=self.eMap.columns)
             for idx, posRel in enumerate(self.motifPos.keys()):
+                self.iteration += 1
                 if posRel in self.exclAA.keys():
                     self.exclAA.pop(posRel)
                 self.fixAA = {}
@@ -1479,6 +1482,7 @@ class WebApp:
                     self.substrateProfile.loc[:, pos] = counts.loc[:, pos]
                     self.countsExp.loc[:, pos] = counts.loc[:, pos]
             self.subProfile = True
+            self.iteration += 1
             self.calculateRF()
             self.calculateEntropy()
             self.evalEnrichment(releasedCounts=True, noFigs=True)
@@ -1493,11 +1497,12 @@ class WebApp:
                 self.plotEnrichmentScores(dataType='Scaled Enrichment')
             )
             self.plotEnrichmentLogo()
+            print(f'Plot words')
             self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
         except Exception as e:
             self.logError(f'ERROR: comet()\n\n{e}')
+        time.sleep(5)
         self.jobDone = True
-        time.sleep(2)
         print(f'Job Done: COMET')
 
 
