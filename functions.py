@@ -89,6 +89,7 @@ class WebApp:
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: COMET
+        self.blockScript = False
         self.initCOMET = False
         self.iteration = 0
         self.minS = 0.6
@@ -480,10 +481,17 @@ class WebApp:
         self.combineProfiles, self.jobDone = False, False
         self.jobParams['Job ID'] = form['jobID']
         self.jobParams['Job'] = job
+        self.enzymeName = form['enzymeName']
+        self.jobParams['Enzyme Name'] = self.enzymeName
+        self.log(f'Enzyme: {self.enzymeName}')
+        if self.enzymeName == 'Mpro2':
+            self.enzymeName = f'SARS-CoV-2 M{'ᵖʳᵒ'}'
+        elif self.enzymeName == 'Mpro':
+            self.enzymeName = f'SARS-CoV M{'ᵖʳᵒ'}'
 
         # Initialize directories
         date = time.strftime("%Y_%m_%d-%H:%M:%S").replace(':','_')
-        self.pathDir = os.path.join('datasets', form['enzymeName'])
+        self.pathDir = os.path.join('datasets', self.enzymeName)
         self.pathData = os.path.join(self.pathDir, 'data')
         self.pathFigs = os.path.join(self.pathDir,
                                      f'figures-{job.replace(' ', '_')}-{date}')
@@ -503,17 +511,16 @@ class WebApp:
                  '=================================')
         self.log(f'Job ID: {self.jobParams['Job ID']}')
         self.log(f'Job: {job}')
-        self.enzymeName = form['enzymeName']
         self.jobParams['Enzyme Name'] = self.enzymeName
         self.log(f'Enzyme: {self.enzymeName}')
         self.seqLength = int(form['seqLength'])
 
-        def addFile(data, value):
-            if isinstance(value, list):
-                for f in value:
+        def addFile(data, val):
+            if isinstance(val, list):
+                for f in val:
                     data.append(f)
             else:
-                data.append(value)
+                data.append(val)
 
         # Job dependant parameters
         self.idxMotif = {}
@@ -1096,7 +1103,7 @@ class WebApp:
         if form is None:
             self.jobParams['Invalid File'] = True
             return
-        self.jobDone = False
+        self.jobDone, self.blockScript = False, True
         if filterMotifs:
             self.jobInit(form, job='Filter Motif')
         elif combineProfiles:
@@ -1270,6 +1277,7 @@ class WebApp:
         self.jobDone = True
         if filterMotifs:
             self.jobDone = False
+        self.blockScript = False
 
 
     def filterSubs(self, allSubs=False, plotEntropy=True, subProfile=False,
@@ -1506,6 +1514,12 @@ class WebApp:
             self.plotEnrichmentLogo()
             print(f'Plot words')
             self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
+            self.figures['barCountsProfile'] = self.plotBars(
+                self.subsExp, dataType='Counts'
+            )
+            self.figures['barRFProfile'] = self.plotBars(
+                self.subsExp, dataType='Relative Frequency'
+            )
         except Exception as e:
             self.logError(f'ERROR: comet()\n\n{e}')
         time.sleep(5)
@@ -2463,7 +2477,6 @@ class WebApp:
                 if i >= limitNSubs:
                     break
                 x.append(substrate), y.append(count)
-        print(f'Plotting {limitNSubs:,} substrates')
 
         # Evaluate data
         if 'counts' in dataType.lower():

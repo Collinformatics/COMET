@@ -633,6 +633,8 @@ function getFigures(pollFigs=true, pollInterval) {
                         }
                         if (data.wLogoProfile) addFigure(container, "Substrate Profile: WebLogo", data.wLogoProfile);
                         if (data.wordsProfile) addFigure(container, "Substrate Profile: Word Cloud", data.wordsProfile);
+                        if (data.barCountsProfile) addFigure(container, "Substrate Profile: Substrate Counts", data.barCountsProfile);
+                        if (data.barRFProfile) addFigure(container, "Substrate Profile: Substrate Frequency", data.barRFProfile);
                     } else if (data.predMatrix) {
                         if (data.predMatrix) addFigure(container, 'Prediction Matrix', data.predMatrix);
                         if (data.scatterActivity && data.barPred) {

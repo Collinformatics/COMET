@@ -304,6 +304,8 @@ def updateMinS():
 
 @app.route('/comet', methods=['POST'])
 def comet():
+    while webapp.blockScript:
+        time.sleep(1) # All previous script to finish
     try:
         updateParams(request.form, isJSON=False)
         thread = threading.Thread(target=webapp.comet, args=(parseForm(),))
@@ -322,7 +324,6 @@ def comet():
 
 @app.route('/jobStatus')
 def jobStatus():
-    # print(f'Job Done: {webapp.jobDone}')
     return {'jobStatus': webapp.jobDone}
 
 
