@@ -452,7 +452,7 @@ class WebApp:
 
     def initParams(self):
         ## Manually set the axis
-        # self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         if self.xAxisSet:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
@@ -1426,6 +1426,7 @@ class WebApp:
                         self.fixAA[position].append(aa)
                 # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
+
             # Motif ID
             self.figTag = f'Motif ID\n{figTag}'
             for idx, pos in enumerate(self.motifPos.keys()):
@@ -1438,18 +1439,19 @@ class WebApp:
                     self.iteration += 1
                     self.evalEnrichment(skipFigs=True)
 
+
             # Refine Filter
             self.figTag = f'Refine Filter\n{figTag}'
             for posRel in self.motifPos.keys():
                 self.iteration += 1
                 self.jobDone = False
-                self.fixAA, filter = {}, []
+                self.fixAA, filterAA = {}, []
 
                 # Release
                 for pos in self.motifPos.keys():
                     if pos != posRel:
-                        filter.append(pos)
-                for posFix in filter:
+                        filterAA.append(pos)
+                for posFix in filterAA:
                     evalAAs(posFix, self.minESRel)
                 self.filterSubs(allSubs=True, plotEntropy=False, relPos=posRel)
                 self.evalEnrichment(skipFigs=True)
@@ -1472,7 +1474,6 @@ class WebApp:
                                                  columns=self.eMap.columns)
             for idx, posRel in enumerate(self.motifPos.keys()):
                 self.iteration += 1
-                filter = []
                 self.fixAA, self.exclAA = {}, exclAA
                 if posRel in self.exclAA.keys():
                     self.exclAA.pop(posRel)
