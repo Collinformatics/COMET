@@ -777,7 +777,6 @@ class WebApp:
         # Log tag
         if self.fixAA or self.exclAA:
             queueLog.put(f'   Filter: {self.datasetTag}')
-        queueLog.put('\n')
 
         # Inspect the datasetType parameter
         if (datasetType != self.datasetTypes['Exp']
@@ -815,10 +814,11 @@ class WebApp:
         if path.filename.endswith(('.fastq', '.fq', '.fastq.gz', '.fq.gz')):
             data = SeqIO.parse(fileHandle, 'fastq')
             useQS = True
-            queueLog.put(f'  Eval QS: {useQS}')
-            queueLog.put(f'Min Phred: {self.minPhred}')
+            queueLog.put(f'  Eval QS: {useQS}\n'
+                         f'Min Phred: {self.minPhred}')
         elif path.filename.endswith(('.fasta', '.fa', '.fasta.gz', '.fa.gz')):
             data = SeqIO.parse(fileHandle, 'fasta')
+        queueLog.put('\n')
 
         # Process file
         totalSeqs, totalSubsExtracted, logData = 0, 0, True
