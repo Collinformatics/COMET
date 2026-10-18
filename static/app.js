@@ -217,7 +217,6 @@ function createProfileContainer(subs=true) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.getAttribute('data-page');
-    console.log('Page: ' + page);
     if (page === 'combine') {
         createProfileContainer(true);  // Show Substrates
     } else if (page === 'predict') {
@@ -682,7 +681,7 @@ function getFigures(pollFigs=true, pollInterval) {
                                 addFigure(container, "Sequence Counts", data.barCountsAll);
                             }
                         }
-                        if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
+                        if (data.barRF) addFigure(container, "Sequence Frequency", data.barRF);
                     }
                 });
 

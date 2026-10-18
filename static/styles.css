@@ -111,9 +111,9 @@ p {
     font-weight: bold;
     text-align: center; /* center inline content */
     display: block;     /* ensure it's block-level */
-    margin: 10px auto;  /* center the block horizontally */
-    margin-bottom: 0;
-    padding: 0 0 calc(var(--marginFormVertical) / 2) 0;
+     /* center the block horizontally */
+     margin: 20px auto 0;
+     padding: 0 0 0 0;
 }.p3 { /* Job Parameters */
     color: var(--textColor);
     font-size: var(--textSizeResults);
@@ -140,6 +140,7 @@ p {
 }
 
 img {
+    width: 90%;
     max-width: 1300px;
     height: auto;
     margin: 10px;

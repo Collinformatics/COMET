@@ -50,8 +50,6 @@ class WebApp:
         self.jobParams = {}
         self.datasetTag = ''
         self.datasetTagMotif = ''
-        self.subProfile = False
-        self.motifFilter = False
         self.combineProfiles = False
         self.saveData = True
 
@@ -90,13 +88,15 @@ class WebApp:
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: COMET
+        self.subProfile = False
+        self.motifFilter = False
         self.blockScript = False
         self.initCOMET = False
         self.initFixedPos = []
         self.iteration = 0
         self.minS = 0.6
         self.minES = 0
-        self.minESRel = -0.5
+        self.minESRel = -1 # -0.5
         self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
         self.substrateProfileScl = pd.DataFrame()
@@ -477,12 +477,14 @@ class WebApp:
         self.dropPos = []
         self.figures = {}
         self.figTag = ''
+        self.subProfile = False
+        self.motifFilter = False
         self.initCOMET = False
         self.initFixedPos = []
         self.iteration = 0
         self.minS = 0.6
         self.minES = 0
-        self.minESRel = -0.5
+        self.minESRel = -1 # -0.5
         self.motifPos = {}
         self.substrateProfile = pd.DataFrame()
         self.substrateProfileScl = pd.DataFrame()
@@ -610,7 +612,8 @@ class WebApp:
         # Get the filter and initialize the data structures
         self.getFilter(form)
         if job == 'Filter Motif':
-            self.figTag = f'{self.datasetTagMotif}\nAssign Register'
+            self.figTag = (f'Assign Register\n'
+                           f'{self.datasetTagMotif.replace('Register', '')}')
 
 
     def log(self, txt=None):
@@ -1291,6 +1294,7 @@ class WebApp:
             self.logError(f'ERROR: evalData()\n* Job: {self.jobParams['Job']}\n\n{e}')
         self.jobDone = True
         if filterMotifs:
+            time.sleep(2)
             self.jobDone = False
         self.blockScript = False
 
@@ -1413,6 +1417,7 @@ class WebApp:
             self.log(
                 pd.DataFrame.from_dict(self.motifPos, orient='index', columns=['∆S'])
             )
+            figTag = self.datasetTagMotif.replace('Register', '')
 
             def evalAAs(position, minES):
                 self.fixAA[position] = []
@@ -1421,8 +1426,8 @@ class WebApp:
                         self.fixAA[position].append(aa)
                 # print(f'Filter (minES={minES}): {position} - {self.fixAA[position]}')
 
-            # Apply Filter
-            self.figTag = f'{self.datasetTagMotif}\nMotif ID'
+            # Motif ID
+            self.figTag = f'Motif ID\n{figTag}'
             for idx, pos in enumerate(self.motifPos.keys()):
                 self.jobDone = False
                 if pos in self.initFixedPos:
@@ -1434,28 +1439,32 @@ class WebApp:
                     self.evalEnrichment(skipFigs=True)
 
             # Refine Filter
-            self.figTag = f'{self.datasetTagMotif}\nRefine Filter'
+            self.figTag = f'Refine Filter\n{figTag}'
             for posRel in self.motifPos.keys():
+                self.iteration += 1
                 self.jobDone = False
                 self.fixAA, filter = {}, []
+
+                # Release
                 for pos in self.motifPos.keys():
                     if pos != posRel:
                         filter.append(pos)
-                for posFix in filter: # Release
+                for posFix in filter:
                     evalAAs(posFix, self.minESRel)
-                self.iteration += 1
                 self.filterSubs(allSubs=True, plotEntropy=False, relPos=posRel)
                 self.evalEnrichment(skipFigs=True)
 
                 # Refilter
+                for posFix in self.motifPos.keys():
+                    evalAAs(posFix, self.minESRel)
                 self.iteration += 1
-                evalAAs(posRel, self.minESRel)
                 self.filterSubs(allSubs=True, plotEntropy=False, filterPos=posRel)
                 self.evalEnrichment(skipFigs=True)
 
-            # Release filter
-            self.figTag = f'{self.datasetTagMotif}\nRelease Filter'
-            self.fixAA = {}
+
+            # Release Filter
+            self.figTag = f'Release Filter\n{figTag}'
+            self.fixAA, fixAA = {}, self.fixAA
             exclAA = self.exclAA.copy()
             idxEnd = len(self.motifPos.keys()) - 1
             counts = self.countsExp.copy()
@@ -1463,15 +1472,14 @@ class WebApp:
                                                  columns=self.eMap.columns)
             for idx, posRel in enumerate(self.motifPos.keys()):
                 self.iteration += 1
+                filter = []
+                self.fixAA, self.exclAA = {}, exclAA
                 if posRel in self.exclAA.keys():
                     self.exclAA.pop(posRel)
-                self.fixAA = {}
-                filter = []
                 for pos in self.motifPos.keys():
                     if pos != posRel:
-                        filter.append(pos)
-                for posFix in filter:
-                    evalAAs(posFix, self.minESRel)
+                        # filter.append(pos)
+                        self.fixAA[pos] = fixAA[pos]
                 if idx == idxEnd:
                     self.exclAA = {}
                     self.saveData = True
@@ -1507,7 +1515,6 @@ class WebApp:
                     self.calculateEntropy(plotFig=False)
                     self.evalEnrichment(releasedCounts=True, skipFigs=True)
 
-
             # Populate non-motif pos
             for pos in counts.columns:
                 if pos not in self.motifPos.keys() and pos not in exclAA.keys():
@@ -1515,7 +1522,7 @@ class WebApp:
                     self.countsExp.loc[:, pos] = counts.loc[:, pos]
             self.subProfile = True
             self.iteration += 1
-            self.figTag = f'{self.datasetTagMotif}\nSubstrate Profile'
+            self.figTag = f'Substrate Profile\n{figTag}'
             self.calculateRF()
             self.calculateEntropy()
             self.evalEnrichment(releasedCounts=True, noFigs=True)
@@ -1530,7 +1537,6 @@ class WebApp:
                 self.plotEnrichmentScores(dataType='Scaled Enrichment')
             )
             self.plotEnrichmentLogo()
-            print(f'Plot words')
             self.figures['wordsProfile'] = self.plotWordCloud(self.subsExp)
             self.figures['barCountsProfile'] = self.plotBars(
                 self.subsExp, dataType='Counts'
@@ -1862,6 +1868,10 @@ class WebApp:
         if self.figTag:
             title = f'{self.enzymeName}\n{self.figTag}'
         else:
+            # tag = self.datasetTag
+            # if 'Exclude' not in tag:
+            #     tag = tag.replace('Fix', '')
+            # title = f'{self.enzymeName}\n{tag}'
             title = self.enzymeName
         if 'Fix' in title and 'Exclude' in title:
             title = title.replace('Fix', '\nFix')
@@ -2488,7 +2498,8 @@ class WebApp:
             for i, count in enumerate(data.values()):
                 x.append(i), y.append(count)
         else:
-            self.figTag = f'Top {limitNSubs:,} Substrates'
+            if not self.motifFilter:
+                self.figTag = f'Top {limitNSubs:,} Substrates'
             for i, (substrate, count) in enumerate(data.items()):
                 if i >= limitNSubs:
                     break

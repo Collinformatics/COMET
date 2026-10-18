@@ -64,14 +64,12 @@
                     parameters.hasOwnProperty('Unique Background Substrates')
                 ) {
                     pollInterval = 1000;
-                    console.log('HERE!')
                 } else if (parameters['Job'] === 'Process DNA') {
                     pollInterval = 180000;
                     // pollInterval = 1000; // ##
                 } else {
                     pollInterval = 1000; // Default to 1 second
                 }
-                console.log('Poll: ' + pollInterval / 1000 + ' sec');
                 getFigures(true, pollInterval);
             });
         </script>
