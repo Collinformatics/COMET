@@ -581,7 +581,8 @@ function addFigure(container, label, fig, fig2 = null) {
     // Add figure
     const img1 = document.createElement('img');
     img1.src = fig;
-    img1.style.maxWidth = '80vw';
+    img1.style.width = '800px';
+    img1.style.maxWidth = '100%';
     img1.style.height = 'auto';
     img1.style.marginBottom = '20px';
     container.appendChild(img1);
@@ -590,7 +591,8 @@ function addFigure(container, label, fig, fig2 = null) {
     if (fig2) {
         const img2 = document.createElement('img');
         img2.src = fig2;
-        img2.style.maxWidth = '80vw';
+        img2.style.width = '800px';
+        img2.style.maxWidth = '100%';
         img2.style.height = 'auto';
         img2.style.marginBottom = '20px';
         container.appendChild(img2);
@@ -633,7 +635,7 @@ function getFigures(pollFigs=true, pollInterval) {
                         }
                         if (data.wLogoProfile) addFigure(container, "Substrate Profile: WebLogo", data.wLogoProfile);
                         if (data.wordsProfile) addFigure(container, "Substrate Profile: Word Cloud", data.wordsProfile);
-                        if (data.barCountsProfile) addFigure(container, "Substrate Profile: Substrate Counts", data.barCountsProfile);
+                        if (data.barCountsProfile) addFigure(container, "Substrate Profile: Sequence Counts", data.barCountsProfile);
                         if (data.barRFProfile) addFigure(container, "Substrate Profile: Substrate Frequency", data.barRFProfile);
                     } else if (data.predMatrix) {
                         if (data.predMatrix) addFigure(container, 'Prediction Matrix', data.predMatrix);
@@ -671,13 +673,13 @@ function getFigures(pollFigs=true, pollInterval) {
                         if (data.wLogo) addFigure(container, "WebLogo", data.wLogo);
                         if (data.words) addFigure(container, "Word Cloud", data.words);
                         if (data.barCounts && data.barCountsAll) {
-                            addFigure(container, "Substrate Counts", data.barCounts, data.barCountsAll);
+                            addFigure(container, "Sequence Counts", data.barCounts, data.barCountsAll);
                         } else {
                             if (data.barCounts) {
-                                addFigure(container, "Substrate Counts", data.barCounts);
+                                addFigure(container, "Sequence Counts", data.barCounts);
                             }
                             if (data.barCountsAll) {
-                                addFigure(container, "Substrate Counts", data.barCountsAll);
+                                addFigure(container, "Sequence Counts", data.barCountsAll);
                             }
                         }
                         if (data.barRF) addFigure(container, "Substrate Frequency", data.barRF);
@@ -730,6 +732,8 @@ function getFiguresEntropy(pollFigs=true) {
     if (pollFigs) {
         let finishA = false;
         let finishB = false;
+        let finishC = false;
+        let finishD = false;
 
         const interval = setInterval(() => {
             fetch('/checkFigures', {
@@ -747,9 +751,23 @@ function getFiguresEntropy(pollFigs=true) {
                         addFigure(container, "Enrichment Map", data.eMap);
                         finishB = true;
                     }
+                    if (data.eLogo && data.eLogoMin && !finishC && !finishD) {
+                        addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);
+                        finishC = true;
+                        finishD = true;
+                    } else {
+                        if (data.eLogoProfile && !finishC) {
+                            addFigure(container, "Enrichment Logo", data.eLogo);
+                            finishC = true;
+                        }
+                        if (data.eLogoMinProfile && !finishD) {
+                            addFigure(container, "Enrichment Logo", data.eLogoMin);
+                            finishD = true;
+                        }
+                    }
 
                     // Only proceed when BOTH are ready
-                    if (finishA && finishB) {
+                    if (finishA && finishB && finishC && finishD) {
                         clearInterval(interval);
                         const minSInput = document.getElementById('minS');
                         const minS = parseFloat(minSInput.value);

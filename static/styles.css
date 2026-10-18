@@ -139,6 +139,12 @@ p {
     width: fit-content;       /* only take up needed space */
 }
 
+img {
+    max-width: 1300px;
+    height: auto;
+    margin: 10px;
+}
+
 .highlight {
     color: var(--orangeburnt)
 }
@@ -260,9 +266,9 @@ p {
     align-items: center;
     margin: var(--padBox);
 }.figure-img {
-    max-width: 80vw;
-    width: 100%;
-    height: auto;
+     /*max-width: 80vw;*/
+     /*width: 100%;*/
+     height: auto;
 }
 
 /* Forms */
