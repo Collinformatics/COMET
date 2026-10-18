@@ -92,6 +92,7 @@ class WebApp:
         # Params: COMET
         self.blockScript = False
         self.initCOMET = False
+        self.initFixedPos = []
         self.iteration = 0
         self.minS = 0.6
         self.minES = 0
@@ -476,11 +477,15 @@ class WebApp:
         self.dropPos = []
         self.figures = {}
         self.figTag = ''
+        self.initCOMET = False
+        self.initFixedPos = []
+        self.iteration = 0
         self.minS = 0.6
         self.minES = 0
         self.minESRel = -0.5
-        self.subProfile = False
-        self.motifFilter = False
+        self.motifPos = {}
+        self.substrateProfile = pd.DataFrame()
+        self.substrateProfileScl = pd.DataFrame()
 
 
     def jobInit(self, form, job):
@@ -541,8 +546,6 @@ class WebApp:
         elif job == 'Filter Motif':
             self.saveData = False
             self.setS = True
-            self.iteration = 0
-            self.motifPos = {}
             try:
                 self.maxCounts = int(form['maxCounts'])
             except ValueError:
@@ -1272,7 +1275,10 @@ class WebApp:
             elif self.combineProfiles:
                 self.evalProfiles()
             else:
+                ###
                 self.filterSubs()
+                self.figTag = (f'N Experimental {sum(self.subsExp.values()):,}\n'
+                               f'N Background {sum(self.countsBg.iloc[:, 1]):,}')
                 self.evalEnrichment()
             if not filterMotifs and not predActivity:
                 self.figures['barCounts'] = self.plotBars(
@@ -2340,6 +2346,8 @@ class WebApp:
                 break
         substrates = subs
         totalWords = len(substrates)
+        if not self.motifFilter:
+            self.figTag = f'Top {totalWords} Substrates'
 
         # Set figure title
         if self.figTag:
@@ -2475,11 +2483,12 @@ class WebApp:
             return
         x, y, totalCounts, limitNSubs = [], [], sum(data.values()), self.numSamples
         if plotAll:
-            barWidth = 1.5
-            limitNSubs = len(data.keys())
+            barWidth, limitNSubs = 1.5, len(data.keys())
+            self.figTag = f'{limitNSubs:,} Substrates'
             for i, count in enumerate(data.values()):
                 x.append(i), y.append(count)
         else:
+            self.figTag = f'Top {limitNSubs:,} Substrates'
             for i, (substrate, count) in enumerate(data.items()):
                 if i >= limitNSubs:
                     break
