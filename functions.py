@@ -452,7 +452,7 @@ class WebApp:
 
     def initParams(self):
         ## Manually set the axis
-        self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        # self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         if self.xAxisSet:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
