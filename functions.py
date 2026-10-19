@@ -452,7 +452,7 @@ class WebApp:
 
     def initParams(self):
         ## Manually set the axis
-        # self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         if self.xAxisSet:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
@@ -614,6 +614,8 @@ class WebApp:
         if job == 'Filter Motif':
             self.figTag = (f'Assign Register\n'
                            f'{self.datasetTagMotif.replace('Register', '')}')
+        elif job == 'Combine Motifs':
+            self.figTag = f'Specificity Landscape'
 
 
     def log(self, txt=None):
@@ -1807,6 +1809,11 @@ class WebApp:
         return figName
 
 
+    def stats(self):
+        self.log('\n\n================================= Statistics '
+                 '=================================')
+
+
     def calculateRF(self):
         self.log('\n\n=============================== Calculate: RF '
                  '================================')
@@ -2166,7 +2173,7 @@ class WebApp:
                 cbar_kws={'pad': 0.02}
             )
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        ax.set_xlabel('Position', fontsize=self.labelSizeAxis)
+        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
         fig.tight_layout()
         fig.set_size_inches(self.figSize)
