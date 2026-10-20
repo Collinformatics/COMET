@@ -1860,11 +1860,10 @@ class WebApp:
         self.log('\n\n================================= Statistics '
                  '=================================')
         es = []
-        df = pd.DataFrame(0.0, index=self.countsExp.index, columns=columnLabels)
         columnLabels = self.xAxisLabel
         if self.xAxisSet:
             columnLabels = self.xAxisSet
-
+        df = pd.DataFrame(0.0, index=self.countsExp.index, columns=columnLabels)
 
         # Evaluate: Counts
         for idx, counts in enumerate(self.countsExpSets):
