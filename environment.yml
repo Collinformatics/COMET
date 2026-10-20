@@ -1,4 +1,4 @@
-name: comet-web
+name: comet
 channels:
   - defaults
   - conda-forge
