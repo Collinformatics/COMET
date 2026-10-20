@@ -658,6 +658,7 @@ function getFigures(pollFigs=true, pollInterval) {
                         if (data.bg_counts) addFigure(container, "Background Counts", data.bg_counts);
                         if (data.entropy) addFigure(container, 'Entropy', data.entropy);
                         if (data.eMap) addFigure(container, "Enrichment Map", data.eMap);
+                        if (data.stDev) addFigure(container, "Standard Deviation", data.stDev);
                         if (data.eMapSc) addFigure(container, "Scaled Enrichment Map", data.eMapSc);
                         if (data.eLogo && data.eLogoMin) {
                             addFigure(container, "Enrichment Logo", data.eLogo, data.eLogoMin);

@@ -63,28 +63,26 @@ class WebApp:
         self.xAxisLabel = []
         self.xAxisSet = []
         self.dropPos = []
-        self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
-        self.entropyMax = None
         self.subsExp = {}
         self.subsExpAll = {}
         self.subsPred = {}
         self.countsExp = pd.DataFrame()
+        self.countsExpSets = []
         self.countExpTotal = 0
         self.countExpUnique = 0
         self.rfExp = None
         self.rfExpScaled = None
-        self.saveTagExp = {}
         self.subsBg = {}
         self.countsBg = pd.DataFrame()
         self.countBgTotal = 0
         self.countBgUnique = 0
         self.rfBg = None
+        self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
+        self.entropyMax = None
         self.eMap = None
         self.eMapScaled = None
         self.eMapReleased = None
         self.eMapReleasedScaled = None
-        self.saveTagBg = {}
-        self.saveTagFig = {}
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         # Params: COMET
@@ -192,8 +190,8 @@ class WebApp:
             colors = ['navy','royalblue','dodgerblue','lightskyblue','white',
                       'white','lightcoral','red','firebrick','darkred']
         else:
-            print(f'ERROR: Cannot create colormap. '
-                  f'Unrecognized colorType parameter: {colorType}\n')
+            self.logError(f'ERROR: Cannot create colormap. '
+                          f'Unrecognized colorType parameter: {colorType}')
             sys.exit(1)
 
         # Create colormap
@@ -452,13 +450,29 @@ class WebApp:
 
     def initParams(self):
         ## Manually set the axis
-        self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        # self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         if self.xAxisSet:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
         else:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
         self.countsBg = pd.DataFrame(0, index=self.AA, columns=self.xAxisLabel)
+        self.countsExpSets = []
+        self.countExpTotal = 0
+        self.countExpUnique = 0
+        self.rfExp = None
+        self.rfExpScaled = None
+        self.subsBg = {}
+        self.countBgTotal = 0
+        self.countBgUnique = 0
+        self.rfBg = None
+        self.entropy = pd.DataFrame(0.0, index=[], columns=['∆S'])
+        self.entropyMax = None
+        self.eMap = None
+        self.eMapScaled = None
+        self.eMapReleased = None
+        self.eMapReleasedScaled = None
+        self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
 
         self.datasetTag = ''
         self.datasetTagMotif = ''
@@ -1222,6 +1236,9 @@ class WebApp:
                 c = counts.iloc[:, idxN:idxC]
                 if len(queuesExpCounts) > 1:
                     self.log(f'Counts: {idx}\n{counts}\n')
+                    countMotif = c.copy()
+                    countMotif.columns = columnLabels
+                    self.countsExpSets.append(countMotif)
                 else:
                     self.log(f'Counts:\n{counts}\n')
                 if (len(c.columns) == len(counts.columns) and
@@ -1580,6 +1597,8 @@ class WebApp:
 
     def evalProfiles(self):
         self.calculateRF()
+        if len(self.countsExpSets) > 1:
+            self.evalStats()
         self.calculateEntropy()
         self.evalEnrichment()
 
@@ -1809,11 +1828,6 @@ class WebApp:
         return figName
 
 
-    def stats(self):
-        self.log('\n\n================================= Statistics '
-                 '=================================')
-
-
     def calculateRF(self):
         self.log('\n\n=============================== Calculate: RF '
                  '================================')
@@ -1840,6 +1854,49 @@ class WebApp:
                             count = 1
                         self.rfBg.loc[AA, pos] = count / totalCounts
             self.log(f'\nRF Background:\n{self.rfBg}')
+
+
+    def evalStats(self):
+        self.log('\n\n================================= Statistics '
+                 '=================================')
+        es = []
+        df = pd.DataFrame(0.0, index=self.countsExp.index, columns=columnLabels)
+        columnLabels = self.xAxisLabel
+        if self.xAxisSet:
+            columnLabels = self.xAxisSet
+
+
+        # Evaluate: Counts
+        for idx, counts in enumerate(self.countsExpSets):
+            rf, eMap = df.copy(), df.copy()
+            self.log(f'Counts: {idx}\n'
+                     f'{counts}\n')
+
+            # Calculate: RF
+            for pos in counts.columns:
+                rf.loc[:, pos] = counts.loc[:, pos] / sum(counts.loc[:, pos])
+            self.log(f'RF: {idx}\n{rf}\n')
+
+            # Calculate: Enrichment
+            if 'Average RF' in self.rfBg.columns:
+                for pos in rf.columns:
+                    eMap.loc[:, pos] = (
+                        np.log2(rf.loc[:, pos] / self.rfBg.loc[:, 'Average RF'])
+                    )
+            else:
+                for pos in rf.columns:
+                    eMap.loc[:, pos] = (
+                        np.log2(rf.loc[:, pos] / self.rfBg.loc[:, pos])
+                    )
+            es.append(eMap)
+            self.log(f'Enrichment Map: {idx}\n{eMap}\n\n')
+
+        # Calculate: Standard Deviation
+        stDevES = pd.DataFrame(np.std(es, axis=0),
+                               index=self.countsExp.index, columns=columnLabels)
+
+        # Plot: Standard deviation
+        self.figures['stDev'] = self.plotStats(data=stDevES, dataType='StDev')
 
 
     def calculateEntropy(self, plotFig=True):
@@ -1975,7 +2032,7 @@ class WebApp:
     def calculateWebLogo(self):
         # Evaluate weblogo
         self.rfExpScaled = pd.DataFrame(
-            0.0, index=self.countsExp.index, columns=self.countsExp.columns
+            0.0, index=self.rfExp.index, columns=self.rfExp.columns
         )
         for pos in self.entropy.index:
             self.rfExpScaled.loc[:, pos] = (
@@ -2094,7 +2151,6 @@ class WebApp:
         evalMatrix(matrix.replace([np.inf, -np.inf], 0))
         self.eMapScaled = self.scaleMatrix(self.eMap)
         evalMatrix(self.eMapScaled)
-
         if noFigs:
             return
 
@@ -2222,6 +2278,95 @@ class WebApp:
             figName = figName.replace('eMap', 'eMap_Scaled')
         path = os.path.join(self.pathFigs, figName)
         print(f'Saving EM at:\n   {path}')
+
+        # Encode the figure
+        figBase64 = self.encodeFig(fig)
+        with open(path, "wb") as file:
+            file.write(base64.b64decode(figBase64))
+
+        # Close the figure to free memory
+        plt.close(fig)
+
+        return figName
+
+
+    def plotStats(self, data, dataType):
+        self.log(f'Standard deviation:\n{data}\n\n')
+
+        title = f'{self.enzymeName}\nStandard Deviation'
+
+        # Create heatmap
+        cMapCustom = self.createCustomColorMap(colorType=dataType)
+
+        # Convert the counts to a data frame for Seaborn heatmap
+        if self.residueLabelType == 0:
+            data.index = [residue[0] for residue in self.residues]
+        elif self.residueLabelType == 1:
+            data.index = [residue[1] for residue in self.residues]
+        elif self.residueLabelType == 2:
+            data.index = [residue[2] for residue in self.residues]
+
+        # Define color bar limits
+        cBarMax = np.ceil(np.max(data) * 10) / 10
+        cBarMin = 0
+
+        # Plot the heatmap with numbers centered inside the squares
+        fig, ax = plt.subplots(figsize=self.figSize)
+        sns.heatmap(
+            data, annot=True, fmt='.3f', cmap=cMapCustom, cbar=False,
+            linewidths=self.lineThickness - 1, linecolor='black',
+            square=False, center=None, vmax=cBarMax, vmin=cBarMin,
+            annot_kws={'fontweight': 'bold', 'size': self.labelSizeEM},
+            cbar_kws={'pad': 0.02}
+        )
+        ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
+        ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
+        ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
+        fig.tight_layout()
+        fig.set_size_inches(self.figSize)
+
+        # Set the thickness of the figure border
+        for _, spine in ax.spines.items():
+            spine.set_visible(True)
+            spine.set_linewidth(self.lineThickness)
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', rotation=0, length=self.tickLength,
+                       labelsize=self.labelSizeTicks, width=self.lineThickness)
+
+        # Set x-ticks
+        xTicks = np.arange(len(data.columns)) + 0.5
+        ax.set_xticks(xTicks)
+        ax.set_xticklabels(data.columns)
+
+        # Set y-ticks
+        yTicks = np.arange(len(data.index)) + 0.5
+        ax.set_yticks(yTicks)
+        ax.set_yticklabels(data.index)
+
+        # Colormap
+        if isinstance(cMapCustom, Colormap):
+            cmap = cMapCustom
+        else:
+            # Look up premade colormap
+            cmap = matplotlib.colormaps[cMapCustom]
+        cmap.set_bad(color='lightgrey')  # Set invalid values to gray
+
+        # Modify the colorbar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="4%", pad=0.1)
+        norm = plt.Normalize(vmin=cBarMin, vmax=cBarMax)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom),
+                            cax=cax)
+        cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
+                            length=self.tickLength, width=self.lineThickness)
+        cbar.outline.set_linewidth(self.lineThickness)
+        cbar.outline.set_edgecolor('black')
+
+        # File path
+        figName = self.getFileNameFig(dataType)
+        path = os.path.join(self.pathFigs, figName)
+        print(f'Saving Standard Deviation at:\n   {path}')
 
         # Encode the figure
         figBase64 = self.encodeFig(fig)
