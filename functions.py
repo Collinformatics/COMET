@@ -1896,7 +1896,7 @@ class WebApp:
                                index=self.countsExp.index, columns=columnLabels)
 
         # Plot: Standard deviation
-        self.figures['stDev'] = self.plotStats(data=stDevES, dataType='StDev')
+        self.figures['stDev'] = self.plotStats(data=stDevES, dataType='stDev')
 
 
     def calculateEntropy(self, plotFig=True):
@@ -2762,7 +2762,7 @@ class WebApp:
 
         # File path
         figName = self.getFileNameFig(
-            f'Bars-{dataType.replace(' ', '_')}-NBars_{len(xTicks)}'
+            f'bars-{dataType.replace(' ', '_')}-NBars_{len(xTicks)}'
         )
         path = os.path.join(self.pathFigs, figName)
 
