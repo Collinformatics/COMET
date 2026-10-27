@@ -1,7 +1,7 @@
 :root {
     --black: #101010;
-    --greydark: #222222;
     --grey: #303030;
+    --greyHeader: #303030;
     --greylight: #585858;
     --white: #FFFFFF;
     --red: #EF3232;
@@ -12,7 +12,7 @@
     --pink: #FF20FF;
 
     --colorBody: var(--black);
-    --colorHeader: var(--greydark);
+    --colorHeader: var(--greyHeader);
     --colorBox: var(--colorBody);
     --colorForm: var(--grey);
     --colorInput: var(--colorBody);
