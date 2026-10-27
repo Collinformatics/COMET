@@ -65,7 +65,7 @@ Two possible solutions are:
     
         ./killServer.sh
 
-    If you host the website at a port other than 9090, add the port to the command:
+    If you host the website with a port other than 9090, add the port to the command:
     
         ./killServer.sh <port>
 
