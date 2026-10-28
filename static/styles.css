@@ -105,12 +105,14 @@ p {
     align-self: flex-start;
     margin: 0 var(--margin) 10px var(--margin);
     padding: var(--padSize);
+    text-align: left; /* Align text */
 }.p2 {
-    color: var(--orange);
-    font-size: calc(var(--textSize) + var(--textSizeInc));
-    font-weight: bold;
-    text-align: center; /* center inline content */
-    display: block;     /* ensure it's block-level */
+     color: var(--orange);
+     max-width: 1200px;
+     font-size: calc(var(--textSize) + var(--textSizeInc));
+     font-weight: bold;
+     text-align: center; /* center inline content */
+     display: block;     /* ensure it's block-level */
      /* center the block horizontally */
      margin: 20px auto 0;
      padding: 0 0 0 0;
