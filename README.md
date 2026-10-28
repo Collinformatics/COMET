@@ -5,7 +5,7 @@ COMET (COmprehensive Motif Evaluation Toolkit) was developed to process high-thr
 The process involves multiple stages to refine a comprehensive substrate profile as illustrated below:
 
 <p align="center">
-    <img width="3150" height="2700" alt="COMET" src="https://github.com/user-attachments/assets/582a2c13-69e0-4e7b-875d-36df4970f259" />
+    <img width="3150" height="2700" alt="COMET" src="https://github.com/user-attachments/assets/1eb3108a-3a66-4221-8d01-bd10030c5e0c" />
 </p>
 
 # Installation:
