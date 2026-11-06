@@ -54,7 +54,7 @@ class WebApp:
         self.saveData = True
 
         # Params: Dataset
-        self.useCustomAxis = False
+        self.useCustomAxis = True
         self.customAxis = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\'']
         self.enzymeName = ''
         self.seqLength = 0
@@ -86,7 +86,6 @@ class WebApp:
         self.eMapReleased = None
         self.eMapReleasedScaled = None
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
-        
 
         # Params: COMET
         self.subProfile = False
@@ -164,7 +163,7 @@ class WebApp:
         self.orangeBurnt = '#BF5700'
 
         # Print params
-        pd.options.display.float_format = '{:,.3f}'.format
+        pd.options.display.float_format = lambda x: f'{x:,.{self.roundVal}f}'
         pd.set_option('display.max_rows', None)
         pd.set_option('display.max_columns', None)
         pd.set_option('display.width', None)
@@ -1894,6 +1893,31 @@ class WebApp:
             es.append(eMap)
             self.log(f'Enrichment Map: {idx}\n{eMap}\n\n')
 
+        # Pearson coefficient
+        if len(es) > 1:
+            from scipy.stats.stats import pearsonr
+            from itertools import combinations
+            indicies = [i for i in range(len(es))]
+            combos = list(combinations(indicies, 2))
+            pearson = pd.DataFrame(0.0, index=[], columns=columnLabels)
+            pValues = pd.DataFrame(0.0, index=[], columns=columnLabels)
+            for combo in combos:
+                set1, set2 = combo[0], combo[1]
+                m1, m2 = es[set1], es[set2]
+                for pos in columnLabels:
+                    vect1, vect2 = np.array(m1.loc[:, pos]), np.array(m2.loc[:, pos])
+                    x = pearsonr(
+                        vect1, vect2
+                    )
+                    pearson.loc[f'{combo}', pos] = x[0]
+                    pValues.loc[f'{combo}', pos] = x[1]
+            pearson.to_csv(
+                os.path.join(self.pathFigs, 'pearson.csv'), float_format='%.4f'
+            )
+            pValues.to_csv(
+                os.path.join(self.pathFigs, 'pValues.csv'), float_format='%.4e'
+            )
+
         # Calculate: Standard Deviation
         stDevES = pd.DataFrame(np.std(es, axis=0),
                                index=self.countsExp.index, columns=columnLabels)
@@ -2306,7 +2330,7 @@ class WebApp:
 
 
     def plotStats(self, data, dataType):
-        self.log(f'Standard deviation:\n{data}\n\n')
+        self.log(f'Standard deviation:\n{data}\n')
 
         title = f'{self.enzymeName}\nStandard Deviation'
 
