@@ -581,7 +581,7 @@ function addFigure(container, label, fig, fig2 = null) {
     const img1 = document.createElement('img');
     img1.src = fig;
     img1.style.width = '800px';
-    img1.style.maxWidth = '100%';
+    img1.style.maxWidth = '80%';
     img1.style.height = 'auto';
     img1.style.marginBottom = '20px';
     container.appendChild(img1);
@@ -591,7 +591,7 @@ function addFigure(container, label, fig, fig2 = null) {
         const img2 = document.createElement('img');
         img2.src = fig2;
         img2.style.width = '800px';
-        img2.style.maxWidth = '100%';
+        img2.style.maxWidth = '80%';
         img2.style.height = 'auto';
         img2.style.marginBottom = '20px';
         container.appendChild(img2);

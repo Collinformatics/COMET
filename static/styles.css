@@ -269,8 +269,6 @@ img {
     align-items: center;
     margin: var(--padBox);
 }.figure-img {
-     /*max-width: 80vw;*/
-     /*width: 100%;*/
      height: auto;
 }
 
@@ -314,7 +312,6 @@ img {
     border: 2px solid var(--borderColor);
     margin: 0 var(--margin) 0 var(--margin);
     border-radius: var(--radForm);
-    min-width: 200px;
     padding: var(--padBox); /* ## Pad the input form */
     display: block;
 }.form-button {

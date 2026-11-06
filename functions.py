@@ -54,6 +54,8 @@ class WebApp:
         self.saveData = True
 
         # Params: Dataset
+        self.useCustomAxis = False
+        self.customAxis = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\'']
         self.enzymeName = ''
         self.seqLength = 0
         self.maxCounts = False
@@ -84,6 +86,7 @@ class WebApp:
         self.eMapReleased = None
         self.eMapReleasedScaled = None
         self.datasetTypes = {'Exp': 'Experimental', 'Bg': 'Background'}
+        
 
         # Params: COMET
         self.subProfile = False
@@ -282,8 +285,7 @@ class WebApp:
         # Save figure to a memory buffer instead of disk
         buffer = io.BytesIO()
         plt.savefig(
-            buffer, format='png', bbox_inches='tight',
-            dpi=self.figureResolution
+            buffer, format='png', dpi=self.figureResolution, bbox_inches='tight'
         )
         buffer.seek(0)
 
@@ -450,7 +452,7 @@ class WebApp:
 
     def initParams(self):
         ## Manually set the axis
-        # self.xAxisSet = ['P4','P3','P2','P1',"P1'","P2'", "P3'", "P4'"][:self.seqLength]
+        # self.xAxisSet = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\''][:self.seqLength]
         self.xAxisLabel = [f'R{index}' for index in range(1, self.seqLength + 1)]
         if self.xAxisSet:
             self.countsExp = pd.DataFrame(0, index=self.AA, columns=self.xAxisSet)
@@ -1770,6 +1772,8 @@ class WebApp:
         xTicks = np.arange(len(data.columns)) + 0.5
         ax.set_xticks(xTicks)
         ax.set_xticklabels(data.columns)
+        if self.useCustomAxis:
+            ax.set_xticklabels(self.customAxis[0:len(xTicks)])
 
         # Set y-ticks
         yTicks = np.arange(len(data.index)) + 0.5
@@ -1971,17 +1975,14 @@ class WebApp:
         plt.ylabel(self.entropy.columns[0], fontsize=self.labelSizeAxis,
                    rotation=0, labelpad=15)
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        plt.tight_layout()
-        fig.set_size_inches(self.figSize)
-
-        # Set tick parameters
-        ax.tick_params(axis='both', which='major', length=self.tickLength,
-                       labelsize=self.labelSizeTicks)
 
         # Set x-ticks
         xTicks = np.arange(0, xMax, 1)
         ax.set_xticks(xTicks)
-        ax.set_xticklabels(self.entropy.index, rotation=0, ha='center')
+        ax.set_xticklabels(self.entropy.index, rotation=0, ha='center',
+                           fontsize=self.labelSizeTicks)
+        if self.useCustomAxis:
+            ax.set_xticklabels(self.customAxis[0:len(xTicks)], fontsize=self.labelSizeTicks)
         for tick in ax.xaxis.get_major_ticks():
             tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
 
@@ -1989,9 +1990,13 @@ class WebApp:
         yTicks = range(0, 5)
         yTickLabels = [f'{tick:.0f}' if tick != 0 else f'{int(tick)}' for tick in yTicks]
         ax.set_yticks(yTicks)
-        ax.set_yticklabels(yTickLabels)
+        ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
         for tick in ax.yaxis.get_major_ticks():
             tick.tick1line.set_markeredgewidth(self.lineThickness) # Set tick width
+
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks)
 
         # Set the edge thickness
         for spine in ax.spines.values():
@@ -2002,15 +2007,21 @@ class WebApp:
         ax.set_ylim(0, yMax)
 
         # Set colorbar
-        sm = plt.cm.ScalarMappable(norm=normalize, cmap=colorBar)
-        sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, pad=0.02)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="4%", pad=0.1)
+        norm = plt.Normalize(vmin=0, vmax=yMax)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=colorBar), cax=cax)
+        cbar.set_ticks(list(yTicks))
+        cbar.set_ticklabels(yTickLabels)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
         for tick in cbar.ax.yaxis.get_major_ticks():
             tick.tick1line.set_markeredgewidth(self.lineThickness)
         for spine in cbar.ax.spines.values():
             spine.set_linewidth(self.lineThickness)
+
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         figName = self.getFileNameFig('entropy')
@@ -2230,8 +2241,6 @@ class WebApp:
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        fig.tight_layout()
-        fig.set_size_inches(self.figSize)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -2241,11 +2250,16 @@ class WebApp:
         # Set tick parameters
         ax.tick_params(axis='both', which='major', rotation=0, length=self.tickLength,
                        labelsize=self.labelSizeTicks, width=self.lineThickness)
+        # Set tick parameters
+        ax.tick_params(axis='both', which='major', length=self.tickLength,
+                       labelsize=self.labelSizeTicks)
 
         # Set x-ticks
         xTicks = np.arange(len(scores.columns)) + 0.5
         ax.set_xticks(xTicks)
         ax.set_xticklabels(scores.columns)
+        if self.useCustomAxis:
+            ax.set_xticklabels(self.customAxis[0:len(xTicks)])
 
         # Set y-ticks
         yTicks = np.arange(len(scores.index)) + 0.5
@@ -2264,12 +2278,14 @@ class WebApp:
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="4%", pad=0.1)
         norm = plt.Normalize(vmin=cBarMin, vmax=cBarMax)
-        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom),
-                            cax=cax)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cMapCustom), cax=cax)
         cbar.ax.tick_params(axis='y', which='major', labelsize=self.labelSizeTicks,
                             length=self.tickLength, width=self.lineThickness)
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
+
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         figName = self.getFileNameFig('eMap')
@@ -2321,8 +2337,6 @@ class WebApp:
         ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         ax.set_xlabel('Substrate Position', fontsize=self.labelSizeAxis)
         ax.set_ylabel('Residue', fontsize=self.labelSizeAxis)
-        fig.tight_layout()
-        fig.set_size_inches(self.figSize)
 
         # Set the thickness of the figure border
         for _, spine in ax.spines.items():
@@ -2337,6 +2351,8 @@ class WebApp:
         xTicks = np.arange(len(data.columns)) + 0.5
         ax.set_xticks(xTicks)
         ax.set_xticklabels(data.columns)
+        if self.useCustomAxis:
+            ax.set_xticklabels(self.customAxis[0:len(xTicks)])
 
         # Set y-ticks
         yTicks = np.arange(len(data.index)) + 0.5
@@ -2361,6 +2377,9 @@ class WebApp:
                             length=self.tickLength, width=self.lineThickness)
         cbar.outline.set_linewidth(self.lineThickness)
         cbar.outline.set_edgecolor('black')
+
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         figName = self.getFileNameFig(dataType)
@@ -2422,12 +2441,6 @@ class WebApp:
             motif = logomaker.Logo(matrix.transpose(), ax=ax, color_scheme=self.colorsAA,
                                    width=0.95, stack_order=stackOrder)
             motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-            fig.tight_layout()
-            fig.set_size_inches(self.figSize)
-
-            # Set tick parameters
-            ax.tick_params(axis='both', which='major', length=self.tickLength,
-                           labelsize=self.labelSizeTicks)
 
             # Set borders
             motif.style_spines(visible=False)
@@ -2437,8 +2450,9 @@ class WebApp:
 
             # Set x-ticks
             motif.ax.set_xticks([pos for pos in range(len(xTicks))])
-            motif.ax.set_xticklabels(xTicks, fontsize=self.labelSizeTicks,
-                                     rotation=0, ha='center')
+            motif.ax.set_xticklabels(xTicks)
+            if self.useCustomAxis:
+                ax.set_xticklabels(self.customAxis[0:len(xTicks)])
 
             # Set y-ticks
             yTicks = [yMin, 0, yMax]
@@ -2447,6 +2461,10 @@ class WebApp:
             motif.ax.set_yticks(yTicks)
             motif.ax.set_yticklabels(yTickLabels, fontsize=self.labelSizeTicks)
             motif.ax.set_ylim(yMin, yMax)
+
+            # Set tick parameters
+            ax.tick_params(axis='both', which='major', length=self.tickLength,
+                           labelsize=self.labelSizeTicks)
 
             # Set tick width
             for tick in motif.ax.xaxis.get_major_ticks():
@@ -2461,6 +2479,10 @@ class WebApp:
             # Set horizontal line
             motif.ax.axhline(y=0, color='black', linestyle='-',
                              linewidth=self.lineThickness)
+
+            # Scale fig
+            plt.tight_layout()
+            fig.set_size_inches(self.figSize)
 
             # File path
             figName = self.getFileNameFig('eLogo')
@@ -2537,7 +2559,9 @@ class WebApp:
         plt.imshow(wordcloud, interpolation='bilinear')
         plt.title(title, fontsize=self.labelSizeTitle, fontweight='bold')
         plt.axis('off')
-        fig.tight_layout()
+
+        # Scale fig
+        plt.tight_layout()
         fig.set_size_inches(self.figSize)
 
         # File path
@@ -2581,8 +2605,6 @@ class WebApp:
         motif = logomaker.Logo(data.transpose(), ax=ax, color_scheme=self.colorsAA,
                                width=0.95, stack_order=stackOrder)
         motif.ax.set_title(title, fontsize=self.labelSizeTitle, fontweight='bold')
-        fig.tight_layout()
-        fig.set_size_inches(self.figSize)
 
         # Set tick parameters
         ax.tick_params(axis='both', which='major', length=self.tickLength,
@@ -2598,6 +2620,8 @@ class WebApp:
         motif.ax.set_xticks([pos for pos in range(len(xTicks))])
         motif.ax.set_xticklabels(xTicks, fontsize=self.labelSizeTicks,
                                  rotation=0, ha='center')
+        if self.useCustomAxis:
+            ax.set_xticklabels(self.customAxis[0:len(xTicks)])
 
         # Set y-ticks
         yMax = self.entropyMax
@@ -2623,6 +2647,10 @@ class WebApp:
         # Set horizontal line
         motif.ax.axhline(y=0, color='black', linestyle='-',
                          linewidth=self.lineThickness)
+
+        # Scale fig
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         figName = self.getFileNameFig('webLogo')
@@ -2758,6 +2786,10 @@ class WebApp:
         for _, spine in ax.spines.items():
             spine.set_visible(True)
             spine.set_linewidth(self.lineThickness)
+
+        # Scale fig
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         figName = self.getFileNameFig(
@@ -2896,6 +2928,10 @@ class WebApp:
             linewidth=self.lineThickness, loc='upper left', framealpha=0.9
         )
 
+        # Scale fig
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
+
         # File path
         figName = self.getFileNameFig(f'PredActivity-Scatter-NSubs_{len(data.index)}')
         path = os.path.join(self.pathFigs, figName)
@@ -3005,6 +3041,10 @@ class WebApp:
                 handlelength=1, handletextpad=0.2, edgecolor='black',
                 linewidth=self.lineThickness, loc='best', framealpha=0.9
             )
+
+        # Scale fig
+        plt.tight_layout()
+        fig.set_size_inches(self.figSize)
 
         # File path
         figName = self.getFileNameFig(f'PredActivity-Bars-NSubs_{len(xTicks)}')
