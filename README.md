@@ -53,6 +53,14 @@ To test the program a trial dataset is available in the "TemplateData" folder, t
 Additional instructions can be found on the website's home page.
 
 
+# Figure Customization:
+
+To manually set the axis labels, set find the "self.useCustomAxis" param in functions.py, and set it to "True", and then set "self.customAxis" to the labels you want:
+
+    self.useCustomAxis = False
+    self.customAxis = ['P4','P3','P2','P1','P1\'','P2\'','P3\'','P4\'']
+
+
 # Troubleshooting:
 
 Unterminated processes can result in the website not starting correctly.
