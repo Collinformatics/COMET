@@ -708,7 +708,7 @@ class WebApp:
         for index, (sub, count) in enumerate(substrates.items()):
             if index >= self.printN:
                 break
-            self.log(f'     {sub}: {count:,}')
+            self.log(f'\t{sub}: {count:,}')
 
         # Save data
         self.saveSubstrates(substrates=substrates, datasetType=datasetType)
@@ -1203,7 +1203,7 @@ class WebApp:
             if self.subsExp:
                 self.log('\nSubstrates:')
                 for i, (substrate, count) in enumerate(self.subsExp.items()):
-                    self.log(f'    {substrate}, {count:,}')
+                    self.log(f'\t{substrate}, {count:,}')
                     if i >= self.printN:
                         break
                 self.log(f'\nTotal Substrates: {sum(self.subsExp.values()):,}\n'
@@ -1212,7 +1212,7 @@ class WebApp:
                 for idx, profile in enumerate(self.profiles):
                     self.log(f'\nProfile: {idx}')
                     for i, (substrate, count) in enumerate(profile.items()):
-                        self.log(f'    {substrate}, {count:,}')
+                        self.log(f'\t{substrate}, {count:,}')
                         if i >= self.printN:
                             break
                 self.getMotifSeq()
@@ -1397,7 +1397,7 @@ class WebApp:
                  f'    Unique: {self.countExpUnique:,}\n')
         self.log('Substrates:')
         for i, (substrate, count) in enumerate(self.subsExp.items()):
-            self.log(f'    {substrate}, {count:,}')
+            self.log(f'\t{substrate}, {count:,}')
             i += 1
             if i >= self.printN:
                 break
@@ -1593,7 +1593,7 @@ class WebApp:
 
         self.log('\nMotif Sequences:')
         for i, (motif, count) in enumerate(self.subsExp.items()):
-            self.log(f'* {motif}: {count:,}')
+            self.log(f'\t{motif}: {count:,}')
             if i >= self.printN:
                 break
         self.log('\n')
