@@ -1265,15 +1265,18 @@ class WebApp:
                 counts = q.get()
                 self.countsBg += counts
                 if len(queuesBg) > 1:
-                    self.log(f'Counts: {idx}\n{counts}\n')
+                    if idx == 0:
+                        self.log(f'Counts: {idx}\n{counts}')
+                    else:
+                        self.log(f'\nCounts: {idx}\n{counts}')
                 else:
-                    self.log(f'Counts:\n{counts}\n')
+                    self.log(f'Counts:\n{counts}')
             self.countBgTotal = sum(self.countsBg.iloc[:, 0])
             if self.countBgTotal == 0:
                 self.logError(f'ERROR: loadCounts()\n'
                               f'* No background counts were loaded.')
             if len(queuesBg) > 1:
-                self.log(f'\nCombined Background Counts:\n{self.countsBg}\n')
+                self.log(f'\nCombined Background Counts:\n{self.countsBg}')
 
         if self.dropPos:
             self.removePos()
@@ -1909,8 +1912,8 @@ class WebApp:
                     x = pearsonr(
                         vect1, vect2
                     )
-                    pearson.loc[f'{combo}', pos] = x[0]
-                    pValues.loc[f'{combo}', pos] = x[1]
+                    pearson.loc[f'Reg{set1}-Reg{set2}', pos] = x[0]
+                    pValues.loc[f'Reg{set1}-Reg{set2}', pos] = x[1]
             pearson.to_csv(
                 os.path.join(self.pathFigs, 'pearson.csv'), float_format='%.4f'
             )
@@ -2330,7 +2333,7 @@ class WebApp:
 
 
     def plotStats(self, data, dataType):
-        self.log(f'Standard deviation:\n{data}\n')
+        self.log(f'Standard deviation:\n{data}')
 
         title = f'{self.enzymeName}\nStandard Deviation'
 
