@@ -1918,10 +1918,14 @@ class WebApp:
                     pearson.loc[f'Reg{set1}-Reg{set2}', pos] = x[0]
                     pValues.loc[f'Reg{set1}-Reg{set2}', pos] = x[1]
             pearson.to_csv(
-                os.path.join(self.pathFigs, 'pearson.csv'), float_format='%.4f'
+                os.path.join(self.pathFigs,
+                             'Pearson_Correlation_Coefficient.csv'),
+                float_format='%.4f'
             )
             pValues.to_csv(
-                os.path.join(self.pathFigs, 'pValues.csv'), float_format='%.4e'
+                os.path.join(self.pathFigs,
+                             'Pearson_Correlation_Coefficient-pValues.csv'),
+                float_format='%.4e'
             )
 
         # Calculate: Standard Deviation
