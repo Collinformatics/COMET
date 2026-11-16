@@ -251,7 +251,6 @@ class WebApp:
             maxScore = max(data.values())
             for substrate in data.keys():
                 if negValues:
-                    dec = 5
                     norm[substrate] = 1 / (data[substrate] / maxScore)
                 else:
                     norm[substrate] = data[substrate] / maxScore
