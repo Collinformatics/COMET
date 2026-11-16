@@ -245,12 +245,16 @@ class WebApp:
 
 
     @staticmethod
-    def normValues(data):
+    def normValues(data, negValues=False):
         norm = {}
         if data.values():
             maxScore = max(data.values())
             for substrate in data.keys():
-                norm[substrate] = data[substrate] / maxScore
+                if negValues:
+                    dec = 5
+                    norm[substrate] = 1 / (data[substrate] / maxScore)
+                else:
+                    norm[substrate] = data[substrate] / maxScore
         return norm
 
 
@@ -1666,20 +1670,20 @@ class WebApp:
         for substrate in self.subsPred:
             score = 0
             for idx, aa in enumerate(substrate):
-                val = predMatrix.loc[aa, predMatrix.columns[idx]]
+                val = np.log2(predMatrix.loc[aa, predMatrix.columns[idx]])
                 if score == 0:
                     score = val
                 else:
-                    score *= val
+                    score += val
             activityPred[substrate] = score
 
         # Normalize activity scores
         activityExpNorm = self.normValues(activityExp)
-        activityPredNorm = self.normValues(activityPred)
+        activityPredNorm = self.normValues(activityPred, negValues=True)
 
         # Evaluate Z-scores
-        zExp = self.ZScores(activityExpNorm)
-        zPred = self.ZScores(activityPredNorm)
+        zExp = self.ZScores(activityExp)
+        zPred = self.ZScores(activityPred)
 
         # Build table
         if zExp:
